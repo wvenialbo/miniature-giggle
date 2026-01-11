@@ -1,8 +1,9 @@
 import os
-import warnings
+
+from .base_filesystem_mounter import BaseFileSystemMounter
 
 
-class LocalFileSystemMounter:
+class LocalFileSystemMounter(BaseFileSystemMounter):
     """
     Clase para manejar el sistema de archivos local.
 
@@ -90,8 +91,3 @@ class LocalFileSystemMounter:
             archivos local.
         """
         return True
-
-    def _report_failure(self, error_message: str, fail: bool) -> None:
-        if fail:
-            raise RuntimeError(error_message)
-        warnings.warn(error_message, RuntimeWarning)

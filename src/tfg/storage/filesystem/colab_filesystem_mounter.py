@@ -1,5 +1,4 @@
 import os
-import warnings
 
 try:
     from google import colab
@@ -32,7 +31,10 @@ except ImportError:
         return False
 
 
-class ColabFileSystemMounter:
+from .base_filesystem_mounter import BaseFileSystemMounter
+
+
+class ColabFileSystemMounter(BaseFileSystemMounter):
     """
     Clase para montar y desmontar Google Drive en Google Colab.
 
@@ -147,8 +149,3 @@ class ColabFileSystemMounter:
             return False
 
         return True
-
-    def _report_failure(self, error_message: str, fail: bool) -> None:
-        if fail:
-            raise RuntimeError(error_message)
-        warnings.warn(error_message, RuntimeWarning)
