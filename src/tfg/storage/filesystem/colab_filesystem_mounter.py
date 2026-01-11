@@ -68,6 +68,9 @@ class ColabFileSystemMounter:
 
         self.mountpoint = mountpoint
 
+    def __repr__(self) -> str:
+        return f"ColabFileSystemMounter(mountpoint='{self.mountpoint}')"
+
     def is_mounted(self) -> bool:
         """
         Verifica si Google Drive está montado.

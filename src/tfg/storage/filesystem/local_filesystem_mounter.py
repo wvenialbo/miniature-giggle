@@ -6,6 +6,9 @@ class LocalFileSystemMounter:
     def __init__(self, *, mountpoint: str = os.getcwd()) -> None:
         self.mountpoint = mountpoint
 
+    def __repr__(self) -> str:
+        return f"LocalFileSystemMounter(mountpoint='{self.mountpoint}')"
+
     def is_mounted(self) -> bool:
         return os.path.exists(self.mountpoint) and os.path.isdir(
             self.mountpoint

@@ -15,6 +15,9 @@ class PickleFileHandler:
         Guarda datos en un archivo pickle.
     """
 
+    def __repr__(self) -> str:
+        return "PickleFileHandler()"
+
     @staticmethod
     def _issue_warning() -> None:
         warnings.warn(

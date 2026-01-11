@@ -15,6 +15,9 @@ class NumpyFileHandler:
         Guarda datos en un archivo NumPy.
     """
 
+    def __repr__(self) -> str:
+        return "NumpyFileHandler()"
+
     def load(self, *, filename: str) -> tp.Any:
         """
         Carga datos desde un archivo NumPy.
