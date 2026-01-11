@@ -609,5 +609,6 @@
     ],
     // VSCode specifics settings
     "json.schemaDownload.enable": true,
+    "sourcery.codeLens": false,
     // End of settings.json
 }
