@@ -81,7 +81,7 @@ class LocalBackend:
 
         Returns
         -------
-        tp.List[str]
+        list[str]
             Una lista de URIs que comienzan con el prefijo dado.
         """
         base_dir = self._resolve_path(prefix)
