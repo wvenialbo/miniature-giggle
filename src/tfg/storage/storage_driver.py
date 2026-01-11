@@ -1,12 +1,7 @@
 import os
 import typing as tp
 
-from ..utils import (
-    check_is_active,
-    format_report,
-    format_table,
-    get_columns_size,
-)
+from ..utils import check_is_active, format_report, format_table, get_columns_size
 from .filehandler import FileHandler
 from .filesystem import FileSystemMounter
 
@@ -55,6 +50,22 @@ class StorageDriver:
         Guarda datos en un archivo en el sistema de archivos.
     unmount(fail: bool = True) -> None
         Desmonta el sistema de archivos y guarda todos los cambios.
+
+    Examples
+    --------
+    >>> # En Colab
+    >>> driver = StorageDriver(
+    >>>     filesystem=GoogleColabFileSystem(mountpoint="/content/drive"),
+    >>>     directory="mi_directorio",
+    >>>     handlers=[(".npz", NumpyFileHandler()), (".pkl", PickleFileHandler())]
+    >>> )
+
+    >>> # Localmente
+    >>> driver = StorageDriver(
+    >>>     filesystem=LocalFileSystem(base_path="/ruta/local"),
+    >>>     directory="mi_directorio",
+    >>>     handlers=[(".npz", NumpyFileHandler()), (".pkl", PickleFileHandler())]
+    >>> )
     """
 
     def __init__(
