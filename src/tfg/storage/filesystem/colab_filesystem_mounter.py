@@ -84,7 +84,7 @@ class ColabFileSystemMounter:
             self.mountpoint
         )
 
-    def mount(self, *, fail: bool = True) -> None:
+    def mount(self, *, fail: bool = True) -> bool:
         """
         Monta Google Drive si aún no está montado.
 
@@ -100,17 +100,24 @@ class ColabFileSystemMounter:
 
         Returns
         -------
-        None
+        bool
+            True si Google Drive está montado después de la llamada,
+            False en caso contrario.
         """
         if self.is_mounted():
-            return
+            return True
 
         colab_drive_mount(self.mountpoint)
 
         if not self.is_mounted():
-            self._report_failure("No se pudo montar Google Drive", fail)
+            self._report_failure(
+                f"No se pudo montar Google Drive en '{self.mountpoint}'", fail
+            )
+            return False
 
-    def unmount(self, *, fail: bool = True) -> None:
+        return True
+
+    def unmount(self, *, fail: bool = True) -> bool:
         """
         Desmonta Google Drive y guarda todos los cambios.
 
@@ -126,15 +133,20 @@ class ColabFileSystemMounter:
 
         Returns
         -------
-        None
+        bool
+            True si Google Drive está desmontado después de la llamada,
+            False en caso contrario.
         """
         if not self.is_mounted():
-            return
+            return True
 
         colab_drive_flush_and_unmount()
 
         if self.is_mounted():
             self._report_failure("No se pudo desmontar Google Drive", fail)
+            return False
+
+        return True
 
     def _report_failure(self, error_message: str, fail: bool) -> None:
         if fail:
