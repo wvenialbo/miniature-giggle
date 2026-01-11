@@ -31,23 +31,29 @@ class Session:
     """
 
     def __init__(
-        self, backend: StorageBackend, handlers: list[DataHandler]
+        self, *, backend: StorageBackend, handlers: list[DataHandler]
     ) -> None:
         self.backend = backend
+        self.handlers = handlers
+
         handlers_mapping = [
             (fmt_id, handler)
             for handler in handlers
             for fmt_id in handler.format_id
         ]
-        self.handlers = dict(handlers_mapping)
+        self.handler_map = dict(handlers_mapping)
 
-    def get_handler(self, format_id: str) -> DataHandler:
+    def __repr__(self) -> str:
+        handlers = ", ".join([repr(h) for h in self.handlers])
+        return f"Session(backend={repr(self.backend)}, handlers=[{handlers}])"
+
+    def get_handler(self, *, id: str) -> DataHandler:
         """
         Obtiene el handler para un formato de datos específico.
 
         Parameters
         ----------
-        format_id : str
+        id : str
             Identificador del formato de datos.
 
         Returns
@@ -60,8 +66,6 @@ class Session:
         ValueError
             Si no se encuentra un handler para el formato solicitado.
         """
-        if format_id not in self.handlers:
-            raise ValueError(
-                f"No se encontró handler para el formato: {format_id}"
-            )
-        return self.handlers[format_id]
+        if id not in self.handler_map:
+            raise ValueError(f"No se encontró handler para el formato: {id}")
+        return self.handler_map[id]
