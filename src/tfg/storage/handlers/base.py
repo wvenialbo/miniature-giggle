@@ -19,7 +19,7 @@ class DataHandler(tp.Protocol):
         handler.
     """
 
-    def load(self, stream: tp.BinaryIO) -> tp.Any:
+    def load(self, *, stream: tp.BinaryIO) -> tp.Any:
         """
         Carga datos desde un flujo binario.
 
@@ -35,7 +35,7 @@ class DataHandler(tp.Protocol):
         """
         ...
 
-    def save(self, data: tp.Any, stream: tp.BinaryIO) -> None:
+    def save(self, *, data: tp.Any, stream: tp.BinaryIO) -> None:
         """
         Guarda datos en un flujo binario.
 

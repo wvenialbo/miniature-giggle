@@ -22,7 +22,7 @@ class StorageBackend(tp.Protocol):
         Escribe datos en la URI especificada.
     """
 
-    def delete(self, uri: str) -> None:
+    def delete(self, *, uri: str) -> None:
         """
         Elimina datos en la URI especificada.
 
@@ -33,7 +33,7 @@ class StorageBackend(tp.Protocol):
         """
         ...
 
-    def exists(self, uri: str) -> bool:
+    def exists(self, *, uri: str) -> bool:
         """
         Verifica si los datos existen en la URI especificada.
 
@@ -49,7 +49,7 @@ class StorageBackend(tp.Protocol):
         """
         ...
 
-    def list_files(self, prefix: str) -> list[str]:
+    def list_files(self, *, prefix: str) -> list[str]:
         """
         Lista las URIs que comienzan con el prefijo especificado.
 
@@ -65,7 +65,7 @@ class StorageBackend(tp.Protocol):
         """
         ...
 
-    def read(self, uri: str) -> bytes:
+    def read(self, *, uri: str) -> bytes:
         """
         Lee datos desde la URI especificada.
 
@@ -76,7 +76,7 @@ class StorageBackend(tp.Protocol):
         """
         ...
 
-    def write(self, uri: str, data: bytes) -> None:
+    def write(self, *, uri: str, data: bytes) -> None:
         """
         Escribe datos en la URI especificada.
 
