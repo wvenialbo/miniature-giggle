@@ -1,0 +1,660 @@
+# Algorithm configuration
+#
+# This section defines the parameters for various algorithms used in the
+# analysis, each tailored for specific approaches to radial profile difference
+# and topological data analysis (TDA).
+algorithm:
+  # Brightness Temperature (BT) Radial profile difference time series algorithm
+  # (robust approach).
+  algorithm_0:
+    name: Power Spectral Density of Azimuthally Averaged Radial Profile Difference
+    # The time offset (in hours) used when calculating profile differences.
+    delta_t: 6
+    # The minimum radius (in km) from which the analysis begins.
+    radius_min: 10.0
+    # The increment (in km) by which the analysis radius is increased.
+    radius_step: 10.0
+    # The percentage of data, measured from the centre outwards, to be
+    # considered in the analysis.
+    windows_size: 100.0
+    # Determines whether to invert the radial profile difference before the
+    # analysis.
+    #
+    #   - true: Calculates P[t+delta] - P[t].
+    #   - false: Calculates P[t] - P[t+delta] (this is the default
+    #              behaviour).
+    invert_difference: false
+  # Brightness Temperature (BT) Radial profile difference using a 1-D TDA
+  # algorithm.
+  algorithm_1:
+    name: Maximum Persistence 0-D Homology of Azimuthally Averaged Radial Profile Difference
+    # The time offset (in hours) used when calculating profile differences.
+    delta_t: 6
+    # The minimum threshold value (in Kelvin) for binarisation of the profile
+    # difference.
+    bt_threshold_min: 3
+    # The maximum threshold value (in Kelvin) for binarisation of the profile.
+    bt_threshold_max: 20
+    # The increment (in Kelvin) for advancing the analysis threshold.
+    bt_threshold_step: 3
+    # A scaling factor for the profile difference. If greater that 1.0, the
+    # profile difference will be multiplied by this value before thresholding.
+    # E.g. if bt_scale = 10, the threshold are expressed in tenths fo Kelvin.
+    bt_scale: 1
+    # The percentage of data to be ignored in the absolute centre of the radial
+    # profile.
+    central_mask: 6.8
+    # The percentage of data, measured from the centre outwards, to be
+    # considered in the analysis.
+    windows_size: 100.0
+    # The maximum size (in linear pixels) of small segments to be removed
+    # during the clean-up process.
+    small_blob_size: 10
+    # Determines whether to invert the radial profile difference before the
+    # analysis.
+    #
+    #   - true: Calculates P[t+delta] - P[t].
+    #   - false: Calculates P[t] - P[t+delta] (this is the default
+    #              behaviour).
+    invert_difference: false
+  # Tymochko's Brightness Temperature (BT) field matrix difference using a 2-D
+  # TDA algorithm.
+  algorithm_2:
+    name: Maximum Persistence 1-D Homology of Brightness Temperature Difference Matrix (Tymochko)
+    # The time offset (in hours) used when calculating matrix differences.
+    delta_t: 6
+    # The minimum threshold value (in Kelvin) for binarisation of the
+    # difference matrix.
+    bt_threshold_min: 40
+    # The maximum threshold value (in Kelvin) for binarisation of the
+    # difference matrix.
+    bt_threshold_max: 40
+    # The increment (in Kelvin) for advancing the analysis threshold.
+    bt_threshold_step: 10
+    # The maximum size (in pixels) of small blobs to be removed during the
+    # clean-up process.
+    small_blob_size: 20
+    # Determines whether to invert the difference matrix before the analysis.
+    #
+    #   - true: Calculates M[t+delta] - M[t].
+    #   - false: Calculates M[t] - M[t+delta] (this is the default
+    #              behaviour).
+    invert_difference: false
+  # Brightness Temperature (BT) Radial profile time series algorithm
+  # (robust approach).
+  algorithm_3:
+    name: Power Spectral Density of Azimuthally Averaged Radial Profile Time Series
+    # The minimum radius (in km) from which the analysis begins.
+    radius_min: 10.0
+    # The increment (in km) by which the analysis radius is increased.
+    radius_step: 10.0
+    # The percentage of data, measured from the centre outwards, to be
+    # considered in the analysis.
+    windows_size: 100.0
+  # Brightness Temperature (BT) Radial profile TDE time series algorithm
+  # (TDA robust approach).
+  algorithm_4:
+    name: Maximum Persistence 1-D Homology of Azimuthally Averaged Radial Profile Time Delay Embedding
+    # The minimum radius (in km) from which the analysis begins.
+    radius_min: 0.0
+    # The increment (in km) by which the analysis radius is increased.
+    radius_step: 4.0
+    # The percentage of data, measured from the centre outwards, to be
+    # considered in the analysis.
+    windows_size: 100.0
+    # Time delay for TDE transform (in km).
+    tau: 72.0
+    # Embedding dimension for TDE space.
+    dim: 2
+# Date format options
+date_format:
+  # Defines the expected format for input dates.
+  input: "%Y-%m-%dT%H:%M%z"
+  # Specifies the format for displaying dates.
+  output: "%Y/%m/%d %H:%M%:z"
+# Display options
+display:
+  # Set to 'true' to show images of each processed profile.
+  display_images: false
+  # Set to 'true' to print metadata for each processed profile.
+  display_metadata: false
+  # Set to 'true' to enable both image display and metadata printing for each
+  # processed profile.
+  verbose: false
+  # The number of most prominent cycles to include in diagrams and reports.
+  top_periods: 5
+# Configuration for evaluating results
+evaluation:
+  # The noise model to use for the Hypothesis Test.
+  #
+  # Available models:
+  #   - white: Applies a white noise model for confidence levels.
+  #   - red: Applies a red noise model for confidence levels.
+  noise_model: red
+# Band-pass filter configuration (for analysis and visualisation)
+filter:
+  # The central frequency (in cycles per day) for analysis and dephasing.
+  #
+  # This is used to:
+  #   - Visualise a filtered version of the time series.
+  #   - Improve the alignment of time series around a specific frequency.
+  #
+  # Currently set to 1 cycle/day to highlight the diurnal cycle in signals
+  # before phase alignment.
+  frequency: 1.0
+  # The bandwidth (in cycles per day) for the analysing/dephasing frequency
+  # filter.
+  bandwidth: 0.3
+  # The order of the digital or analogue Butterworth filter.
+  order: 4
+# Imputation configuration
+#
+# This section defines parameters for handling missing data using sparse cubic
+# spline interpolation.
+imputation:
+  # control_points: The maximum number of control points to use for the
+  #                 interpolation, specified in number of samples.
+  #
+  #                 Allowed values:
+  #                   - null: The number of control points will be set to
+  #                           the full length of the time series
+  #                           (`series_length`).
+  #                   - int (n >= 1): A specific integer value for the maximum
+  #                                   number of control points.
+  #
+  #                 Note: The effective number of control points used will
+  #                       always be adjusted to be at least
+  #                       `subsampling.sampling_rate` and no more than the
+  #                       actual time series length.
+  control_points: 24
+# Data output configuration
+output:
+  # Set these to 'true' to force product files regeneration.
+  regenerate_analysis: false
+  regenerate_difference: false
+  regenerate_profile: false
+  regenerate_reprojection: false
+  generate_zipfile: false
+# Dataset and working repository settings
+#
+# Note: Any product paths set to 'null' will be automatically calculated at
+# runtime during initialisation, based on the `repository.path` configuration
+# and the specific event name.
+repository:
+  # The root directory for all input data and processed outputs.
+  root: ../data/
+  # The path to the event's specific datasets and product folder within the
+  # repository.
+  #
+  # Note: This path is dynamically calculated at runtime during initialisation,
+  #       based on the name of the event being processed and the value of
+  #       `repository.root`.
+  path: null
+  # The path where difference matrix files will be stored.
+  #
+  # Note: This path is determined at runtime during initialisation.
+  difference: null
+  # The path where radial profile array files will be stored.
+  #
+  # Note: This path is determined at runtime during initialisation.
+  profile: null
+  # The path where reprojected matrix files will be stored.
+  #
+  # Note: This path is determined at runtime during initialisation.
+  reprojection: null
+# FFT spectral analysis configuration
+spectral:
+  # The block size for FFT (Fast Fourier Transform) analysis.
+  #
+  # Allowed values:
+  #   - null: (Auto) Uses the exact length of the time series.
+  #   - 0: Uses the smallest power of 2 that is greater than or equal to the
+  #        length of the time series.
+  #
+  # Any value greater than or equal to the time series length is permitted;
+  # a power of 2 (e.g., 2**n) is recommended.
+  fft_size: 4096
+  # The name of the window function used to minimise spectral leakage during
+  # FFT.
+  #
+  # Available functions: bartlett, blackman, boxcar, hamming, hann
+  window: hann
+  # The number of samples per segment for the Welch periodogram.
+  #
+  # Allowed values:
+  #   - null: Computes a single-segment periodogram.
+  #   - float (0 < n <= 1): Represents a proportion of the series_length.
+  #   - int (n >= 1): Sets the segment length to
+  #                   min(n * sampling_rate, series_length).
+  nperseg: null
+  # The number of overlapping segment elements for the Welch periodogram.
+  #
+  # Allowed values:
+  #   - null: Computes a single-segment periodogram (no overlap).
+  #   - float (0 <= n <= 0.75): Represents a proportion of `nperseg`. 0 means
+  #                             no overlap.
+  #   - int (n <= 0.75 * nperseg): Specifies the exact number of overlapping
+  #                                elements.
+  noverlap: null
+# Time series subsampling configuration
+subsampling:
+  # The algorithm's series resolution, specified in samples per day.
+  #
+  # Note: This must be an integer submultiple of `datasource.time_resolution`.
+  sampling_rate: 24
+  # The offset value (in number of samples) for the starting point in the
+  # original series.
+  sampling_offset: 0
+# Event configuration
+#
+# Each event entry requires the following information:
+#   - name: Defines the unique name of the event. This value is used to
+#           automatically determine the storage paths for data and media files.
+#   - time_start: Specifies the start of the time window for the event.
+#                 This must adhere to the format defined in `date_format.input`
+#                 settings.
+#   - time_end: Specifies the end of the time window for the event.
+#               This must adhere to the format defined in `date_format.input`
+#               settings.
+#   - datasource: Refers to the ID of an entry in the `datasource` section of
+#                 the settings.
+#   - tracking: A structure containing tracking information. This field accepts
+#               one of two mutually exclusive data configurations:
+#               - tracking_datasource: Refers to the ID of an entry in the
+#                 `tracking` section of the settings.
+#               OR
+#               - datetime: A list of strings, each representing a control
+#                           point date in ISO 8601 format.
+#               - latitude: A list of latitudes for each corresponding control
+#                           point.
+#               - longitude: A list of longitudes for each corresponding
+#                            control point.
+#   - reference_frame: The index of the reference frame within the time series
+#                      used for optimal dephasing alignment of time series
+#                      data.
+event:
+  ivan:
+    name: IVAN
+    time_start: "2004-09-05T06:00Z"
+    time_end: "2004-09-16T12:00Z"
+    datasource: gridsat_goes_g12_ch4_f
+    tracking_datasource: hurdat2
+    reference_frame:
+      algorithm_0: 3
+      algorithm_1: 0
+      algorithm_2: 0
+    algorithm_0:
+      radius_min: 230.0
+    algorithm_1:
+      bt_threshold_min: 60
+      bt_threshold_max: 160
+      bt_threshold_step: 1
+      bt_scale: 10
+  felix:
+    name: FELIX
+    time_start: "2007-08-31T12:00Z"
+    time_end: "2007-09-06T18:00Z"
+    datasource: gridsat_goes_g12_ch4_f
+    tracking_datasource: hurdat2
+    reference_frame:
+      algorithm_0: 2
+      algorithm_1: 0
+      algorithm_2: 0
+    algorithm_0:
+      radius_min: 210.0
+    algorithm_1:
+      bt_threshold_min: 25
+      bt_threshold_max: 255
+      bt_threshold_step: 1
+      bt_scale: 10
+  # florence:
+  #   name: "FLORENCE"
+  #   time_start: "2018-09-09T12:00Z"
+  #   time_end: "2018-09-14T18:00Z"
+  #   datasource: goes_r_g16_ch13_m3_f
+  #   tracking_datasource: hurdat2
+  #   reference_frame:
+  #     algorithm_0: 0
+  #     algorithm_1: 0
+  #     algorithm_2: 0
+  # lee:
+  #   name: "LEE"
+  #   time_start: "2023-09-06T18:00Z"
+  #   time_end: "2023-09-10T18:00Z"
+  #   datasource: goes_r_g16_ch13_m6_f
+  #   tracking_datasource: hurdat2
+  #   reference_frame:
+  #     algorithm_0: 0
+  #     algorithm_1: 0
+  #     algorithm_2: 0
+  raoni:
+    name: "RAONI"
+    time_start: "2021-06-28T00:00Z"
+    time_end: "2021-07-01T12:00Z"
+    datasource: goes_r_g16_ch13_m6_f
+    tracking_datasource: null
+    reference_frame:
+      algorithm_0: 0
+      algorithm_1: 0
+      algorithm_2: 0
+    # algorithm_0:
+    #   radius_min: 50.0
+    #   radius_step: 10.0
+    algorithm_1:
+      bt_threshold_min: -30
+      bt_threshold_max: 30
+      bt_threshold_step: 1
+      bt_scale: 10
+    tracking:
+      datetime: ["2021-06-28T00:00:00Z", "2021-06-28T03:00:00Z", "2021-06-28T06:00:00Z", "2021-06-28T09:00:00Z", "2021-06-28T12:00:00Z", "2021-06-28T15:00:00Z", "2021-06-28T18:00:00Z", "2021-06-28T21:00:00Z", "2021-06-29T00:00:00Z", "2021-06-29T03:00:00Z", "2021-06-29T06:00:00Z", "2021-06-29T11:50:00Z", "2021-06-29T19:00:00Z", "2021-06-30T00:00:00Z", "2021-06-30T03:00:00Z", "2021-06-30T06:00:00Z", "2021-06-30T09:00:00Z", "2021-06-30T12:00:00Z", "2021-06-30T15:00:00Z", "2021-06-30T18:00:00Z", "2021-06-30T21:00:00Z", "2021-07-01T00:00:00Z", "2021-07-01T03:00:00Z", "2021-07-01T06:00:00Z", "2021-07-01T09:00:00Z", "2021-07-01T12:00:00Z"]
+      latitude: [-38.65, -38.75, -38.8, -38.23, -37.7, -37.35, -37.40, -37.2, -36.86, -36.5, -35.8, -34.8, -34.14, -33.4, -33.05, -32.37, -31.45, -30.83, -30.35, -29.71, -28.98, -28.3, -27.65, -27.25, -26.5, -26.1]
+      longitude: [-52.55, -52.41, -52.85, -53.38, -53.1, -52.84, -52.4, -52.2, -52.08, -52.0, -51.45, -50.2, -47.93, -46.39, -45.7, -45.21, -44.45, -43.47, -42.78, -42.05, -41.55, -41.18, -40.75, -40.7, -40.59, -40.5]
+  yakecan:
+    name: "YAKECAN"
+    time_start: "2022-05-17T00:00Z"
+    time_end: "2022-05-19T12:00Z"
+    datasource: goes_r_g16_ch13_m6_f
+    tracking_datasource: null
+    reference_frame:
+      algorithm_0: 0
+      algorithm_1: 0
+      algorithm_2: 0
+    algorithm_1:
+      bt_threshold_min: 3
+      bt_threshold_max: 20
+      bt_threshold_step: 3
+    tracking:
+      datetime: ["2022-05-17T00:00:00Z", "2022-05-17T03:00:00Z", "2022-05-17T06:00:00Z", "2022-05-17T09:00:00Z", "2022-05-17T12:00:00Z", "2022-05-17T15:00:00Z", "2022-05-17T18:00:00Z", "2022-05-17T21:00:00Z", "2022-05-18T00:00:00Z", "2022-05-18T03:00:00Z", "2022-05-18T06:00:00Z", "2022-05-18T09:00:00Z", "2022-05-18T12:00:00Z", "2022-05-18T15:00:00Z", "2022-05-18T18:00:00Z", "2022-05-18T21:00:00Z", "2022-05-19T00:00:00Z", "2022-05-19T03:00:00Z", "2022-05-19T06:00:00Z", "2022-05-19T09:00:00Z", "2022-05-19T12:00:00Z"]
+      latitude: [-38, -38.2, -38.2, -37.7, -36.5, -34.8, -33.3, -32.1, -31.9, -30.6, -29.7, -29.1, -28.5, -27.8, -27.6, -27.4, -27.1, -27.3, -27.6, -27.8, -28.6]
+      longitude: [-44.3, -45.4, -47.5, -50.1, -50.9, -52, -51.8, -50.9, -50.1, -49.4, -48.5, -47.7, -46, -45.4, -44.1, -42.4, -41.0, -39.4, -38.1, -36.8, -35.4]
+  uba:
+    name: "UBA"
+    time_start: "2021-12-10T00:00Z"
+    time_end: "2021-12-13T00:00Z"
+    datasource: goes_r_g16_ch13_m6_f
+    tracking_datasource: null
+    reference_frame:
+      algorithm_0: 0
+      algorithm_1: 0
+      algorithm_2: 0
+    tracking:
+      datetime: ["2021-12-10T00:00:00Z", "2021-12-10T03:00:00Z", "2021-12-10T06:00:00Z", "2021-12-10T09:00:00Z", "2021-12-10T12:00:00Z", "2021-12-10T15:00:00Z", "2021-12-10T18:00:00Z", "2021-12-10T21:00:00Z", "2021-12-11T00:00:00Z", "2021-12-11T03:00:00Z", "2021-12-11T06:00:00Z", "2021-12-11T09:00:00Z", "2021-12-11T12:00:00Z", "2021-12-11T15:00:00Z", "2021-12-11T18:00:00Z", "2021-12-11T21:00:00Z", "2021-12-12T00:00:00Z", "2021-12-12T03:00:00Z", "2021-12-12T06:00:00Z", "2021-12-12T09:00:00Z", "2021-12-12T12:00:00Z", "2021-12-12T15:00:00Z", "2021-12-12T18:00:00Z", "2021-12-12T21:00:00Z", "2021-12-13T00:00:00Z"]
+      latitude: [-32.4, -32.5, -32.1, -31.9, -31.9, -31.5, -31.7, -32.0, -32.9, -33.3, -33.6, -34.1, -34.1, -34.4, -35.8, -36.0, -36.2, -37.2, -37.8, -38.0, -38.4, -39.0, -39.3, -39.5, -39.7]
+      longitude: [-39.9, -40.9, -41.8, -42.0, -42.2, -42.0, -41.3, -40.4, -40.2, -40.6, -40.8, -41.1, -40.4, -40.0, -40.0, -38.9, -39.0, -38.9, -38.2, -37.7, -37.2, -36.9, -36.5, -36.3, -36.0]
+  bapo:
+    name: "BAPO"
+    time_start: "2015-02-05T12:00Z"
+    time_end: "2015-02-08T00:00Z"
+    datasource: gridsat_goes_g13_ch4_f
+    tracking_datasource: null
+    reference_frame:
+      algorithm_0: 0
+      algorithm_1: 0
+      algorithm_2: 0
+    tracking:
+      datetime: ["2015-02-05T12:00:00Z", "2015-02-05T18:00:00Z", "2015-02-06T00:00:00Z", "2015-02-06T06:00:00Z", "2015-02-06T12:00:00Z", "2015-02-06T18:00:00Z", "2015-02-07T00:00:00Z", "2015-02-07T06:00:00Z", "2015-02-07T12:00:00Z", "2015-02-07T18:00:00Z", "2015-02-07T21:00:00Z", "2015-02-08T00:00:00Z"]
+      latitude: [-25.4, -25.3, -25.8, -27.7, -30.1, -31.0, -32.5, -32.9, -34.3, -35.1, -35.0, -36.1]
+      longitude: [-45.6, -45.0, -43.0, -42.7, -42.5, -42.5, -42.8, -43.5, -43.9, -43.3, -44.0, -42.4]
+# Datasource configuration
+#
+# Each datasource entry requires the following information for accessing a
+# specific satellite data source:
+#   - project: The overarching satellite database project identifier for this
+#              data source.
+#   - origin: A list of identifiers for the specific satellites or instruments
+#             from which the data originates.
+#   - channel: A list of identifiers for the satellite's spectral band or
+#              channel used.
+#   - scene: The identifier for the specific satellite scene or sector covered
+#            by the data.
+#   - spatial_resolution: The linear spatial resolution of the data, specified
+#                         in kilometres per "linear-pixel".
+#   - time_resolution: The temporal resolution of the data, expressed in frames
+#                      per day.
+#
+# Note: Available origins are dependent on the specific database being
+#       accessed. Available channels and scenes vary depending on the chosen
+#       origin and dataset.
+#
+# ---
+# For the "GridSat-GOES" (GridSat-GOES/CONUS) database:
+#
+#   Available origins:
+#     - "G08" to "G12": GOES 2nd generation (I to M) series.
+#     - "G13" to "G15": GOES 3rd generation (N to P) series.
+#
+#   Available channels:
+#     - "ch1": Reflectance (or Scaled Radiance) for the 0.6 µm band.
+#     - "ch2": Brightness Temperature of the 3.9 µm channel.
+#     - "ch3": Brightness Temperature of the 6.7 µm channel.
+#     - "ch4": Brightness Temperature of the 10.7 µm channel.
+#     - "ch5": Brightness Temperature of the 12.0 µm channel.
+#     - "ch6": Brightness Temperature of the 13.4 µm channel.
+#
+#   Available scenes:
+#     - "F": Full Disk.
+#     - "C": CONUS (Contiguous United States).
+#
+#   Available sources:
+#     - "NCEI": NOAA's National Centers for Environmental Information (NCEI)
+#               archive servers.
+#
+# ---
+# For the "GOES-R" series (GOES 16 to 19) datasets:
+#
+#   Available origins:
+#     - "G16" to "G19": GOES 4th generation (R to U) series.
+#       Note: This must be a string, e.g., "G16".
+#
+#   Available channels:
+#     - "C01" to "C16".
+#       Note: This can be a string (e.g., "C08"), a string representing an
+#             inclusive range (e.g., "C13-15"), or a sequence of these strings
+#             (e.g., ["C01", "C05", "C08-10"]).
+#
+#   Available scenes:
+#     - "F": Full Disk.
+#     - "C": CONUS (Continental United States).
+#     - "Mn": Mesoscale, where n = 1 or 2.
+#
+#   Available sources:
+#     - "AWS": NOAA's AWS archive and the NCEI archive cloud storage.
+#
+# ---
+# For the "GridSat-B1" database:
+#   Note: There is no specific origin or scene; these should be set to 'null'.
+#
+#   Available channels:
+#     - "irwin_cdr": Brightness Temperature near 11 microns (Nadir-most
+#                    observations).
+#     - "irwin_2": Brightness Temperature near 11 microns (Second nadir-most
+#                  from overlap regions).
+#     - "irwin_3": Brightness Temperature near 11 microns (Third nadir-most
+#                  from overlap regions).
+#     - "irwvp": Brightness Temperature near 6.7 microns (Nadir-most
+#                observations).
+#     - "irwvp_2": Brightness Temperature near 6.7 microns (Second nadir-most
+#                  from overlap regions).
+#     - "vschn": Visible reflectance near 0.6 microns (Nadir-most
+#                observations).
+#     - "vschn_2": Visible reflectance near 0.6 microns (Second nadir-most from
+#                  overlap regions).
+#
+#   Available sources:
+#     - "NCEI": NOAA's National Centers for Environmental Information (NCEI)
+#               archive servers.
+#     - "AWS": NOAA's AWS archive and the NCEI archive cloud storage.
+datasource:
+  gridsat_b1:
+    project: "GridSat-B1"
+    origin: null
+    channel: irwin_cdr
+    scene: null
+    spatial_resolution: 8.0
+    time_resolution: 8
+    source: AWS
+  gridsat_goes_g12_ch4_f:
+    project: "GridSat-GOES"
+    origin: [G12]
+    channel: [ch4]
+    scene: F
+    spatial_resolution: 4.0
+    time_resolution: 24
+    source: NCEI
+  gridsat_goes_g13_ch4_f:
+    project: "GridSat-GOES"
+    origin: [G13]
+    channel: [ch4]
+    scene: F
+    spatial_resolution: 4.0
+    time_resolution: 24
+    source: NCEI
+  goes_r_g16_ch13_m6_f:
+    project: "GOES-R"
+    origin: [G16]
+    channel: [C13]
+    scene: F
+    spatial_resolution: 2.0
+    time_resolution: 144
+    source: AWS
+  goes_r_g16_ch13_m3_f:
+    project: "GOES-R"
+    origin: [G16]
+    channel: [C13]
+    scene: F
+    spatial_resolution: 2.0
+    time_resolution: 96
+    source: AWS
+# Tracking database configuration
+#
+# This section defines the parameters for external tracking databases that
+# provide historical storm or event trajectory data. Each entry specifies how
+# to locate and identify a particular tracking database.
+#
+# Each tracking database entry requires the following information:
+#   - database_name: The identifier for the tracking database (e.g.,
+#                    "HURDAT2").
+#   - database_path: The URL of the database or its file path and name,
+#                    relative to the repository's root path
+#                    (`repository.root`).
+tracking:
+  hurdat2:
+    database_name: "HURDAT2"
+    database_path: "hurdat2-1851-2024-040425.txt"
+  hurdat2pac:
+    database_name: "HURDAT2-Pacific"
+    database_path: "hurdat2-nepac-1949-2024-031725.txt"
+plotting:
+  series:
+    width: 14
+    height: [4, 7, 11, 15]
+    grid: [true, both, both]
+    legend: [upper right, 0.6]
+    xlabel: t  [d]
+    ylabel: Tbb  [K]
+    title: [[Diferencia de promedios acimutales de Tbb, left]]
+    suptitle: Series de tiempo
+    linestyle: "-"
+    markersize: 3
+    alpha: 0.6
+    linewidth: 1.5
+  spectrogram:
+    dpi: 100
+    width: 14
+    height: 8.5
+    box_unit: in
+    stroke_unit: pt
+    nrows: 2
+    ncols: 1
+    title_: Espectrograma
+    subplots:
+      periodogram:
+        title:
+          - {label: Periodograma %s, loc: left}
+          - {label: "(f ≈ %.2f c/d, T ≈ %.2f h/c, modelo: 'ruido %s', dof = %.1f)", loc: right}
+        global_title: Periodograma global (promedio)
+        plot:
+          - {label: Densidad (%s), zorder: 5}
+          - {label: Densidad global (promedio), linestyle: -., zorder: 5}
+          - {label: H₀, alpha: 0.5, color: gray, linestyle: ":", zorder: 1}
+          - {label: 1 − α = 0.90, alpha: 0.5, color: mediumblue, linestyle: ":", zorder: 1}
+          - {label: 1 − α = 0.95, alpha: 0.5, color: green, linestyle: ":", zorder: 1}
+          - {label: 1 − α = 0.99, alpha: 0.5, color: crimson, linestyle: ":", zorder: 1}
+          - {label: Picos significativos (>95%), color: cyan, linestyle: "-", zorder: 10}
+          - {label: Frecuencias significativas (>95%), color: blue, linestyle: "", marker: +, markersize: 8, zorder: 15}
+          - {label: Frecuencias significativas (>99%), color: green, linestyle: "", marker: +, markersize: 8, zorder: 15}
+          - {label: Frecuencia dominante global, color: red, linestyle: "", marker: +, markersize: 8, zorder: 20}
+        # Frequency of interest markers
+        axvline:
+          - {x: 1.0, label: Frecuencia diurna (1 c/d), color: red, linestyle: --, zorder: 0}
+          - {x: 2.0, label: Frecuencia semidiurna (2 c/d), color: purple, linestyle: --, zorder: 0}
+        # X axis configuration
+        xlim: {left: 0.2, right: 2.8}
+        xlabel: Frecuencia  [c/d]
+        # Y axis configuration
+        ylim: {bottom: 0.0, top: 10.0}
+        ylabel: Densidad espectral de potencia  [K²d/c]
+        # Grid settings
+        grid:
+          visible: true
+          which: both
+          axis: both
+        legend: {}
+        # Global frequency label
+        global_text:
+          bbox: {alpha: 0.4, boxstyle: "round,pad=0.3", ec: b, fc: orange, lw: 0.5}
+          s: "%.2f c/d"
+          ha: left
+          va: bottom
+          zorder: 25
+        # Statistical frequency label
+        statistical_text:
+          bbox: {alpha: 0.4, boxstyle: "round,pad=0.3", ec: b, fc: green, lw: 0.5}
+          s: "%.2f c/d"
+          ha: left
+          va: bottom
+          zorder: 25
+        # Local frequency label
+        local_text:
+          bbox: {alpha: 0.4, boxstyle: "round,pad=0.3", ec: b, fc: yellow, lw: 0.5}
+          s: "%.2f c/d"
+          ha: left
+          va: bottom
+          zorder: 25
+      p_valuegram:
+        title:
+          - {label: p-valores %s, loc: left}
+          - {label: "(p-valor ≈ %.2e, confianza ≈ %.1f%%)", loc: right}
+        global_title: p-valores globales (promedio)
+        plot:
+          - {label: p-valores (%s), color: green, linestyle: "-"}
+        # Levels of statistical confidence
+        axhline:
+          - {y: 0.001, label: Extremadamente significativo, color: red, linestyle: --, alpha: 0.7}
+          - {y: 0.01, label: Muy significativo (α = 0.01), color: orange, linestyle: "-.", alpha: 0.7}
+          - {y: 0.05, label: Significativo (α = 0.05), color: gold, linestyle: ":", alpha: 0.7}
+        fill_between:
+          - {y1: 0.000, y2: 0.001, alpha: 0.1, color: red, label: Zona de evidencia extrema}
+          - {y1: 0.001, y2: 0.010, alpha: 0.1, color: orange, label: Zona de evidencia fuerte}
+          - {y1: 0.010, y2: 0.050, alpha: 0.1, color: yellow, label: Zona de evidencia moderada}
+        # Frequency of interest markers
+        axvline:
+          - {x: 1.0, label: Frecuencia diurna (1 c/d), color: red, linestyle: --, zorder: 0}
+          - {x: 2.0, label: Frecuencia semidiurna (2 c/d), color: purple, linestyle: --, zorder: 0}
+        text:
+          - {x: 0.25, y: 2.e-1, s: "Zona de ruido\n(comportamiento normal)", fontsize: 10, ha: left, bbox: {boxstyle: round, pad: 0.3, facecolor: lightgray, alpha: 0.7}}
+          - {x: 0.25, y: 6.e-5, s: "Zona de señal\n(comportamiento inusual)", fontsize: 10, ha: left, bbox: {boxstyle: round, pad: 0.3, facecolor: lightcoral, alpha: 0.7}}
+        # X axis configuration
+        xlim: {left: 0.2, right: 2.8}
+        xlabel: Frecuencia  [c/d]
+        # Y axis configuration
+        yscale: log
+        ylim: {bottom: 1.0e-5, top: 1.1}
+        ylabel: p-valor
+        # Grid settings
+        grid:
+          visible: true
+          which: major
+          axis: both
+          alpha: 0.3
+        legend: {loc: lower right}
