@@ -1,8 +1,10 @@
 import abc
 import os
 
+from .base import StorageBackend
 
-class FilesystemBackend(abc.ABC):
+
+class FilesystemBackend(StorageBackend, abc.ABC):
     """
     Backend para sistema de archivos local.
 
@@ -73,7 +75,7 @@ class FilesystemBackend(abc.ABC):
 
         return os.path.exists(path)
 
-    def list_files(self, *, prefix: str) -> list[str]:
+    def content(self, *, prefix: str) -> list[str]:
         """
         Lista las URIs que comienzan con el prefijo especificado.
 
