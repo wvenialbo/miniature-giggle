@@ -14,8 +14,8 @@ class DataHandler(tp.Protocol):
         Carga datos desde un flujo binario.
     save(data: tp.Any, stream: tp.BinaryIO) -> None
         Guarda datos en un flujo binario.
-    format_id -> str
-        Identificador único del formato de datos manejado por este
+    format_id -> list[str]
+        Identificadores únicos del formato de datos manejado por este
         handler.
     """
 
@@ -49,14 +49,14 @@ class DataHandler(tp.Protocol):
         ...
 
     @property
-    def format_id(self) -> str:
+    def format_id(self) -> list[str]:
         """
         Identificador único del formato de datos manejado por este
         handler.
 
         Returns
         -------
-        str
-            Identificador del formato de datos.
+        list[str]
+            Identificadores del formato de datos.
         """
         ...
