@@ -52,6 +52,12 @@ class NumpyHandler:
         self.compressed = compressed
         self.npz = npz
 
+    def __repr__(self) -> str:
+        return (
+            f"NumpyHandler(allow_pickle={self.allow_pickle}, "
+            f"compressed={self.compressed}, npz={self.npz})"
+        )
+
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos NumPy desde un flujo binario.
