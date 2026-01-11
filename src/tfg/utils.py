@@ -5,6 +5,19 @@ import numpy.typing as npt
 
 
 def to_indices(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.intp]:
+    """
+    Convierte una máscara booleana en índices de los elementos True.
+
+    Parameters
+    ----------
+    mask : npt.NDArray[np.bool_]
+        Una máscara booleana.
+
+    Returns
+    -------
+    npt.NDArray[np.intp]
+        Un array de índices correspondientes a los elementos True en la máscara.
+    """
     return np.flatnonzero(mask)
 
 
@@ -42,10 +55,43 @@ def check_frequencies(frequencies: npt.ArrayLike) -> npt.NDArray[np.float64]:
 
 
 def check_is_active(self: tp.Any, attributes: list[str]) -> bool:
+    """
+    Verifica si una instancia de una clase está activa.
+
+    Verifica si una instancia está activa comprobando la presencia de
+    los atributos dinámicos especificados.
+
+    Parameters
+    ----------
+    self : tp.Any
+        Instancia que contiene los atributos.
+    attributes : list[str]
+        Lista de nombres de atributos a verificar.
+
+    Returns
+    -------
+    bool
+        True si todos los atributos existen, False en caso contrario.
+    """
     return all(hasattr(self, attr) for attr in attributes)
 
 
 def check_is_fitted(self: tp.Any, attributes: list[str]) -> None:
+    """
+    Verifica si una instancia de un estimador ha sido ajustada.
+
+    Parameters
+    ----------
+    self : tp.Any
+        Instancia que contiene los atributos.
+    attributes : list[str]
+        Lista de nombres de atributos a verificar.
+
+    Raises
+    ------
+    ValueError
+        Si alguno de los atributos no existe en la instancia.
+    """
     for attr in attributes:
         if not hasattr(self, attr):
             raise ValueError(f"El estimador no ha sido ajustado con '{attr}'")
@@ -57,6 +103,25 @@ def check_mode(
     mode: tp.Any,
     discourage_single_char: bool = True,
 ) -> None:
+    """
+    Verifica que el atributo tenga un valor dentro de los modos permitidos.
+
+    Parameters
+    ----------
+    self : tp.Any
+        Instancia que contiene el atributo.
+    attribute : str
+        Nombre del atributo a verificar.
+    mode : tp.Any
+        Modos permitidos para el atributo.
+    discourage_single_char : bool, optional
+        Si es True, desaconseja modos de un solo carácter. Por defecto es True.
+
+    Raises
+    ------
+    ValueError
+        Si el atributo no existe o su valor no está en los modos permitidos.
+    """
     if not hasattr(self, attribute):
         raise ValueError(
             f"El parámetro '{attribute}' no existe en la instancia."
