@@ -64,11 +64,7 @@ class ColabFileSystemMounter:
 
     def __init__(self, *, mountpoint: str = "/content/drive") -> None:
         if not running_on_colab():
-            raise RuntimeError(
-                "El módulo 'colab' de Google no está disponible. "
-                "Asegúrate de estar ejecutando este código en "
-                "Google Colab"
-            )
+            colab_not_found_error()
 
         self.mountpoint = mountpoint
 
@@ -109,7 +105,7 @@ class ColabFileSystemMounter:
         colab_drive_mount(self.mountpoint)
 
         if not self.is_mounted():
-            self._report_failure("No se pudo montar Google Drive.", fail)
+            self._report_failure("No se pudo montar Google Drive", fail)
 
     def unmount(self, *, fail: bool = True) -> None:
         """
@@ -135,7 +131,7 @@ class ColabFileSystemMounter:
         colab_drive_flush_and_unmount()
 
         if self.is_mounted():
-            self._report_failure("No se pudo desmontar Google Drive.", fail)
+            self._report_failure("No se pudo desmontar Google Drive", fail)
 
     def _report_failure(self, error_message: str, fail: bool) -> None:
         if fail:
