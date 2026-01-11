@@ -41,6 +41,10 @@ def check_frequencies(frequencies: npt.ArrayLike) -> npt.NDArray[np.float64]:
     return frequencies
 
 
+def check_is_active(self: tp.Any, attributes: list[str]) -> bool:
+    return all(hasattr(self, attr) for attr in attributes)
+
+
 def check_is_fitted(self: tp.Any, attributes: list[str]) -> None:
     for attr in attributes:
         if not hasattr(self, attr):
