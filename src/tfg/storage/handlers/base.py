@@ -3,10 +3,10 @@ import typing as tp
 
 class DataHandler(tp.Protocol):
     """
-    Protocolo para el manejo de formatos de datos.
+    Protocolo para manejar la carga y guardado de archivos.
 
     Define los métodos requeridos para cualquier implementación de
-    handler de datos.
+    handler de datos según su formato.
 
     Methods
     -------
@@ -51,8 +51,10 @@ class DataHandler(tp.Protocol):
     @property
     def format_id(self) -> list[str]:
         """
-        Identificador único del formato de datos manejado por este
-        handler.
+        Identificadores formato.
+
+        Devuelve una lista con los identificadores de formato de datos
+        manejado por este handler.
 
         Returns
         -------
