@@ -31,7 +31,10 @@ except ImportError:
         return False
 
 
-class ColabDriveBackend:
+from .filesystem import FilesystemBackend
+
+
+class ColabDriveBackend(FilesystemBackend):
     """
     Backend para Google Drive en Google Colab.
 
@@ -46,98 +49,21 @@ class ColabDriveBackend:
     """
 
     def __init__(self, *, mountpoint: str = "/content/drive") -> None:
-        self.mountpoint = mountpoint
+        super().__init__(mountpoint=mountpoint)
 
     def __repr__(self) -> str:
         return f"ColabDriveBackend(mountpoint='{self.mountpoint}')"
 
-    def exists(self, *, uri: str) -> bool:
+    def _check_ready(self) -> None:
         """
-        Verifica si los datos existen en la URI especificada.
+        Verifica si el backend está listo para usarse.
 
-        Parameters
-        ----------
-        uri : str
-            La URI de los datos a verificar.
-
-        Returns
-        -------
-        bool
-            True si los datos existen, False en caso contrario.
+        Raises
+        ------
+        RuntimeError
+            Si el backend no está listo.
         """
         if not running_on_colab():
             colab_not_found_error()
 
-        path = self._resolve_path(uri)
-        return os.path.exists(path)
-
-    def list_files(self, *, prefix: str) -> list[str]:
-        """
-        Lista las URIs que comienzan con el prefijo especificado.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las URIs.
-
-        Returns
-        -------
-        list[str]
-            Una lista de URIs que comienzan con el prefijo dado.
-        """
-        base_dir = self._resolve_path(prefix)
-
-        if not (os.path.exists(base_dir) and os.path.isdir(base_dir)):
-            raise ValueError(
-                "La ruta especificada no existe "
-                f"o no es un directorio: {base_dir}"
-            )
-
-        uris: list[str] = []
-        for root, _, files in os.walk(base_dir):
-            for file in files:
-                full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(full_path, self.mountpoint)
-                uris.append(relative_path)
-
-        return uris
-
-    def read(self, *, uri: str) -> bytes:
-        """
-        Lee datos desde la URI especificada.
-
-        Parameters
-        ----------
-        uri : str
-            La URI de los datos a leer.
-        """
-        if not running_on_colab():
-            colab_not_found_error()
-
-        path = self._resolve_path(uri)
-        with open(path, "rb") as file:
-            return file.read()
-
-    def _resolve_path(self, uri: str) -> str:
-        """Resuelve URI a ruta completa en Google Drive."""
-        full_path = os.path.join(self.mountpoint, uri)
-        return os.path.normpath(full_path)
-
-    def write(self, *, uri: str, data: bytes) -> None:
-        """
-        Escribe datos en la URI especificada.
-
-        Parameters
-        ----------
-        uri : str
-            La URI donde se escribirán los datos.
-        data : bytes
-            Los datos a escribir.
-        """
-        if not running_on_colab():
-            colab_not_found_error()
-
-        path = self._resolve_path(uri)
-
-        with open(path, "wb") as file:
-            file.write(data)
+        super()._check_ready()
