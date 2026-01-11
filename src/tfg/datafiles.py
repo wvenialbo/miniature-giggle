@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from google import colab
 
-from .storage.filehandler import FileHandlerInterface
+from .storage.filehandler import FileHandler
 from .utils import format_report, format_table, get_columns_size, to_indices
 
 
@@ -57,7 +57,7 @@ class GoogleDriver:
     def __init__(
         self,
         *,
-        storage: list[tuple[str, FileHandlerInterface]],
+        storage: list[tuple[str, FileHandler]],
         directory: str,
         mountpoint: str = "/content/drive",
     ) -> None:
@@ -154,7 +154,7 @@ class GoogleDriver:
 
         return os.path.join(self.rootpath_, filename)
 
-    def _get_storage_handler(self, pathname: str) -> FileHandlerInterface:
+    def _get_storage_handler(self, pathname: str) -> FileHandler:
         """
         Obtiene el manejador de almacenamiento para un archivo dado.
 
@@ -286,10 +286,7 @@ class GoogleDriver:
     def register_storage(
         self,
         *,
-        storage: (
-            list[tuple[str, FileHandlerInterface]]
-            | tuple[str, FileHandlerInterface]
-        ),
+        storage: list[tuple[str, FileHandler]] | tuple[str, FileHandler],
     ) -> None:
         """
         Registra un nuevo manejador de almacenamiento.
