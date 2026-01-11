@@ -11,13 +11,13 @@ class LocalBackend:
 
     Parameters
     ----------
-    base_path : str | None
+    mountpoint : str
         Ruta base para todas las URIs. Si no se proporciona, se usará la
         ruta actual.
 
     Attributes
     ----------
-    base_path : str
+    mountpoint : str
         Ruta base para todas las URIs.
 
     Methods
@@ -34,8 +34,11 @@ class LocalBackend:
         Escribe datos en la URI especificada.
     """
 
-    def __init__(self, base_path: str | None = None) -> None:
-        self.base_path = base_path or ""
+    def __init__(self, *, mountpoint: str = os.getcwd()) -> None:
+        self.mountpoint = mountpoint
+
+    def __repr__(self) -> str:
+        return f"LocalBackend(mountpoint='{self.mountpoint}')"
 
     def delete(self, *, uri: str) -> None:
         """
@@ -93,7 +96,7 @@ class LocalBackend:
         for root, _, files in os.walk(base_dir):
             for file in files:
                 full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(full_path, self.base_path)
+                relative_path = os.path.relpath(full_path, self.mountpoint)
                 uris.append(relative_path)
 
         return uris
@@ -125,7 +128,7 @@ class LocalBackend:
         str
             La ruta de archivo absoluta correspondiente a la URI.
         """
-        return os.path.join(self.base_path, uri) if self.base_path else uri
+        return os.path.join(self.mountpoint, uri)
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
