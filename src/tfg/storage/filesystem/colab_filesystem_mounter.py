@@ -36,7 +36,7 @@ from .base_filesystem_mounter import BaseFileSystemMounter
 
 class ColabFileSystemMounter(BaseFileSystemMounter):
     """
-    Clase para montar y desmontar Google Drive en Google Colab.
+    Clase para montar Google Drive en Google Colab.
 
     Parameters
     ----------
@@ -44,67 +44,42 @@ class ColabFileSystemMounter(BaseFileSystemMounter):
         Punto de montaje para Google Drive.  Por defecto es
         "/content/drive".
 
-    Attributes
-    ----------
-    mountpoint : str
-        Punto de montaje para Google Drive.
-
     Methods
     -------
-    is_mounted() -> bool
-        Verifica si Google Drive está montado.
-    mount(fail: bool = True) -> None
-        Monta Google Drive si aún no está montado.
-    unmount(fail: bool = True) -> None
-        Desmonta Google Drive y guarda todos los cambios.
-
-    Raises
-    ------
-    RuntimeError
-        Si no se puede montar o desmontar Google Drive y `fail` es True.
+    mount(fail: bool = True) -> bool
+        Monta el sistema de archivos.
+    unmount(fail: bool = True) -> bool
+        Desmonta el sistema de archivos.
     """
 
     def __init__(self, *, mountpoint: str = "/content/drive") -> None:
         if not running_on_colab():
             colab_not_found_error()
 
-        self.mountpoint = mountpoint
+        super().__init__(mountpoint=mountpoint)
 
     def __repr__(self) -> str:
         return f"ColabFileSystemMounter(mountpoint='{self.mountpoint}')"
 
-    def is_mounted(self) -> bool:
-        """
-        Verifica si Google Drive está montado.
-
-        Returns
-        -------
-        bool
-            True si Google Drive está montado, False en caso contrario.
-        """
-        return os.path.exists(self.mountpoint) and os.path.isdir(
-            self.mountpoint
-        )
-
     def mount(self, *, fail: bool = True) -> bool:
         """
-        Monta Google Drive si aún no está montado.
+        Monta el sistema de archivos.
 
-        Si no se puede montar Google Drive y `fail` es True, se lanza
-        una excepción RuntimeError. Si `fail` es False, se emite una
-        advertencia en su lugar.
+        Si no se puede montar el sistema de archivos y `fail` es True,
+        se lanza una excepción RuntimeError. Si `fail` es False, se
+        emite una advertencia en su lugar.
 
         Parameters
         ----------
         fail : bool, optional
-            Si es True, lanza una excepción si no se puede montar Google
-            Drive.  Por defecto es True.
+            Si es True, lanza una excepción si no se puede montar el
+            sistema de archivos.  Por defecto es True.
 
         Returns
         -------
         bool
-            True si Google Drive está montado después de la llamada,
-            False en caso contrario.
+            True si el sistema de archivos está montado después de la
+            llamada, False en caso contrario.
         """
         if self.is_mounted():
             return True
@@ -121,23 +96,23 @@ class ColabFileSystemMounter(BaseFileSystemMounter):
 
     def unmount(self, *, fail: bool = True) -> bool:
         """
-        Desmonta Google Drive y guarda todos los cambios.
+        Desmonta el sistema de archivos.
 
-        Si no se puede desmontar Google Drive y `fail` es True, se lanza
-        una excepción RuntimeError. Si `fail` es False, se emite una
-        advertencia en su lugar.
+        Si no se puede desmontar el sistema de archivos y `fail` es
+        True, se lanza una excepción RuntimeError. Si `fail` es False,
+        se emite una advertencia en su lugar.
 
         Parameters
         ----------
         fail : bool, optional
-            Si es True, lanza una excepción si no se puede desmontar
-            Google Drive.  Por defecto es True.
+            Si es True, lanza una excepción si no se puede desmontar el
+            sistema de archivos.  Por defecto es True.
 
         Returns
         -------
         bool
-            True si Google Drive está desmontado después de la llamada,
-            False en caso contrario.
+            True si el sistema de archivos está desmontado después de la
+            llamada, False en caso contrario.
         """
         if not self.is_mounted():
             return True
