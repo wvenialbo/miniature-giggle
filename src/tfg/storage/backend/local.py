@@ -41,3 +41,14 @@ class LocalBackend(FilesystemBackend):
 
     def __repr__(self) -> str:
         return f"LocalBackend(mountpoint='{self.mountpoint}')"
+
+    def _check_ready(self) -> None:
+        """
+        Verifica si el backend está listo para usarse.
+
+        Raises
+        ------
+        RuntimeError
+            Si el backend no está listo.
+        """
+        super()._check_ready()
