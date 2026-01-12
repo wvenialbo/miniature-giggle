@@ -11,17 +11,36 @@ class StorageBackend(tp.Protocol):
 
     Methods
     -------
+    content(prefix: str) -> list[str]
+        Lista las URI físicas que comienzan con el prefijo especificado.
     delete(uri: str) -> None
         Elimina los datos en la URI física especificada.
     exists(uri: str) -> bool
         Verifica si los datos existen en la URI física especificada.
-    content(prefix: str) -> list[str]
-        Lista las URI físicas que comienzan con el prefijo especificado.
     read(uri: str) -> bytes
         Lee los datos desde la URI física especificada.
     write(uri: str, data: bytes) -> None
         Escribe los datos en la URI física especificada.
     """
+
+    def content(self, *, prefix: str) -> list[str]:
+        """
+        Lista las URI físicas que comienzan con el prefijo especificado.
+
+        Devuelve la lista de identificadores nativos del backend (rutas
+        absolutas, claves, etc.) que comienzan con el prefijo dado.
+
+        Parameters
+        ----------
+        prefix : str
+            El prefijo para filtrar las URI físicas.
+
+        Returns
+        -------
+        tp.List[str]
+            Una lista de URI físicas que comienzan con el prefijo dado.
+        """
+        ...
 
     def delete(self, *, uri: str) -> None:
         """
@@ -50,22 +69,6 @@ class StorageBackend(tp.Protocol):
         -------
         bool
             True si los datos existen, False en caso contrario.
-        """
-        ...
-
-    def content(self, *, prefix: str) -> list[str]:
-        """
-        Lista las URI físicas que comienzan con el prefijo especificado.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las URI físicas.
-
-        Returns
-        -------
-        tp.List[str]
-            Una lista de URI físicas que comienzan con el prefijo dado.
         """
         ...
 
