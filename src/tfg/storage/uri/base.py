@@ -3,60 +3,49 @@ import typing as tp
 
 class URIMapper(tp.Protocol):
     """
-    A protocol for URI mappers.
+    Transforma entre URIs lógicas (del usuario) y nativas (del backend).
+
+    Los mapeadores de URI permiten que los backends almacenen datos en
+    ubicaciones específicas del backend, mientras exponen URIs lógicas
+    consistentes al usuario.  Esto es útil para backends que requieren
+    estructuras de URI específicas o prefijos.
 
     Methods
     -------
-    get_base_path() -> str
-        Get the base path of the URI mapper.
-    relative_to(absolute_uri: str) -> str
-        Get the relative URI from an absolute URI.
-    resolve(logical_uri: str, strict: bool = False) -> str
-        Resolve logical URI to absolute URI.
+    to_native(logical_uri: str) -> str
+        Convierte una URI lógica a una URI nativa.
+    to_logical(native_uri: str) -> str
+        Convierte una URI nativa del backend a una lógica.
     """
 
-    def get_base_path(self) -> str:
+    def to_native(self, *, logical_uri: str) -> str:
         """
-        Get the base path of the URI mapper.
-
-        Returns
-        -------
-        str
-            The base path.
-        """
-        ...
-
-    def relative_to(self, *, absolute_uri: str) -> str:
-        """
-        Get the relative URI from an absolute URI.
-
-        Parameters
-        ----------
-        absolute_uri : str
-            The absolute URI to convert.
-
-        Returns
-        -------
-        str
-            The relative URI.
-        """
-        ...
-
-    def resolve(self, *, logical_uri: str, strict: bool = False) -> str:
-        """
-        Resolve logical URI to absolute URI.
+        Convierte una URI lógica a una URI nativa.
 
         Parameters
         ----------
         logical_uri : str
-            The logical URI to resolve.
-        strict : bool, optional
-            Whether to raise an error if the resolved path does not
-            exist. Defaults to False.
+            La URI lógica proporcionada por el usuario.
 
         Returns
         -------
         str
-            The resolved absolute URI.
+            La URI nativa transformada para el backend.
+        """
+        ...
+
+    def to_logical(self, *, native_uri: str) -> str:
+        """
+        Convierte una URI nativa a una lógica.
+
+        Parameters
+        ----------
+        native_uri : str
+            La URI nativa proporcionada por el backend.
+
+        Returns
+        -------
+        str
+            La URI lógica transformada para el usuario.
         """
         ...
