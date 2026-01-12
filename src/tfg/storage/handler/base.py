@@ -1,3 +1,4 @@
+import io
 import typing as tp
 
 
@@ -10,22 +11,22 @@ class DataHandler(tp.Protocol):
 
     Methods
     -------
-    load(stream: tp.BinaryIO) -> tp.Any
+    load(stream: io.BytesIO) -> tp.Any
         Carga datos desde un flujo binario.
-    save(data: tp.Any, stream: tp.BinaryIO) -> None
+    save(data: tp.Any, stream: io.BytesIO) -> None
         Guarda datos en un flujo binario.
     format_id -> list[str]
         Identificadores únicos del formato de datos manejado por este
         handler.
     """
 
-    def load(self, *, stream: tp.BinaryIO) -> tp.Any:
+    def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos desde un flujo binario.
 
         Parameters
         ----------
-        stream : tp.BinaryIO
+        stream : io.BytesIO
             Flujo binario desde el cual cargar los datos.
 
         Returns
@@ -35,7 +36,7 @@ class DataHandler(tp.Protocol):
         """
         ...
 
-    def save(self, *, data: tp.Any, stream: tp.BinaryIO) -> None:
+    def save(self, *, data: tp.Any, stream: io.BytesIO) -> None:
         """
         Guarda datos en un flujo binario.
 
@@ -43,7 +44,7 @@ class DataHandler(tp.Protocol):
         ----------
         data : tp.Any
             Datos a guardar en el flujo.
-        stream : tp.BinaryIO
+        stream : io.BytesIO
             Flujo binario donde se guardarán los datos.
         """
         ...

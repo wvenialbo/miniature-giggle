@@ -3,8 +3,10 @@ import pickle  # nosec
 import typing as tp
 import warnings
 
+from .base import DataHandler
 
-class PickleHandler:
+
+class PickleHandler(DataHandler):
     """
     Manejador para archivos pickle (.pkl, .pickle).
 

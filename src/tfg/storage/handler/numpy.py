@@ -3,8 +3,10 @@ import typing as tp
 
 import numpy as np
 
+from .base import DataHandler
 
-class NumpyHandler:
+
+class NumpyHandler(DataHandler):
     """
     Handler para cargar y guardar archivos NumPy (.npy, .npz).
 
