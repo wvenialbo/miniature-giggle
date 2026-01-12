@@ -35,7 +35,7 @@ except ImportError:
 from .base import BasicConnectionManager
 
 
-class ColabDriveManager(BasicConnectionManager):
+class ColabDriveConnectionManager(BasicConnectionManager):
     """
     Gestionar la conexión con Google Drive desde Google Colab.
 
