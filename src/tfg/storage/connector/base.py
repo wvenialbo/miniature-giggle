@@ -20,7 +20,7 @@ class ConnectionManager(tp.Protocol):
         Abre la conexión con el sistema de almacenamiento.
     """
 
-    def close(self, *, fail: bool = True) -> bool:
+    def close(self, *, fail: bool = False) -> bool:
         """
         Cierra la conexión con el sistema de almacenamiento.
 
@@ -36,7 +36,7 @@ class ConnectionManager(tp.Protocol):
         fail : bool, optional
             Si es True, lanza una excepción si no se puede cerrar la
             conexión con el sistema de almacenamiento.  Por defecto es
-            True.
+            False.
 
         Returns
         -------
@@ -85,7 +85,7 @@ class ConnectionManager(tp.Protocol):
         """
         ...
 
-    def open(self, *, fail: bool = True) -> bool:
+    def open(self, *, fail: bool = False) -> bool:
         """
         Abre la conexión con el sistema de almacenamiento.
 
@@ -101,7 +101,7 @@ class ConnectionManager(tp.Protocol):
         fail : bool, optional
             Si es True, lanza una excepción si no se puede abrir la
             conexión con el sistema de almacenamiento.  Por defecto es
-            True.
+            False.
 
         Returns
         -------

@@ -33,7 +33,7 @@ class LocalConnectionManager(BasicConnectionManager):
     def __repr__(self) -> str:
         return f"LocalConnectionManager(mountpoint='{self.mountpoint}')"
 
-    def close(self, *, fail: bool = True) -> bool:  # NOSONAR(S1172)
+    def close(self, *, fail: bool = False) -> bool:  # NOSONAR(S1172)
         """
         Cierra la conexión con el sistema de almacenamiento.
 
@@ -49,7 +49,7 @@ class LocalConnectionManager(BasicConnectionManager):
         fail : bool, optional
             Si es True, lanza una excepción si no se puede cerrar la
             conexión con el sistema de almacenamiento.  Por defecto es
-            True.
+            False.
 
         Returns
         -------
@@ -65,12 +65,6 @@ class LocalConnectionManager(BasicConnectionManager):
         if self._already_mounted:
             self._already_mounted = False
             return True
-
-        self._report_failure(
-            f"El sistema de almacenamiento local en "
-            f"'{self.mountpoint}' no estaba montado",
-            fail,
-        )
 
         # El sistema de almacenamiento local siempre debería estar
         # montado, y la operación siempre debería tener éxito, pero
@@ -116,7 +110,7 @@ class LocalConnectionManager(BasicConnectionManager):
         """
         return pl.Path(self.mountpoint).is_dir()
 
-    def open(self, *, fail: bool = True) -> bool:
+    def open(self, *, fail: bool = False) -> bool:
         """
         Abre la conexión con el sistema de almacenamiento.
 
@@ -132,7 +126,7 @@ class LocalConnectionManager(BasicConnectionManager):
         fail : bool, optional
             Si es True, lanza una excepción si no se puede abrir la
             conexión con el sistema de almacenamiento.  Por defecto es
-            True.
+            False.
 
         Returns
         -------
@@ -146,12 +140,6 @@ class LocalConnectionManager(BasicConnectionManager):
         siempre debería tener éxito.
         """
         if self._already_mounted:
-            # should be fail=False because it's already mounted?
-            self._report_failure(
-                "El sistema de almacenamiento local ya está "
-                f"montado en '{self.mountpoint}'",
-                fail,
-            )
             return True
 
         if not self.is_mounted():

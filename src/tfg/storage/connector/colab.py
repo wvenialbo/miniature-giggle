@@ -88,8 +88,6 @@ class ColabDriveConnectionManager(BasicConnectionManager):
             cerrada después de la llamada, False en caso contrario.
         """
         if not self.is_mounted():
-            # should be fail=False because it's already unmounted?
-            self._report_failure("Google Drive no está montado", fail)
             return True
 
         colab_drive_flush_and_unmount()
@@ -124,7 +122,7 @@ class ColabDriveConnectionManager(BasicConnectionManager):
             True si el sistema de almacenamiento está montado, False en
             caso contrario.
         """
-        return pl.Path(self.mountpoint).is_dir()
+        return running_on_colab() and pl.Path(self.mountpoint).is_mount()
 
     def open(self, *, fail: bool = False) -> bool:
         """
@@ -151,10 +149,6 @@ class ColabDriveConnectionManager(BasicConnectionManager):
             abierta después de la llamada, False en caso contrario.
         """
         if self.is_mounted():
-            # should be fail=False because it's already mounted?
-            self._report_failure(
-                f"Google Drive ya está montado en '{self.mountpoint}'", fail
-            )
             return True
 
         colab_drive_mount(self.mountpoint)
