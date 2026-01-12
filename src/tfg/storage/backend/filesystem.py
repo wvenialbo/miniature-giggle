@@ -32,12 +32,17 @@ class FilesystemBackend(StorageBackend):
         """
         Elimina los datos en la URI física especificada.
 
+        Elimina archivos u objetos individuales si existen. No elimina
+        contenedores o directorios. La operación es idempotente.
+
         Parameters
         ----------
         uri : str
             La URI física de los datos a eliminar.
         """
-        pl.Path(uri).unlink(missing_ok=True)
+        path = pl.Path(uri)
+        if path.is_file():
+            path.unlink(missing_ok=True)
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -69,9 +74,10 @@ class FilesystemBackend(StorageBackend):
         tp.List[str]
             Una lista de URI físicas que comienzan con el prefijo dado.
         """
+        path = pl.Path(prefix)
         return [
             str(entry)
-            for entry in pl.Path(prefix).rglob("*")
+            for entry in path.parent.rglob(f"{path.name}*")
             if entry.is_file()
         ]
 

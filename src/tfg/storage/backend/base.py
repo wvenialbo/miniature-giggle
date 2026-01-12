@@ -27,6 +27,9 @@ class StorageBackend(tp.Protocol):
         """
         Elimina los datos en la URI física especificada.
 
+        Elimina archivos u objetos individuales si existen. No elimina
+        contenedores o directorios. La operación es idempotente.
+
         Parameters
         ----------
         uri : str
