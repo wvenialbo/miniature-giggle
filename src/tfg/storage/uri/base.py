@@ -18,22 +18,6 @@ class URIMapper(tp.Protocol):
         Convierte una URI nativa del backend a una lógica.
     """
 
-    def to_native(self, *, uri: str) -> str:
-        """
-        Convierte una URI lógica a una URI nativa.
-
-        Parameters
-        ----------
-        uri : str
-            La URI lógica proporcionada por el usuario.
-
-        Returns
-        -------
-        str
-            La URI nativa transformada para el backend.
-        """
-        ...
-
     def to_logical(self, *, uri: str) -> str:
         """
         Convierte una URI nativa a una lógica.
@@ -47,5 +31,21 @@ class URIMapper(tp.Protocol):
         -------
         str
             La URI lógica transformada para el usuario.
+        """
+        ...
+
+    def to_native(self, *, uri: str) -> str:
+        """
+        Convierte una URI lógica a una URI nativa.
+
+        Parameters
+        ----------
+        uri : str
+            La URI lógica proporcionada por el usuario.
+
+        Returns
+        -------
+        str
+            La URI nativa transformada para el backend.
         """
         ...

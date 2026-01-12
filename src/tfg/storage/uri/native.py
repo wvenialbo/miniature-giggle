@@ -5,80 +5,61 @@ from .base import URIMapper
 
 class NativeURIMapper(URIMapper):
     """
-    A URI mapper for native file system paths.
+    Transforma entre URIs lógicas (del usuario) y nativas (del backend).
 
-    Parameters
-    ----------
-    base_path : str, optional
-        The base path for the URI mapper. Defaults to the current
-        working directory.
-    strict : bool, optional
-        Whether to raise an error if the base path does not exist.
-        Defaults to True.
-
-    Attributes
-    ----------
-    base_path : pl.Path
-        The resolved base path.
+    Los mapeadores de URI permiten que los backends almacenen datos en
+    ubicaciones específicas del backend, mientras exponen URIs lógicas
+    consistentes al usuario.  Esto es útil para backends que requieren
+    estructuras de URI específicas o prefijos.
 
     Methods
     -------
-    get_base_path() -> str
-        Get the base path of the URI mapper.
-    relative_to(absolute_uri: str) -> str
-        Get the relative URI from an absolute URI.
-    resolve(logical_uri: str, strict: bool = False) -> str
-        Resolve logical URI to absolute URI.
+    to_native(uri: str) -> str
+        Convierte una URI lógica a una URI nativa.
+    to_logical(uri: str) -> str
+        Convierte una URI nativa del backend a una lógica.
     """
 
-    def __init__(self, *, base_path: str = ".", strict: bool = True) -> None:
-        self.base_path = pl.Path(base_path).resolve(strict=strict)
+    def __init__(self, path: str) -> None:
+        base_path = pl.Path(f"/{path.lstrip('/')}")
+        self.base_path = base_path.resolve(strict=True)
 
     def __repr__(self) -> str:
-        return f"NativeURIMapper(base_path={self.base_path!r})"
+        return f"NativeURIMapper(path='{self.base_path}')"
 
-    def get_base_path(self) -> str:
-        """
-        Get the base path of the URI mapper.
+    def __str__(self) -> str:
+        return f"{self.base_path}"
 
-        Returns
-        -------
-        str
-            The base path.
+    def to_logical(self, *, uri: str) -> str:
         """
-        return str(self.base_path)
-
-    def relative_to(self, *, absolute_uri: str) -> str:
-        """
-        Get the relative URI from an absolute URI.
+        Convierte una URI nativa a una lógica.
 
         Parameters
         ----------
-        absolute_uri : str
-            The absolute URI to convert.
+        uri : str
+            La URI nativa absoluta proporcionada por el backend.
 
         Returns
         -------
         str
-            The relative URI.
+            La URI lógica relativa transformada para el usuario.
         """
-        return str(pl.Path(absolute_uri).relative_to(self.base_path))
+        path = pl.Path(uri).resolve(strict=False)
+        relative_path = path.relative_to(self.base_path)
+        return str(relative_path)
 
-    def resolve(self, *, logical_uri: str, strict: bool = False) -> str:
+    def to_native(self, *, uri: str) -> str:
         """
-        Resolve logical URI to absolute URI.
+        Convierte una URI lógica a una URI nativa.
 
         Parameters
         ----------
-        logical_uri : str
-            The logical URI to resolve.
-        strict : bool, optional
-            Whether to raise an error if the resolved path does not
-            exist. Defaults to False.
+        uri : str
+            La URI lógica (POSIX) proporcionada por el usuario.
 
         Returns
         -------
         str
-            The resolved absolute URI.
+            La URI nativa transformada para el backend.
         """
-        return str((self.base_path / logical_uri).resolve(strict=strict))
+        return str(pl.Path(uri).resolve())
