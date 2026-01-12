@@ -1,5 +1,5 @@
 from ..backend import StorageBackend
-from ..handlers import DataHandler
+from ..handler import DataHandler
 
 
 class Session:
