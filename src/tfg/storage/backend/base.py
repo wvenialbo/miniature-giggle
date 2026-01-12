@@ -6,41 +6,42 @@ class StorageBackend(tp.Protocol):
     Protocolo para el backend de almacenamiento.
 
     Define los métodos requeridos para cualquier implementación de
-    backend de almacenamiento.
+    backend de almacenamiento. No conoce rutas lógicas, realiza
+    operaciones crudas de E/S sobre una URI física.
 
     Methods
     -------
     delete(uri: str) -> None
-        Elimina datos en la URI especificada.
+        Elimina los datos en la URI física especificada.
     exists(uri: str) -> bool
-        Verifica si los datos existen en la URI especificada.
-    list_files(prefix: str) -> list[str]
-        Lista las URIs que comienzan con el prefijo especificado.
+        Verifica si los datos existen en la URI física especificada.
+    content(prefix: str) -> list[str]
+        Lista las URI físicas que comienzan con el prefijo especificado.
     read(uri: str) -> bytes
-        Lee datos desde la URI especificada.
+        Lee los datos desde la URI física especificada.
     write(uri: str, data: bytes) -> None
-        Escribe datos en la URI especificada.
+        Escribe los datos en la URI física especificada.
     """
 
     def delete(self, *, uri: str) -> None:
         """
-        Elimina datos en la URI especificada.
+        Elimina los datos en la URI física especificada.
 
         Parameters
         ----------
         uri : str
-            La URI de los datos a eliminar.
+            La URI física de los datos a eliminar.
         """
         ...
 
     def exists(self, *, uri: str) -> bool:
         """
-        Verifica si los datos existen en la URI especificada.
+        Verifica si los datos existen en la URI física especificada.
 
         Parameters
         ----------
         uri : str
-            La URI de los datos a verificar.
+            La URI física de los datos a verificar.
 
         Returns
         -------
@@ -51,110 +52,40 @@ class StorageBackend(tp.Protocol):
 
     def content(self, *, prefix: str) -> list[str]:
         """
-        Lista las URIs que comienzan con el prefijo especificado.
+        Lista las URI físicas que comienzan con el prefijo especificado.
 
         Parameters
         ----------
         prefix : str
-            El prefijo para filtrar las URIs.
+            El prefijo para filtrar las URI físicas.
 
         Returns
         -------
         tp.List[str]
-            Una lista de URIs que comienzan con el prefijo dado.
+            Una lista de URI físicas que comienzan con el prefijo dado.
         """
         ...
 
     def read(self, *, uri: str) -> bytes:
         """
-        Lee datos desde la URI especificada.
+        Lee los datos desde la URI física especificada.
 
         Parameters
         ----------
         uri : str
-            La URI de los datos a leer.
+            La URI física de los datos a leer.
         """
         ...
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
-        Escribe datos en la URI especificada.
+        Escribe los datos en la URI física especificada.
 
         Parameters
         ----------
         uri : str
-            La URI donde se escribirán los datos.
+            La URI física donde se escribirán los datos.
         data : bytes
             Los datos a escribir.
-        """
-        ...
-
-
-class MountableStorageBackend(tp.Protocol):
-
-    def get_mountpoint(self) -> str:
-        """
-        Obtiene el punto de montaje del sistema de archivos.
-
-        Returns
-        -------
-        str
-            Punto de montaje del sistema de archivos.
-        """
-        ...
-
-    def is_mounted(self) -> bool:
-        """
-        Verifica si el sistema de archivos está montado.
-
-        Returns
-        -------
-        bool
-            True si el sistema de archivos está montado, False en caso
-            contrario.
-        """
-        ...
-
-    def mount(self, *, fail: bool = True) -> bool:
-        """
-        Monta el sistema de archivos.
-
-        Si no se puede montar el sistema de archivos y `fail` es True,
-        se lanza una excepción RuntimeError. Si `fail` es False, se
-        emite una advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede montar el
-            sistema de archivos.  Por defecto es True.
-
-        Returns
-        -------
-        bool
-            True si el sistema de archivos está montado después de la
-            llamada, False en caso contrario.
-        """
-        ...
-
-    def unmount(self, *, fail: bool = True) -> bool:
-        """
-        Desmonta el sistema de archivos.
-
-        Si no se puede desmontar el sistema de archivos y `fail` es
-        True, se lanza una excepción RuntimeError. Si `fail` es False,
-        se emite una advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede desmontar el
-            sistema de archivos.  Por defecto es True.
-
-        Returns
-        -------
-        bool
-            True si el sistema de archivos está desmontado después de la
-            llamada, False en caso contrario.
         """
         ...
