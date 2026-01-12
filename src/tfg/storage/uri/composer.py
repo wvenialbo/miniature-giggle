@@ -23,7 +23,7 @@ class URIComposer:
     def __repr__(self) -> str:
         return f"URIComposer(path='{self.base_path}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.base_path}"
 
     def join(self, path: str) -> str:
