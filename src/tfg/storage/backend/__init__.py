@@ -1,5 +1,4 @@
 from .base import StorageBackend
-from .colab import ColabDriveBackend
-from .local import LocalBackend
+from .filesystem import FilesystemBackend
 
-__all__ = ["StorageBackend", "ColabDriveBackend", "LocalBackend"]
+__all__ = ["StorageBackend", "FilesystemBackend"]
