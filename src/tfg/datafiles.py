@@ -8,6 +8,23 @@ import numpy.typing as npt
 from .utils import to_indices
 
 
+    def _resolve_path(self, uri: str) -> str:
+        """
+        Resuelve la URI a una ruta de archivo absoluta.
+
+        Parameters
+        ----------
+        uri : str
+            La URI a resolver.
+
+        Returns
+        -------
+        str
+            La ruta de archivo absoluta correspondiente a la URI.
+        """
+        full_path = os.path.join(self.mountpoint, uri)
+        return os.path.normpath(full_path)
+
 @dc.dataclass(kw_only=True, frozen=True)
 class DatasetInfo:
     event_name: str
