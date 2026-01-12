@@ -1,19 +1,16 @@
 import pathlib as pl
 
 
-class URIComposer:
+class UserURIMapper:
     """
-    Clase para componer URIs basadas en un path base.
+    Transforma entre URIs del usuario y del repositorio.
 
-    Parameters
-    ----------
-    path : str
-        El path base para la composición de URIs.
-
-    Attributes
-    ----------
-    base_path : pl.PosixPath
-        El path base almacenado como un objeto PosixPath.
+    Methods
+    -------
+    to_native(uri: str) -> str
+        Convierte una URI lógica a una URI nativa.
+    to_logical(uri: str) -> str
+        Convierte una URI nativa del backend a una lógica.
     """
 
     def __init__(self, path: str) -> None:
@@ -26,24 +23,21 @@ class URIComposer:
     def __str__(self) -> str:
         return f"{self.base_path}"
 
-    def join(self, path: str) -> str:
+    def to_native(self, *, uri: str) -> str:
         """
-        Une el path base con el path proporcionado.
-
-        El path resultante se expresa tomando `base_path` como raíz y se
-        resuelve para eliminar referencias redundantes como "." y "..".
+        Convierte una URI lógica a una URI nativa.
 
         Parameters
         ----------
-        path : str
-            El path a unir con el path base.
+        uri : str
+            La URI lógica proporcionada por el usuario.
 
         Returns
         -------
         str
-            El path unido y resuelto.
+            La URI nativa transformada para el backend.
         """
-        stem = pl.PosixPath(f"/{path.lstrip('/')}")
+        stem = pl.PosixPath(f"/{uri.lstrip('/')}")
         path = str(stem.resolve(strict=False))
         target = self.base_path / path.lstrip("/")
         return str(target.resolve(strict=False))
