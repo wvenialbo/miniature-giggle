@@ -61,7 +61,7 @@ class ColabDriveConnectionManager(BasicConnectionManager):
         super().__init__(mountpoint=mountpoint)
 
     def __repr__(self) -> str:
-        return f"ColabDriveManager(mountpoint='{self.mountpoint}')"
+        return f"ColabDriveConnectionManager(mountpoint='{self.mountpoint}')"
 
     def close(self, *, fail: bool = False) -> bool:
         """
