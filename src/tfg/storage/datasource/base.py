@@ -1,3 +1,4 @@
+import types
 import typing as tp
 
 from ..handler import DataHandler
@@ -43,6 +44,43 @@ class Datasource(tp.Protocol):
     scan(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
     """
+
+    def __enter__(self) -> tp.Self:
+        """
+        Entra en el contexto del datasource.
+
+        Returns
+        -------
+        tp.Self
+            La instancia del datasource.
+        """
+        ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> bool | None:
+        """
+        Garantiza el cierre al salir del bloque with.
+
+        Parameters
+        ----------
+        exc_type : type[BaseException] | None
+            Tipo de excepción si se produjo una.
+        exc_val : BaseException | None
+            Valor de la excepción si se produjo una.
+        exc_tb : types.TracebackType | None
+            Rastreo de la excepción si se produjo.
+
+        Returns
+        -------
+        bool | None
+            True para suprimir la excepción, False o None para
+            propagarla.
+        """
+        ...
 
     def close(self, *, fail: bool = False) -> None:
         """

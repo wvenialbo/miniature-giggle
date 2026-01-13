@@ -79,6 +79,44 @@ class DatasourceContext(Datasource):
         self.mapper = mapper
         self.handlers = self._build_handler_mapper(handlers)
 
+    def __enter__(self) -> tp.Self:
+        """
+        Entra en el contexto del datasource.
+
+        Returns
+        -------
+        tp.Self
+            La instancia del datasource.
+        """
+        self.open()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> bool | None:
+        """
+        Garantiza el cierre al salir del bloque with.
+
+        Parameters
+        ----------
+        exc_type : type[BaseException] | None
+            Tipo de excepción si se produjo una.
+        exc_val : BaseException | None
+            Valor de la excepción si se produjo una.
+        exc_tb : types.TracebackType | None
+            Rastreo de la excepción si se produjo.
+
+        Returns
+        -------
+        bool | None
+            True para suprimir la excepción, False o None para
+            propagarla.
+        """
+        self.close()
+
     def __repr__(self) -> str:
         handlers = ", ".join([repr(h) for h in self.handlers])
         return (
@@ -370,17 +408,3 @@ class DatasourceContext(Datasource):
 
         # Convertir a URIs genéricas
         return [self.mapper.to_generic(item) for item in native_items]
-
-    def __enter__(self) -> tp.Self:
-        """Permite usar el contexto como administrador de contexto."""
-        self.open()
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> bool | None:
-        """Garantiza el cierre al salir del bloque with."""
-        self.close()
