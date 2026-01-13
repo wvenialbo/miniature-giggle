@@ -17,6 +17,12 @@ class Datasource(DatasourceContract):
     POSIX) y nativas, y una lista de DataHandlers para manejar formatos
     específicos.  Es el núcleo del sistema de almacenamiento.
 
+    Los métodos que reciben URI esperan una URI genérica relativa a la
+    ruta base (`base_path`).  El mapeador convierte la URI genérica al
+    identificador o a la ruta absoluta respecto al punto de montaje del
+    backend.  Esto permite que el mismo código funcione con diferentes
+    backends de almacenamiento sin cambios.
+
     Las URIs genéricas siguen el formato POSIX con '/' como separador y
     son relativas a la raíz del contexto, que está determinado por el
     punto de montaje del ConnectionManager.
@@ -27,8 +33,9 @@ class Datasource(DatasourceContract):
 
     Parameters
     ----------
-    connection : ConnectionManager
-        Gestor de la conexión con el sistema de almacenamiento.
+    base_path : str
+        Ruta base dentro del sistema de almacenamiento. Todas las URIs
+        genéricas son relativas a esta ruta.
     backend : StorageBackend
         Backend para operaciones de E/S crudas.
     mapper : URIMapper
@@ -38,8 +45,9 @@ class Datasource(DatasourceContract):
 
     Attributes
     ----------
-    connection : ConnectionManager
-        Gestor de la conexión con el sistema de almacenamiento.
+    base_path : str
+        Ruta base dentro del sistema de almacenamiento. Todas las URIs
+        genéricas son relativas a esta ruta.
     backend : StorageBackend
         Backend para operaciones de E/S crudas.
     mapper : URIMapper
@@ -50,11 +58,11 @@ class Datasource(DatasourceContract):
 
     Methods
     -------
-    delete(generic_uri: str) -> None
+    delete(uri: str) -> None
         Elimina el recurso con la URI especificada.
-    exists(generic_uri: str) -> bool
+    exists(uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
-    load(generic_uri: str) -> Any
+    load(uri: str) -> Any
         Carga un objeto desde la URI especificada.
     register_handler(handler: DataHandler, replace: bool = False) ->
     None
@@ -63,7 +71,7 @@ class Datasource(DatasourceContract):
         Elimina el handler para una extensión.
     replace_handler(handler: DataHandler) -> None
         Reemplaza un manejador de formato o reemplaza uno existente.
-    save(data: Any, generic_uri: str) -> None
+    save(data: Any, uri: str) -> None
         Guarda un objeto en la URI especificada.
     scan(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
@@ -72,10 +80,12 @@ class Datasource(DatasourceContract):
     def __init__(
         self,
         *,
+        base_path: str = "/",
         backend: StorageBackend,
         mapper: URIMapper,
         handlers: list[DataHandler],
     ) -> None:
+        self.base_path = base_path
         self.backend = backend
         self.mapper = mapper
         self.handlers = self._build_handler_mapper(handlers)
@@ -84,6 +94,7 @@ class Datasource(DatasourceContract):
         handlers = ", ".join([repr(h) for h in self.handlers])
         return (
             "DataSourceContext("
+            f"base_path='{self.base_path}', "
             f"backend={repr(self.backend)}, "
             f"mapper={repr(self.mapper)}, "
             f"handlers=[{handlers}])"
@@ -129,7 +140,7 @@ class Datasource(DatasourceContract):
         Parameters
         ----------
         uri : str
-            La URI de los datos a eliminar.
+            La URI genérica de los datos a eliminar.
         """
         native_uri = self.mapper.to_native(uri)
         self.backend.delete(uri=native_uri)
@@ -145,7 +156,7 @@ class Datasource(DatasourceContract):
         Parameters
         ----------
         uri : str
-            La URI de los datos a verificar.
+            La URI genérica de los datos a verificar.
 
         Returns
         -------
@@ -185,7 +196,7 @@ class Datasource(DatasourceContract):
         Parameters
         ----------
         uri : str
-            La URI de los datos a leer.
+            La URI genérica de los datos a leer.
 
         Returns
         -------
@@ -256,7 +267,7 @@ class Datasource(DatasourceContract):
         Parameters
         ----------
         uri : str
-            La URI donde se escribirán los datos.
+            La URI genérica donde se escribirán los datos.
         data : bytes
             Los datos a escribir en la URI dada.
         """
@@ -281,7 +292,9 @@ class Datasource(DatasourceContract):
         Parameters
         ----------
         prefix : str
-            El prefijo para filtrar las URI listadas.
+            El prefijo para filtrar las URI listadas.  Debe ser una URI
+            genérica. Por defecto es una cadena vacía, que lista todas
+            las URI.
 
         Returns
         -------
