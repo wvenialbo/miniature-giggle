@@ -28,12 +28,16 @@ class Datasource(tp.Protocol):
         Elimina el recurso con la URI especificada.
     exists(generic_uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
+    get_handler(format_id: str) -> DataHandler | None
+        Obtiene el handler para una extensión.
     load(generic_uri: str) -> Any
         Carga un objeto desde la URI especificada.
     open(fail: bool = False) -> None
         Abre la conexión con la fuente de datos.
-    register_handler(handler: DataHandler) -> None
-        Registra un nuevo manejador de formato.
+    register_handler(handler: DataHandler, replace: bool = False) -> None
+        Registra un manejador de formato o reemplaza uno existente.
+    replace_handler(handler: DataHandler) -> None
+        Reemplaza un manejador de formato o reemplaza uno existente.
     save(data: Any, generic_uri: str) -> None
         Guarda un objeto en la URI especificada.
     scan(prefix: str = "") -> list[str]
@@ -97,6 +101,23 @@ class Datasource(tp.Protocol):
         """
         ...
 
+    def get_handler(self, *, format_id: str) -> DataHandler | None:
+        """
+        Obtiene el handler para una extensión.
+
+        Parameters
+        ----------
+        format_id : str
+            Identificador del formato (extensión) del handler.
+
+        Returns
+        -------
+        DataHandler | None
+            El handler registrado para la extensión dada, o None si no
+            existe.
+        """
+        ...
+
     def load(self, *, uri: str) -> tp.Any:
         """
         Carga un objeto desde la URI especificada.
@@ -137,14 +158,40 @@ class Datasource(tp.Protocol):
         """
         ...
 
-    def register_handler(self, handler: DataHandler) -> None:
+    def register_handler(
+        self, *, handler: DataHandler, replace: bool = False
+    ) -> None:
         """
-        Registra un nuevo manejador de formato.
+        Registra un manejador de formato o reemplaza uno existente.
 
         Parameters
         ----------
         handler : DataHandler
             Manejador de datos a registrar.
+        replace : bool, optional
+            Si es True, reemplaza un manejador existente con el mismo
+            formato.  Si False, lanza error al encontrar conflictos.
+            Por defecto es False.
+        """
+        ...
+
+    def remove_handler(self, *, format_id: str) -> None:
+        """
+        Elimina el handler para una extensión.
+
+        Parameters
+        ----------
+        format_id : str
+            Identificador del formato (extensión) del handler a eliminar.
+        """
+        ...
+
+    def replace_handler(self, *, handler: DataHandler) -> None:
+        """
+        Reemplaza un manejador de formato o reemplaza uno existente.
+
+        Reemplaza handlers existentes para las extensiones del nuevo
+        handler.  Si no existe, lo añade.
         """
         ...
 
