@@ -71,7 +71,7 @@ class Datasource(tp.Protocol):
         Elimina archivos u objetos individuales si existen.  No elimina
         contenedores o directorios.  La operación es idempotente, la URI
         puede no existir sin que se genere un error.  `uri` debe ser una
-        URI nativa absoluta completa válida para el backend.
+        URI genérica respecto el punto de montaje del backend.
 
         Parameters
         ----------
@@ -86,7 +86,7 @@ class Datasource(tp.Protocol):
 
         Verifica si un archivo u objeto existe en la URI dada.  La URI
         debe apuntar a un archivo u objeto individual.  `uri` debe ser
-        una URI nativa absoluta completa válida para el backend.
+        una URI genérica respecto el punto de montaje del backend.
 
         Parameters
         ----------
@@ -123,8 +123,8 @@ class Datasource(tp.Protocol):
         Carga un objeto desde la URI especificada.
 
         Carga los datos desde la URI dada.  La URI debe apuntar a un
-        archivo u objeto individual.  `uri` debe ser una URI nativa
-        absoluta completa válida para el backend.
+        archivo u objeto individual.  `uri` debe ser una URI genérica
+        respecto el punto de montaje del backend.
 
         Parameters
         ----------
@@ -201,7 +201,7 @@ class Datasource(tp.Protocol):
 
         Guarda los datos en la URI dada.  Al finalizar la operación, la
         URI debe apuntar a un archivo u objeto individual.  `uri` debe
-        ser una URI nativa absoluta completa válida para el backend.
+        ser una URI genérica respecto el punto de montaje del backend.
 
         Parameters
         ----------
@@ -217,9 +217,10 @@ class Datasource(tp.Protocol):
         Enumera objetos cuya URI comienza con el prefijo especificado.
 
         Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI nativa absoluta
-        completa, o parcial, válida para el backend.  Devuelve una lista
-        de URI nativas absolutas del backend.
+        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
+        o parcial, respecto el punto de montaje del backend.  Devuelve
+        una lista de URI genéricas respecto el punto de montaje del
+        backend.
 
         Parameters
         ----------
