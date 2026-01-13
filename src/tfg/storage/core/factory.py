@@ -38,6 +38,11 @@ _FILE_HANDLERS: list[DataHandler] = [
 ]
 
 
+def _get_file_handlers() -> list[DataHandler]:
+    """Obtiene la lista de handlers de archivo por defecto."""
+    return [handler.copy() for handler in _FILE_HANDLERS]
+
+
 def register_factory(name: str, factory: FactoryFunc) -> None:
     """
     Registra un nuevo constructor de contexto de almacenamiento.
@@ -123,7 +128,7 @@ def _create_colab_context(
     # Backend y handlers
     backend = FilesystemBackend()
     if handlers is None:
-        handlers = _FILE_HANDLERS
+        handlers = _get_file_handlers()
 
     return DatasourceContext(
         connection=connection,
@@ -150,7 +155,7 @@ def _create_local_context(
     # Backend y handlers
     backend = FilesystemBackend()
     if handlers is None:
-        handlers = _FILE_HANDLERS
+        handlers = _get_file_handlers()
 
     return DatasourceContext(
         connection=connection,
