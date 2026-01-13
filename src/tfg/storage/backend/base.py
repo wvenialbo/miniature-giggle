@@ -6,92 +6,122 @@ class StorageBackend(tp.Protocol):
     Protocolo para el backend de almacenamiento.
 
     Define los métodos requeridos para cualquier implementación de
-    backend de almacenamiento. No conoce rutas lógicas, realiza
-    operaciones crudas de E/S sobre una URI física.
+    backend de almacenamiento, incluyendo operaciones para leer,
+    escribir, eliminar y listar archivos.  No conoce rutas lógicas,
+    realiza operaciones crudas de E/S sobre una URI física (rutas
+    absolutas, claves, etc.).
 
     Methods
     -------
     content(prefix: str) -> list[str]
-        Lista las URI físicas que comienzan con el prefijo especificado.
+        Lista las URI que comienzan con el prefijo especificado.
     delete(uri: str) -> None
-        Elimina los datos en la URI física especificada.
+        Elimina los datos en la URI especificada.
     exists(uri: str) -> bool
-        Verifica si los datos existen en la URI física especificada.
+        Verifica si los datos existen en la URI especificada.
     read(uri: str) -> bytes
-        Lee los datos desde la URI física especificada.
+        Lee los datos desde la URI especificada.
     write(uri: str, data: bytes) -> None
-        Escribe los datos en la URI física especificada.
+        Escribe los datos en la URI especificada.
+
+    Notes
+    -----
+    Todas las URI pasadas a sus métodos deben ser rutas absolutas o
+    claves nativas del backend.  Las URI devueltas por los métodos
+    también serán rutas absolutas o claves nativas del backend.
     """
 
     def content(self, *, prefix: str) -> list[str]:
         """
-        Lista las URI físicas que comienzan con el prefijo especificado.
+        Lista las URI que comienzan con el prefijo especificado.
 
-        Devuelve la lista de identificadores nativos del backend (rutas
-        absolutas, claves, etc.) que comienzan con el prefijo dado.
+        Obteniene la lista de todos los objetos cuyas URI comienzan con
+        el prefijo dado.  `prefix` debe ser una URI nativa absoluta
+        completa, o parcial, válida para el backend.  Devuelve una lista
+        de URI nativas absolutas del backend.
 
         Parameters
         ----------
         prefix : str
-            El prefijo para filtrar las URI físicas.
+            El prefijo para filtrar las URI.
 
         Returns
         -------
         tp.List[str]
-            Una lista de URI físicas que comienzan con el prefijo dado.
+            Una lista de URI que comienzan con el prefijo dado.
         """
         ...
 
     def delete(self, *, uri: str) -> None:
         """
-        Elimina los datos en la URI física especificada.
+        Elimina los datos en la URI especificada.
 
-        Elimina archivos u objetos individuales si existen. No elimina
-        contenedores o directorios. La operación es idempotente.
+        Elimina archivos u objetos individuales si existen.  No elimina
+        contenedores o directorios.  La operación es idempotente, la URI
+        puede no existir sin que se genere un error.  `uri` debe ser una
+        URI nativa absoluta completa válida para el backend.
 
         Parameters
         ----------
         uri : str
-            La URI física de los datos a eliminar.
+            La URI de los datos a eliminar.
         """
         ...
 
     def exists(self, *, uri: str) -> bool:
         """
-        Verifica si los datos existen en la URI física especificada.
+        Verifica si los datos existen en la URI especificada.
+
+        Verifica si un archivo u objeto existe en la URI dada.  La URI
+        debe apuntar a un archivo u objeto individual.  `uri` debe ser
+        una URI nativa absoluta completa válida para el backend.
 
         Parameters
         ----------
         uri : str
-            La URI física de los datos a verificar.
+            La URI de los datos a verificar.
 
         Returns
         -------
         bool
-            True si los datos existen, False en caso contrario.
+            True si los datos existen en la URI dada, False en caso
+            contrario.
         """
         ...
 
     def read(self, *, uri: str) -> bytes:
         """
-        Lee los datos desde la URI física especificada.
+        Lee los datos desde la URI especificada.
+
+        Carga los datos desde la URI dada.  La URI debe apuntar a un
+        archivo u objeto individual.  `uri` debe ser una URI nativa
+        absoluta completa válida para el backend.
 
         Parameters
         ----------
         uri : str
-            La URI física de los datos a leer.
+            La URI de los datos a leer.
+
+        Returns
+        -------
+        bytes
+            Los datos leídos desde la URI dada.
         """
         ...
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
-        Escribe los datos en la URI física especificada.
+        Escribe los datos en la URI especificada.
+
+        Guarda los datos en la URI dada.  Al finalizar la operación, la
+        URI debe apuntar a un archivo u objeto individual.  `uri` debe
+        ser una URI nativa absoluta completa válida para el backend.
 
         Parameters
         ----------
         uri : str
-            La URI física donde se escribirán los datos.
+            La URI donde se escribirán los datos.
         data : bytes
-            Los datos a escribir.
+            Los datos a escribir en la URI dada.
         """
         ...
