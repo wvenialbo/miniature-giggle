@@ -29,7 +29,7 @@ FactoryFunc = ca.Callable[..., Datasource]
 _STORAGE_FACTORIES: dict[str, FactoryFunc] = {}
 
 # Handlers de archivo por defecto
-_FILE_HANDLERS: list[DataHandler] = [
+_file_handlers: list[DataHandler] = [
     NumpyHandler(),
     PickleHandler(),
     CSVHandler(),
@@ -40,7 +40,20 @@ _FILE_HANDLERS: list[DataHandler] = [
 
 def _get_file_handlers() -> list[DataHandler]:
     """Obtiene la lista de handlers de archivo por defecto."""
-    return [handler.copy() for handler in _FILE_HANDLERS]
+    return [handler.copy() for handler in _file_handlers]
+
+
+def set_default_handlers(handlers: list[DataHandler]) -> None:
+    """
+    Establece la lista de handlers de archivo por defecto.
+
+    Parameters
+    ----------
+    handlers : list[DataHandler]
+        Nueva lista de handlers de archivo por defecto.
+    """
+    global _file_handlers
+    _file_handlers = [handler.copy() for handler in handlers]
 
 
 def register_factory(name: str, factory: FactoryFunc) -> None:
