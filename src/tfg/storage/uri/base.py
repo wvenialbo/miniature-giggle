@@ -3,7 +3,7 @@ import typing as tp
 
 class URIMapper(tp.Protocol):
     """
-    Transforma entre URIs genéricas y nativas del backend.
+    Transforma entre URI genéricas y nativas del backend.
 
     Los mapeadores de URI permiten que los backends almacenen datos en
     ubicaciones nativas específicas del backend, mientras exponen rutas
@@ -23,7 +23,7 @@ class URIMapper(tp.Protocol):
 
     def to_generic(self, uri: str) -> str:
         """
-        Convierte una URI genérica a una URI nativa.
+        Convierte una URI nativa a una URI genérica.
 
         Parameters
         ----------
