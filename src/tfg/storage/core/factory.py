@@ -5,7 +5,7 @@ Proporciona una interfaz simple para crear DataSourceContexts
 preconfigurados para diferentes backends (Colab, local, S3, etc.).
 """
 
-from pathlib import Path
+import pathlib as pl
 
 from ..backend import FilesystemBackend
 from ..connector import ColabDriveConnectionManager, LocalConnectionManager
@@ -86,9 +86,10 @@ def use_drive_for_colab(
     Parameters
     ----------
     root_path : str, optional
-        Ruta base dentro de Google Drive. Por defecto 'MyDrive'.
+        Ruta base dentro de Google Drive.  Debe ser una ruta relativa al
+        punto de montaje.  Por defecto 'MyDrive'.
     mountpoint : str, optional
-        Punto de montaje de Google Drive en Colab. Por defecto
+        Punto de montaje de Google Drive en Colab.  Por defecto
         '/content/drive'.
     handlers : list[DataHandler], optional
         Handlers de formato personalizados.
@@ -98,11 +99,18 @@ def use_drive_for_colab(
     Datasource
         Contexto configurado listo para usar.
     """
+    if pl.Path(root_path).is_absolute():
+        raise ValueError(
+            "`root_path` debe ser una ruta relativa dentro de Drive: "
+            f"'{root_path}'"
+        )
+
     # Connection Manager
     connection = ColabDriveConnectionManager(mountpoint=mountpoint)
 
     # URI Mapper: combina mountpoint + root_path
-    full_base = str(Path(connection.get_mountpoint()) / root_path)
+    mountpoint = connection.get_mountpoint()
+    full_base = str(pl.Path(mountpoint) / root_path)
     mapper = PathURIMapper(base_path=full_base)
 
     # Backend y handlers
@@ -129,9 +137,11 @@ def use_local_drive(
     Parameters
     ----------
     root_path : str, optional
-        Ruta base dentro del sistema de archivos local. Por defecto ''.
+        Ruta base dentro del sistema de archivos local.  Debe ser una
+        ruta relativa al punto de montaje.  Por defecto ''.
     mountpoint : str, optional
-        Punto de montaje del sistema de archivos local. Por defecto '.'.
+        Punto de montaje del sistema de archivos local.  Por defecto
+        '.'.
     handlers : list[DataHandler], optional
         Handlers de formato personalizados.
 
@@ -140,11 +150,18 @@ def use_local_drive(
     Datasource
         Contexto configurado listo para usar.
     """
+    if pl.Path(root_path).is_absolute():
+        raise ValueError(
+            "`root_path` debe ser una ruta relativa al punto de montaje: "
+            f"'{root_path}'"
+        )
+
     # Connection Manager (siempre "montado")
     connection = LocalConnectionManager(mountpoint=mountpoint)
 
     # URI Mapper
-    full_base = str(Path(connection.get_mountpoint()) / root_path)
+    mountpoint = connection.get_mountpoint()
+    full_base = str(pl.Path(mountpoint) / root_path)
     mapper = PathURIMapper(base_path=full_base)
 
     # Backend y handlers
