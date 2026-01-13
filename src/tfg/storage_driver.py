@@ -1,7 +1,7 @@
 import os
 import typing as tp
 
-from ..utils import check_is_active, format_report, format_table, get_columns_size
+from .utils import check_is_active, format_report, format_table, get_columns_size
 from .filehandler import FileHandler
 from .filesystem import FileSystemMounter
 
