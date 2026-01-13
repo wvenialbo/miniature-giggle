@@ -5,8 +5,6 @@ Proporciona una interfaz simple para crear DataSourceContexts
 preconfigurados para diferentes backends (Colab, local, S3, etc.).
 """
 
-import collections.abc as ca
-import typing as tp
 from pathlib import Path
 
 from ..backend import FilesystemBackend
@@ -21,12 +19,6 @@ from ..handler import (
     YAMLHandler,
 )
 from ..uri import PathURIMapper
-
-# Tipo para funciones fábrica
-FactoryFunc = ca.Callable[..., Datasource]
-
-# Registro global de fábricas
-_STORAGE_FACTORIES: dict[str, FactoryFunc] = {}
 
 _DEFAULT_HANDLERS: list[DataHandler] = [
     NumpyHandler(),
@@ -81,81 +73,31 @@ def set_default_handlers(handlers: list[DataHandler]) -> None:
     _file_handlers = [handler.copy() for handler in handlers]
 
 
-def register_factory(name: str, factory: FactoryFunc) -> None:
-    """
-    Registra un nuevo constructor de contexto de almacenamiento.
-
-    Parameters
-    ----------
-    name : str
-        Nombre identificador del almacenamiento.
-    factory : FactoryFunc
-        Función que crea un DataSource.
-
-    Raises
-    ------
-    ValueError
-        Si ya existe un constructor de contexto de almacenamiento
-        registrado con ese nombre.
-    """
-    if name in _STORAGE_FACTORIES:
-        raise ValueError(f"Una fábrica para '{name}' ya está registrada.")
-
-    _STORAGE_FACTORIES[name] = factory
-
-
-def get(
-    storage_name: str,
+# Fábricas de conveniencia
+def use_drive_for_colab(
     *,
-    mountpoint: str = "",
-    handlers: list[DataHandler] | None = None,
-    **kwargs: tp.Any,
-) -> Datasource:
-    """
-    Crea un DataSourceContext para un tipo de almacenamiento.
-
-    Parameters
-    ----------
-    storage_name : str
-        Nombre del almacenamiento ('colab', 'local', etc.)
-    root_path : str, optional
-        Ruta base dentro del almacenamiento.
-    handlers : list[DataHandler], optional
-        Handlers de formato personalizados.
-    **kwargs
-        Parámetros específicos del almacenamiento.
-
-    Returns
-    -------
-    DataSourceContext
-        Contexto configurado listo para usar.
-
-    Raises
-    ------
-    ValueError
-        Si el nombre del contexto de almacenamiento no está registrado.
-    """
-    if storage_name not in _STORAGE_FACTORIES:
-        available = list(_STORAGE_FACTORIES.keys())
-        raise ValueError(
-            f"Almacenamiento '{storage_name}' no disponible. "
-            f"Opciones: {available}"
-        )
-
-    return _STORAGE_FACTORIES[storage_name](
-        root_path=mountpoint,
-        handlers=handlers,
-        **kwargs,
-    )
-
-
-def _create_colab_context(
     root_path: str = "MyDrive",
     mountpoint: str = "/content/drive",
     handlers: list[DataHandler] | None = None,
-    **kwargs: tp.Any,
-) -> DatasourceContext:
-    """Fábrica interna para Google Drive para Google Colab."""
+) -> Datasource:
+    """
+    Crea contexto para Google Drive para Google Colab.
+
+    Parameters
+    ----------
+    root_path : str, optional
+        Ruta base dentro de Google Drive. Por defecto 'MyDrive'.
+    mountpoint : str, optional
+        Punto de montaje de Google Drive en Colab. Por defecto
+        '/content/drive'.
+    handlers : list[DataHandler], optional
+        Handlers de formato personalizados.
+
+    Returns
+    -------
+    Datasource
+        Contexto configurado listo para usar.
+    """
     # Connection Manager
     connection = ColabDriveConnectionManager(mountpoint=mountpoint)
 
@@ -176,15 +118,30 @@ def _create_colab_context(
     )
 
 
-def _create_local_context(
+def use_local_drive(
     root_path: str = "",
-    base_dir: str = ".",
+    mountpoint: str = ".",
     handlers: list[DataHandler] | None = None,
-    **kwargs: tp.Any,
-) -> DatasourceContext:
-    """Fábrica interna para sistema de archivos local."""
+) -> Datasource:
+    """
+    Crea contexto para sistema de archivos local.
+
+    Parameters
+    ----------
+    root_path : str, optional
+        Ruta base dentro del sistema de archivos local. Por defecto ''.
+    mountpoint : str, optional
+        Punto de montaje del sistema de archivos local. Por defecto '.'.
+    handlers : list[DataHandler], optional
+        Handlers de formato personalizados.
+
+    Returns
+    -------
+    Datasource
+        Contexto configurado listo para usar.
+    """
     # Connection Manager (siempre "montado")
-    connection = LocalConnectionManager(mountpoint=base_dir)
+    connection = LocalConnectionManager(mountpoint=mountpoint)
 
     # URI Mapper
     full_base = str(Path(connection.get_mountpoint()) / root_path)
@@ -201,19 +158,3 @@ def _create_local_context(
         mapper=mapper,
         handlers=handlers,
     )
-
-
-# Fábricas de conveniencia
-def for_colab(**kwargs: tp.Any) -> DatasourceContext:
-    """Crea contexto para Google Drive en Colab."""
-    return _create_colab_context(**kwargs)
-
-
-def for_local(**kwargs: tp.Any) -> DatasourceContext:
-    """Crea contexto para sistema de archivos local."""
-    return _create_local_context(**kwargs)
-
-
-# Registrar fábricas por defecto
-register_factory("colab", _create_colab_context)
-register_factory("local", _create_local_context)
