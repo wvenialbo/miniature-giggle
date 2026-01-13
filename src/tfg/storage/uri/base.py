@@ -10,6 +10,10 @@ class URIMapper(tp.Protocol):
     genéricas logicas para el usuario.  Esto es útil para backends que
     requieren estructuras de URI específicas o prefijos.
 
+    Este protocolo facilita la interoperabilidad entre diferentes
+    backends de almacenamiento al abstraer las diferencias en las
+    estructuras de URI.
+
     Se adopta el formato POSIX/Unix para las URI lógicas, utilizando '/'
     como separador de componentes de rutas.
 
@@ -19,6 +23,20 @@ class URIMapper(tp.Protocol):
         Convierte una URI nativa a una URI genérica.
     to_native(uri: str) -> str
         Convierte una URI genérica a una URI nativa.
+
+    Notes
+    -----
+    Las implementaciones concretas:
+
+    - Deben definir la lógica de transformación específica en los
+      métodos `to_generic` y `to_native`.
+    - Pueden requerir el acceso a configuraciones o funcionalidades
+      adicionales del backend para realizar las transformaciones
+      adecuadamente, como la conversión de una ruta a un identificador.
+    - Pueden establecer convenciones específicas con el backend para
+      manejar casos especiales, como rutas raíz o prefijos o, por
+      ejemplo, cuando un idenficador no puede obtenerse hasta después de
+      crear el objeto.
     """
 
     def to_generic(self, uri: str) -> str:
