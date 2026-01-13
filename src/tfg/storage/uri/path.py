@@ -22,12 +22,15 @@ class PathURIMapper(URIMapper):
     ----------
     base_path : str
         Ruta base para las URI genéricas.  Debe ser una ruta genérica
-        válida en el sistema de archivos local.
+        válida en el sistema de archivos local. Puede ser relativa o
+        absoluta y es resuelta a una ruta absoluta durante la
+        inicialización.
 
     Attributes
     ----------
     base_path : pathlib.Path
         La ruta base absoluta utilizada para las conversiones de URI.
+        Es una ruta en formato POSIX.
 
     Methods
     -------
