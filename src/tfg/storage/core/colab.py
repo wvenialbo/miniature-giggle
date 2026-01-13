@@ -181,7 +181,8 @@ class ColabDrive:
 
         return True
 
-    def _report_failure(self, error_message: str, fail: bool) -> None:
+    @staticmethod
+    def _report_failure(error_message: str, fail: bool) -> None:
         """
         Informa de un fallo lanzando una excepción o emitiendo una
         advertencia.
