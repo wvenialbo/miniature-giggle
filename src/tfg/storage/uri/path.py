@@ -43,7 +43,9 @@ class PathURIMapper(URIMapper):
     """
 
     def __init__(self, base_path: str) -> None:
-        self.base_path = base_path
+        cwd = pl.Path().resolve(strict=False)
+        crd = cwd / base_path
+        self.base_path = f"/{crd.relative_to(crd.anchor).as_posix()}"
 
     def __repr__(self) -> str:
         return f"PathURIMapper(base_path='{self.base_path}')"
