@@ -14,14 +14,14 @@ class FilesystemBackend(StorageBackend):
 
     Methods
     -------
-    content(prefix: str) -> list[str]
-        Lista las URI que comienzan con el prefijo especificado.
     delete(uri: str) -> None
         Elimina los datos en la URI especificada.
     exists(uri: str) -> bool
         Verifica si los datos existen en la URI especificada.
     read(uri: str) -> bytes
         Lee los datos desde la URI especificada.
+    scan(prefix: str) -> list[str]
+        Lista las URI que comienzan con el prefijo especificado.
     write(uri: str, data: bytes) -> None
         Escribe los datos en la URI especificada.
 
@@ -40,45 +40,6 @@ class FilesystemBackend(StorageBackend):
 
     def __repr__(self) -> str:
         return "FilesystemBackend()"
-
-    def content(self, *, prefix: str) -> list[str]:
-        """
-        Lista las rutas que comienzan con el prefijo especificado.
-
-        Obteniene la lista de todos los archivos cuyas rutas comienzan
-        con el prefijo dado.  `prefix` debe ser una ruta nativa absoluta
-        completa, o parcial, válida para el backend.  Devuelve una lista
-        de rutas nativas absolutas del backend.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las rutas.
-
-        Returns
-        -------
-        tp.List[str]
-            Una lista de rutas que comienzan con el prefijo dado.
-        """
-        path = _check_uri(prefix)
-        base = path.parent
-
-        files = [
-            str(entry)
-            for entry in base.glob(f"{path.name}*")
-            if entry.is_file()
-        ]
-
-        folders = [
-            entry for entry in base.glob(f"{path.name}*") if entry.is_dir()
-        ]
-
-        return files + [
-            str(entry)
-            for folder in folders
-            for entry in folder.rglob("*")
-            if entry.is_file()
-        ]
 
     def delete(self, *, uri: str) -> None:
         """
@@ -140,6 +101,45 @@ class FilesystemBackend(StorageBackend):
         """
         path = _check_uri(uri)
         return path.read_bytes()
+
+    def scan(self, *, prefix: str) -> list[str]:
+        """
+        Lista las rutas que comienzan con el prefijo especificado.
+
+        Obteniene la lista de todos los archivos cuyas rutas comienzan
+        con el prefijo dado.  `prefix` debe ser una ruta nativa absoluta
+        completa, o parcial, válida para el backend.  Devuelve una lista
+        de rutas nativas absolutas del backend.
+
+        Parameters
+        ----------
+        prefix : str
+            El prefijo para filtrar las rutas.
+
+        Returns
+        -------
+        tp.List[str]
+            Una lista de rutas que comienzan con el prefijo dado.
+        """
+        path = _check_uri(prefix)
+        base = path.parent
+
+        files = [
+            str(entry)
+            for entry in base.glob(f"{path.name}*")
+            if entry.is_file()
+        ]
+
+        folders = [
+            entry for entry in base.glob(f"{path.name}*") if entry.is_dir()
+        ]
+
+        return files + [
+            str(entry)
+            for folder in folders
+            for entry in folder.rglob("*")
+            if entry.is_file()
+        ]
 
     def write(self, *, uri: str, data: bytes) -> None:
         """

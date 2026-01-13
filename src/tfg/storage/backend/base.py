@@ -13,14 +13,14 @@ class StorageBackend(tp.Protocol):
 
     Methods
     -------
-    content(prefix: str) -> list[str]
-        Lista las URI que comienzan con el prefijo especificado.
     delete(uri: str) -> None
         Elimina los datos en la URI especificada.
     exists(uri: str) -> bool
         Verifica si los datos existen en la URI especificada.
     read(uri: str) -> bytes
         Lee los datos desde la URI especificada.
+    scan(prefix: str) -> list[str]
+        Lista las URI que comienzan con el prefijo especificado.
     write(uri: str, data: bytes) -> None
         Escribe los datos en la URI especificada.
 
@@ -30,27 +30,6 @@ class StorageBackend(tp.Protocol):
     claves nativas del backend.  Las URI devueltas por los métodos
     también serán rutas absolutas o claves nativas del backend.
     """
-
-    def content(self, *, prefix: str) -> list[str]:
-        """
-        Lista las URI que comienzan con el prefijo especificado.
-
-        Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI nativa absoluta
-        completa, o parcial, válida para el backend.  Devuelve una lista
-        de URI nativas absolutas del backend.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las URI.
-
-        Returns
-        -------
-        tp.List[str]
-            Una lista de URI que comienzan con el prefijo dado.
-        """
-        ...
 
     def delete(self, *, uri: str) -> None:
         """
@@ -106,6 +85,27 @@ class StorageBackend(tp.Protocol):
         -------
         bytes
             Los datos leídos desde la URI dada.
+        """
+        ...
+
+    def scan(self, *, prefix: str) -> list[str]:
+        """
+        Lista las URI que comienzan con el prefijo especificado.
+
+        Obteniene la lista de todos los objetos cuyas URI comienzan con
+        el prefijo dado.  `prefix` debe ser una URI nativa absoluta
+        completa, o parcial, válida para el backend.  Devuelve una lista
+        de URI nativas absolutas del backend.
+
+        Parameters
+        ----------
+        prefix : str
+            El prefijo para filtrar las URI listadas.
+
+        Returns
+        -------
+        tp.List[str]
+            Una lista de URI que comienzan con el prefijo dado.
         """
         ...
 
