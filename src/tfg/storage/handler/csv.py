@@ -55,6 +55,21 @@ class CSVHandler(DataHandler):
             f"quotechar={self.quotechar!r}, has_header={self.has_header})"
         )
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return CSVHandler(
+            delimiter=self.delimiter,
+            quotechar=self.quotechar,
+            has_header=self.has_header,
+        )
+
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos CSV desde un flujo binario.

@@ -52,6 +52,20 @@ class NJSONHandler(DataHandler):
             f"ensure_ascii={self.ensure_ascii})"
         )
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return NJSONHandler(
+            indent=self.indent,
+            ensure_ascii=self.ensure_ascii,
+        )
+
     def load(self, *, stream: io.BytesIO) -> dict[str, tp.Any]:
         """
         Carga múltiples objetos JSON desde un flujo binario.

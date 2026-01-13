@@ -49,6 +49,20 @@ class JSONHandler(DataHandler):
             f"ensure_ascii={self.ensure_ascii})"
         )
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return JSONHandler(
+            indent=self.indent,
+            ensure_ascii=self.ensure_ascii,
+        )
+
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos JSON desde un flujo binario.

@@ -50,6 +50,20 @@ class YAMLHandler(DataHandler):
             f"allow_unicode={self.allow_unicode})"
         )
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return YAMLHandler(
+            default_flow_style=self.default_flow_style,
+            allow_unicode=self.allow_unicode,
+        )
+
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos YAML desde un flujo binario.

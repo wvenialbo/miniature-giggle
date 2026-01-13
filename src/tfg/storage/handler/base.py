@@ -11,6 +11,8 @@ class DataHandler(tp.Protocol):
 
     Methods
     -------
+    copy() -> DataHandler
+        Crea una copia del handler de datos.
     load(stream: io.BytesIO) -> tp.Any
         Carga datos desde un flujo binario.
     save(data: tp.Any, stream: io.BytesIO) -> None
@@ -19,6 +21,17 @@ class DataHandler(tp.Protocol):
         Identificadores únicos del formato de datos manejado por este
         handler.
     """
+
+    def copy(self) -> "DataHandler":
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        ...
 
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """

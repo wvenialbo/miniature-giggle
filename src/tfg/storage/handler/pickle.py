@@ -38,6 +38,17 @@ class PickleHandler(DataHandler):
     def __repr__(self) -> str:
         return f"PickleHandler(protocol={self.protocol})"
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return PickleHandler(protocol=self.protocol)
+
     @staticmethod
     def _issue_warning() -> None:
         warnings.warn(

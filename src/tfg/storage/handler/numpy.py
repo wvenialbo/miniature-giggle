@@ -60,6 +60,21 @@ class NumpyHandler(DataHandler):
             f"compressed={self.compressed}, npz={self.npz})"
         )
 
+    def copy(self) -> DataHandler:
+        """
+        Crea una copia del handler de datos.
+
+        Returns
+        -------
+        DataHandler
+            Nueva instancia del handler de datos.
+        """
+        return NumpyHandler(
+            allow_pickle=self.allow_pickle,
+            compressed=self.compressed,
+            npz=self.npz,
+        )
+
     def load(self, *, stream: io.BytesIO) -> tp.Any:
         """
         Carga datos NumPy desde un flujo binario.
