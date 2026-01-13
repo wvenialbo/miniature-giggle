@@ -1,4 +1,3 @@
-import types
 import typing as tp
 
 from ..handler import DataHandler
@@ -8,10 +7,10 @@ class Datasource(tp.Protocol):
     """
     Protocolo para operaciones sobre fuentes de datos.
 
-    Utiliza un ConnectionManager para gestionar la conexión con un
-    almacen de datos, un StorageBackend para operaciones de E/S, un
-    URIMapper para convertir entre URIs genéricas y nativas, y una lista
-    de DataHandlers para manejar formatos específicos.
+    Utiliza un StorageBackend para operaciones de E/S sobre un almacen
+    de datos, un URIMapper para convertir entre URIs genéricas (formato
+    POSIX) y nativas, y una lista de DataHandlers para manejar formatos
+    específicos.
 
     Las URIs genéricas siguen el formato POSIX con '/' como separador y
     son relativas a la raíz del contexto, que está determinado por el
@@ -23,20 +22,17 @@ class Datasource(tp.Protocol):
 
     Methods
     -------
-    close(fail: bool = False) -> None
-        Cierra la conexión con la fuente de datos y libera recursos.
     delete(generic_uri: str) -> None
         Elimina el recurso con la URI especificada.
     exists(generic_uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
-    get_handler(format_id: str) -> DataHandler | None
-        Obtiene el handler para una extensión.
     load(generic_uri: str) -> Any
         Carga un objeto desde la URI especificada.
-    open(fail: bool = False) -> None
-        Abre la conexión con la fuente de datos.
-    register_handler(handler: DataHandler, replace: bool = False) -> None
+    register_handler(handler: DataHandler, replace: bool = False) ->
+    None
         Registra un manejador de formato o reemplaza uno existente.
+    remove_handler(format_id: str) -> None
+        Elimina el handler para una extensión.
     replace_handler(handler: DataHandler) -> None
         Reemplaza un manejador de formato o reemplaza uno existente.
     save(data: Any, generic_uri: str) -> None
@@ -44,63 +40,6 @@ class Datasource(tp.Protocol):
     scan(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
     """
-
-    def __enter__(self) -> tp.Self:
-        """
-        Entra en el contexto del datasource.
-
-        Returns
-        -------
-        tp.Self
-            La instancia del datasource.
-        """
-        ...
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> bool | None:
-        """
-        Garantiza el cierre al salir del bloque with.
-
-        Parameters
-        ----------
-        exc_type : type[BaseException] | None
-            Tipo de excepción si se produjo una.
-        exc_val : BaseException | None
-            Valor de la excepción si se produjo una.
-        exc_tb : types.TracebackType | None
-            Rastreo de la excepción si se produjo.
-
-        Returns
-        -------
-        bool | None
-            True para suprimir la excepción, False o None para
-            propagarla.
-        """
-        ...
-
-    def close(self, *, fail: bool = False) -> None:
-        """
-        Cierra la conexión con la fuente de datos y libera recursos.
-
-        Desmonta y cierra la conexión con el sistema de almacenamiento
-        local o remoto.
-
-        Si no se puede cerrar la conexión y `fail` es True, se lanza una
-        excepción RuntimeError.  Si `fail` es False, se emite una
-        advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede cerrar la
-            conexión con el sistema de almacenamiento.  Por defecto es
-            False.
-        """
-        ...
 
     def delete(self, *, uri: str) -> None:
         """
@@ -139,23 +78,6 @@ class Datasource(tp.Protocol):
         """
         ...
 
-    def get_handler(self, *, format_id: str) -> DataHandler | None:
-        """
-        Obtiene el handler para una extensión.
-
-        Parameters
-        ----------
-        format_id : str
-            Identificador del formato (extensión) del handler.
-
-        Returns
-        -------
-        DataHandler | None
-            El handler registrado para la extensión dada, o None si no
-            existe.
-        """
-        ...
-
     def load(self, *, uri: str) -> tp.Any:
         """
         Carga un objeto desde la URI especificada.
@@ -173,26 +95,6 @@ class Datasource(tp.Protocol):
         -------
         bytes
             Los datos leídos desde la URI dada.
-        """
-        ...
-
-    def open(self, *, fail: bool = False) -> None:
-        """
-        Abre la conexión con con la fuente de datos.
-
-        Abre la conexión con el sistema de almacenamiento remoto y lo
-        monta en el punto de montaje obtenido por `get_mountpoint()`.
-
-        Si no se puede abrir la conexión y `fail` es True, se lanza una
-        excepción RuntimeError.  Si `fail` es False, se emite una
-        advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede abrir la
-            conexión con el sistema de almacenamiento.  Por defecto es
-            False.
         """
         ...
 
