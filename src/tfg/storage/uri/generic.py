@@ -1,9 +1,16 @@
 import pathlib as pl
 
+from .base import URIMapper
 
-class UserURIMapper:
+
+class GenericURIMapper(URIMapper):
     """
-    Transforma entre URIs del usuario y del repositorio.
+    Transforma URIs genéricas respecto a una ruta base.
+
+    Parameters
+    ----------
+    path : str
+        Ruta base para las URIs lógicas.
 
     Methods
     -------
@@ -15,15 +22,33 @@ class UserURIMapper:
 
     def __init__(self, path: str) -> None:
         base_path = pl.PosixPath(f"/{path.lstrip('/')}")
-        self.base_path = base_path.resolve(strict=True)
+        self.base_path = base_path.resolve(strict=False)
 
     def __repr__(self) -> str:
-        return f"URIComposer(path='{self.base_path}')"
+        return f"GenericURIMapper(path='{self.base_path}')"
 
     def __str__(self) -> str:
         return f"{self.base_path}"
 
-    def to_native(self, *, uri: str) -> str:
+    def to_logical(self, uri: str) -> str:
+        """
+        Convierte una URI nativa a una lógica.
+
+        Parameters
+        ----------
+        uri : str
+            La URI nativa proporcionada por el backend.
+
+        Returns
+        -------
+        str
+            La URI lógica transformada para el usuario.
+        """
+        path = pl.PosixPath(uri).resolve(strict=False)
+        relative_path = path.relative_to(self.base_path)
+        return str(relative_path)
+
+    def to_native(self, uri: str) -> str:
         """
         Convierte una URI lógica a una URI nativa.
 

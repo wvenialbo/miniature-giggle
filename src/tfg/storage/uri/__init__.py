@@ -1,5 +1,5 @@
 from .base import URIMapper
-from .native import NativeURIMapper
-from .user import UserURIMapper
+from .generic import GenericURIMapper
+from .path import PathURIMapper
 
-__all__ = ["URIMapper", "NativeURIMapper", "UserURIMapper"]
+__all__ = ["URIMapper", "PathURIMapper", "GenericURIMapper"]
