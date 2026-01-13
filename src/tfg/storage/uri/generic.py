@@ -52,7 +52,7 @@ class GenericURIMapper(URIMapper):
     def __repr__(self) -> str:
         return f"GenericURIMapper(base_path='{self.base_path}')"
 
-    def to_logical(self, uri: str) -> str:
+    def to_generic(self, uri: str) -> str:
         """
         Convierte una URI nativa a una lógica.
 
@@ -68,7 +68,7 @@ class GenericURIMapper(URIMapper):
         """
         native_root = pl.PurePosixPath(self.base_path)
         generic_path = pl.PurePosixPath(uri).relative_to(native_root)
-        return str(generic_path)
+        return f"/{str(generic_path)}"
 
     def to_native(self, uri: str) -> str:
         """
