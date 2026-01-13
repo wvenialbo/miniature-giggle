@@ -3,7 +3,7 @@ import typing as tp
 from ..handler import DataHandler
 
 
-class DataSource(tp.Protocol):
+class Datasource(tp.Protocol):
     """
     Protocolo para operaciones sobre fuentes de datos.
 

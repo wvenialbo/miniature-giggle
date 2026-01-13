@@ -1,4 +1,4 @@
-from .base import DataSource
-from .context import DataSourceContext
+from .base import Datasource
+from .context import DatasourceContext
 
-__all__ = ["DataSource", "DataSourceContext"]
+__all__ = ["Datasource", "DatasourceContext"]

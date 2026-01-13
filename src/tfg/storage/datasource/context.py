@@ -7,10 +7,10 @@ from ..backend import StorageBackend
 from ..connector import ConnectionManager
 from ..handler import DataHandler
 from ..uri import URIMapper
-from .base import DataSource
+from .base import Datasource
 
 
-class DataSourceContext(DataSource):
+class DatasourceContext(Datasource):
     """
     Contexto de datos que orquesta el acceso al almacenamiento.
 
