@@ -20,7 +20,7 @@ class PathURIMapper(URIMapper):
 
     Parameters
     ----------
-    path : str
+    base_path : str
         Ruta base para las URI genéricas.  Debe ser una ruta genérica
         válida en el sistema de archivos local.
 
