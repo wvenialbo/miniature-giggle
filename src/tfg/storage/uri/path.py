@@ -67,8 +67,8 @@ class PathURIMapper(URIMapper):
         str
             La URI lógica transformada para el usuario.
         """
-        root_path = pl.Path(self.root).resolve(strict=False)
-        native_path = pl.Path(uri).relative_to(root_path)
+        native_root = pl.Path(self.base_path).resolve(strict=False)
+        native_path = pl.Path(uri).relative_to(native_root)
         generic_path = pl.PurePosixPath(f"/{native_path.as_posix()}")
         return str(generic_path)
 
@@ -86,11 +86,7 @@ class PathURIMapper(URIMapper):
         str
             La URI nativa transformada para el sistema de archivos.
         """
-        generic_path = self.root / uri.lstrip("/")
+        generic_root = pl.PurePosixPath(self.base_path)
+        generic_path = generic_root / uri.lstrip("/")
         native_path = pl.Path(generic_path)
         return str(native_path.resolve(strict=False))
-
-    @property
-    def root(self) -> pl.PurePosixPath:
-        """Ruta base absoluta utilizada para las conversiones de URI."""
-        return pl.PurePosixPath(f"/{self.base_path.lstrip('/')}")
