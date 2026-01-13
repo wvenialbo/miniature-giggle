@@ -27,14 +27,19 @@
 
   # The dependencies for your project
   dependencies = [
+    "boto3",
     "cartopy",
     "goes-dl",
+    "google-api-python-client",
     "gudhi",
     "joblib",
     "matplotlib",
+    "netCDF4",
     "numpy",
     "pandas",
     "pyproj",
+    "pyyaml",
+    "requests",
     "scipy",
     "seaborn",
   ]
