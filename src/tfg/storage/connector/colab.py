@@ -47,13 +47,13 @@ class ColabDriveConnectionManager(BasicConnectionManager):
 
     Methods
     -------
-    close(fail: bool = True) -> bool
+    close(fail: bool = False) -> bool
         Cierra la conexión con el sistema de almacenamiento.
     ensure_mounted() -> None
         Asegura que el sistema de almacenamiento esté montado.
     is_mounted() -> bool
         Verifica si el sistema de almacenamiento está montado.
-    open(fail: bool = True) -> bool
+    open(fail: bool = False) -> bool
         Abre la conexión con el sistema de almacenamiento.
     """
 
