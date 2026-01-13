@@ -5,10 +5,10 @@ import typing as tp
 from ..backend import StorageBackend
 from ..handler import DataHandler
 from ..uri import URIMapper
-from .base import Datasource
+from .base import DatasourceContract
 
 
-class DatasourceContext(Datasource):
+class DatasourceContext(DatasourceContract):
     """
     Contexto de datos que orquesta el acceso al almacenamiento.
 
