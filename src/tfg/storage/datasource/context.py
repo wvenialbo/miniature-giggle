@@ -8,7 +8,7 @@ from ..uri import URIMapper
 from .base import DatasourceContract
 
 
-class DatasourceContext(DatasourceContract):
+class Datasource(DatasourceContract):
     """
     Contexto de datos que orquesta el acceso al almacenamiento.
 
