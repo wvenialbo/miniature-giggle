@@ -3,7 +3,7 @@ import typing as tp
 
 class StorageBackend(tp.Protocol):
     """
-    Protocolo para backends de almacenamiento de datos.
+    Protocolo para backends de almacenamiento de datos crudos.
 
     Define la interfaz requerida para cualquier implementación de
     backend de almacenamiento utilizado por la librería.  Las
@@ -36,12 +36,12 @@ class StorageBackend(tp.Protocol):
     -----
     Dependencias:
         Los recursos necesarios (clientes SDK, sesiones, credenciales)
-        deben ser inyectados en el constructor de la implementación
-        concreta, típicamente mediante una función factoría que crea el
-        objeto orquestador.
+        deben inyectarse en el constructor de la implementación concreta,
+        típicamente mediante una función factoría que cree el objeto
+        orquestador.
 
     Thread-safety:
-        Las implementaciones deben ser thread-safe en la medida que el
+        Las implementaciones deben ser thread-safe en la medida en que el
         backend subyacente lo permita. Si el SDK del backend no es
         thread-safe por defecto, la implementación debe garantizar
         seguridad mediante mecanismos de sincronización apropiados.  El
@@ -51,12 +51,14 @@ class StorageBackend(tp.Protocol):
 
     Excepciones:
         - Para operaciones NO soportadas nativamente por el backend, se
-          debe lanzar `RuntimeError` (ej: escritura en backend de solo
-          lectura).
+          debe lanzar `RuntimeError` (ejemplo: escritura en backend de
+          solo lectura).
         - Para errores en operaciones soportadas, deben propagarse las
-          excepciones nativas del backend.
-        - Operaciones idempotentes (delete, create_path) no deben lanzar
-          error cuando el recurso no existe o ya existe respectivamente.
+          excepciones nativas del backend (ejemplo: BotoCoreError para
+          AWS, GoogleCloudError para Google Cloud).
+        - Las operaciones idempotentes (delete, create_path) no deben
+          lanzar error cuando el recurso no existe o ya existe,
+          respectivamente.
 
     Paginación:
         `scan()` debe manejar internamente toda la paginación del
@@ -73,10 +75,10 @@ class StorageBackend(tp.Protocol):
         rutas lógicas en URIs nativas. Si el `URIMapper` no encuentra un
         ID existente, devuelve la ruta POSIX original. Luego, el
         orquestador llama a `create_path()` con este valor. Si
-        `create_path()` recibe un ID nativo (que indica que el recurso
-        ya existe), devuelve el mismo ID. Si recibe una ruta POSIX, crea
-        los contenedores necesarios y devuelve el nuevo ID nativo. Este
-        ID se utiliza posteriormente en `write()`.
+        `create_path()` recibe un ID nativo (lo que indica que el
+        recurso ya existe), devuelve el mismo ID. Si recibe una ruta
+        POSIX, crea los contenedores necesarios y devuelve el nuevo ID
+        nativo. Este ID se utiliza posteriormente en `write()`.
     """
 
     def create_path(self, *, path: str) -> str:
@@ -136,8 +138,8 @@ class StorageBackend(tp.Protocol):
         Parameters
         ----------
         uri : str
-            URI nativa absoluta completa válida para el backend.  Ej:
-            'ftp://bucket/experimentos/data.csv'.
+            URI nativa absoluta completa válida para el backend.
+            Ejemplo: 's3://bucket/experimentos/data.csv'.
 
         Raises
         ------
@@ -225,7 +227,7 @@ class StorageBackend(tp.Protocol):
 
         Notes
         -----
-        - Solo devuelve URIs de archivos u objetos individuales, no
+        - Solo devuelve URIs de archivos u objetos individuales; no
           incluye contenedores o directorios vacíos.
         - Maneja internamente toda la paginación del backend.
         - Devuelve resultados completos sin límites de memoria.
