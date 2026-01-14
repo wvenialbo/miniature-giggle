@@ -3,16 +3,24 @@ import typing as tp
 
 class StorageBackend(tp.Protocol):
     """
-    Protocolo para el backend de almacenamiento.
+    Protocolo para backends de almacenamiento de datos.
 
-    Define los métodos requeridos para cualquier implementación de
-    backend de almacenamiento, incluyendo operaciones para leer,
-    escribir, eliminar y listar archivos.  No conoce rutas lógicas,
-    realiza operaciones crudas de E/S sobre una URI física (rutas
-    absolutas, claves, etc.).
+    Define la interfaz requerida para cualquier implementación de
+    backend de almacenamiento utilizado por la librería.  Las
+    operaciones son de bajo nivel: lectura, escritura, eliminación y
+    listado sobre URIs nativas del backend (rutas absolutas, claves,
+    etc.).
+
+    Las implementaciones concretas no realizan cálculos de
+    identificadores lógicos; reciben URIs precalculadas por un
+    `URIMapper` en capas superiores.  La única excepción es
+    `create_path()`, que acepta rutas genéricas para creación de
+    contenedores.
 
     Methods
     -------
+    create_path(path: str) -> str
+        Crea una ruta o contenedor en el backend de almacenamiento.
     delete(uri: str) -> None
         Elimina los datos en la URI especificada.
     exists(uri: str) -> bool
@@ -26,24 +34,124 @@ class StorageBackend(tp.Protocol):
 
     Notes
     -----
-    Todas las URI pasadas a sus métodos deben ser rutas absolutas o
-    claves nativas del backend.  Las URI devueltas por los métodos
-    también serán rutas absolutas o claves nativas del backend.
+    Dependencias:
+        Los recursos necesarios (clientes SDK, sesiones, credenciales)
+        deben ser inyectados en el constructor de la implementación
+        concreta, típicamente mediante una función factoría de
+        orquestación.
+
+    Thread-safety:
+        Las implementaciones deben ser thread-safe en la medida que el
+        backend subyacente lo permita. Si el SDK del backend no es
+        thread-safe por defecto (ej: ciertas sesiones de boto3), la
+        implementación debe garantizar seguridad mediante mecanismos de
+        sincronización apropiados.  El acceso concurrente a diferentes
+        objetos debe ser soportado cuando el SDK lo permita. Las
+        limitaciones específicas deben documentarse en la implementación
+        concreta.
+
+    Excepciones:
+        - Para operaciones NO soportadas nativamente por el backend, se
+          debe lanzar `RuntimeError` (ej: escritura en backend de solo
+          lectura).
+        - Para errores en operaciones soportadas, deben propagarse las
+          excepciones nativas del backend (BotoCoreError,
+          GoogleCloudError).
+        - Operaciones idempotentes (delete, create_path) no deben lanzar
+          error cuando el recurso no existe o ya existe respectivamente.
+
+    Paginación:
+        `scan()` debe manejar internamente toda la paginación del
+        backend, devolviendo la lista completa de URIs. No hay límites
+        de memoria o tiempo en esta versión de la librería.
+
+    URIs:
+        Todas las URIs recibidas (excepto en `create_path()`) son
+        nativas del backend y absolutas. Las URIs devueltas también son
+        nativas y absolutas.
+
+    Flujo de creación:
+        Las capas superiores utilizan un `URIMapper` para convertir
+        rutas lógicas en URIs nativas. Si el `URIMapper` no encuentra un
+        ID existente, devuelve la ruta POSIX original. Luego, el
+        orquestador llama a `create_path()` con este valor. Si
+        `create_path()` recibe un ID nativo (que indica que el recurso
+        ya existe), devuelve el mismo ID. Si recibe una ruta POSIX, crea
+        los contenedores necesarios y devuelve el nuevo ID nativo. Este
+        ID se utiliza posteriormente en `write()`.
     """
+
+    def create_path(self, *, path: str) -> str:
+        """
+        Crea una ruta o contenedor en el backend de almacenamiento.
+
+        Este método puede recibir dos tipos de entrada:
+            1. Un ID nativo del backend (cuando el recurso ya existe).
+            2. Una ruta POSIX (cuando el recurso no existe y se va a
+               crear).
+
+        - En el primer caso, el método es idempotente y devuelve el
+          mismo ID.
+        - En el segundo caso, crea recursivamente todos los contenedores
+          intermedios necesarios, emulando el comportamiento de `mkdir
+          -p`.  Esta operación es llamada por capas superiores antes de
+          `write()` para garantizar que exista el contenedor destino.
+
+        Parameters
+        ----------
+        path : str
+            Puede ser un ID nativo del backend (si el recurso ya existe)
+            o una ruta genérica (POSIX). Ej:
+            'experimentos/2024/dataset1'.
+
+        Returns
+        -------
+        str
+            URI nativa absoluta del contenedor creado o existente en el
+            backend.  Ej: 's3://bucket/experimentos/2024/dataset1/' o la
+            clave equivalente.
+
+        Raises
+        ------
+        RuntimeError
+            Si el backend no soporta operaciones de creación de
+            contenedores.
+
+        Notes
+        -----
+        - Operación idempotente: si el contenedor ya existe (o se recibe
+          un ID nativo), no se realiza ninguna acción y se devuelve la
+          URI correspondiente.
+        - Para backends que requieren contenedores preexistentes (como
+          S3 buckets o Google Cloud Storage buckets), estos deben
+          existir previamente; este método crea solo "prefijos" o
+          "directorios virtuales".
+        """
+        ...
 
     def delete(self, *, uri: str) -> None:
         """
         Elimina los datos en la URI especificada.
 
-        Elimina archivos u objetos individuales si existen.  No elimina
-        contenedores o directorios.  La operación es idempotente, la URI
-        puede no existir sin que se genere un error.  `uri` debe ser una
-        URI nativa absoluta completa válida para el backend.
+        Elimina archivos u objetos individuales. No elimina contenedores
+        o directorios completos.
 
         Parameters
         ----------
         uri : str
-            La URI de los datos a eliminar.
+            URI nativa absoluta completa válida para el backend.  Ej:
+            's3://bucket/experimentos/data.csv'.
+
+        Raises
+        ------
+        RuntimeError
+            Si el backend no soporta operaciones de eliminación.
+
+        Notes
+        -----
+        - Operación idempotente: si la URI no existe, no se genera
+          error.
+        - No debe utilizarse para eliminar contenedores/directorios.
         """
         ...
 
@@ -51,20 +159,20 @@ class StorageBackend(tp.Protocol):
         """
         Verifica si los datos existen en la URI especificada.
 
-        Verifica si un archivo u objeto existe en la URI dada.  La URI
-        debe apuntar a un archivo u objeto individual.  `uri` debe ser
-        una URI nativa absoluta completa válida para el backend.
+        Verifica la existencia de un archivo u objeto individual, no de
+        contenedores o prefijos.
 
         Parameters
         ----------
         uri : str
-            La URI de los datos a verificar.
+            URI nativa absoluta completa válida para el backend.
 
         Returns
         -------
         bool
-            True si los datos existen en la URI dada, False en caso
-            contrario.
+            True si existe un archivo u objeto en la URI, False en caso
+            contrario (incluyendo cuando la URI apunta a un contenedor o
+            no existe).
         """
         ...
 
@@ -72,19 +180,22 @@ class StorageBackend(tp.Protocol):
         """
         Lee los datos desde la URI especificada.
 
-        Carga los datos desde la URI dada.  La URI debe apuntar a un
-        archivo u objeto individual.  `uri` debe ser una URI nativa
-        absoluta completa válida para el backend.
-
         Parameters
         ----------
         uri : str
-            La URI de los datos a leer.
+            URI nativa absoluta completa válida para el backend.
 
         Returns
         -------
         bytes
-            Los datos leídos desde la URI dada.
+            Contenido binario del archivo u objeto.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si la URI no existe.
+        RuntimeError
+            Si el backend no soporta operaciones de lectura.
         """
         ...
 
@@ -92,20 +203,37 @@ class StorageBackend(tp.Protocol):
         """
         Lista las URI que comienzan con el prefijo especificado.
 
-        Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI nativa absoluta
-        completa, o parcial, válida para el backend.  Devuelve una lista
-        de URI nativas absolutas del backend.
+        Este método debe manejar internamente la paginación del backend
+        y devolver una lista completa de URIs que coinciden con el
+        prefijo.
 
         Parameters
         ----------
         prefix : str
-            El prefijo para filtrar las URI listadas.
+            Prefijo de URI nativa absoluta (completa o parcial) válida
+            para el backend. Puede incluir o no el separador de
+            contenedor.
 
         Returns
         -------
-        tp.List[str]
-            Una lista de URI que comienzan con el prefijo dado.
+        list[str]
+            Lista de URIs nativas absolutas que comienzan con el
+            prefijo.  Solo incluye archivos/objetos, no contenedores
+            vacíos.
+
+        Raises
+        ------
+        RuntimeError
+            Si el backend no soporta operaciones de listado.
+
+        Notes
+        -----
+        - Solo devuelve URIs de archivos u objetos individuales, no
+          incluye contenedores o directorios vacíos.
+        - Maneja internamente toda la paginación del backend.
+        - Devuelve resultados completos sin límites de memoria.
+        - Para algunos backends (ej: sistemas de archivos), el prefijo
+          debe terminar con '/' para listar contenidos de un directorio.
         """
         ...
 
@@ -113,15 +241,27 @@ class StorageBackend(tp.Protocol):
         """
         Escribe los datos en la URI especificada.
 
-        Guarda los datos en la URI dada.  Al finalizar la operación, la
-        URI debe apuntar a un archivo u objeto individual.  `uri` debe
-        ser una URI nativa absoluta completa válida para el backend.
-
         Parameters
         ----------
         uri : str
-            La URI donde se escribirán los datos.
+            URI nativa absoluta completa válida para el backend.
         data : bytes
-            Los datos a escribir en la URI dada.
+            Contenido binario a escribir.
+
+        Raises
+        ------
+        RuntimeError
+            Si el backend no soporta operaciones de escritura.
+        PermissionError
+            Si no se tienen permisos de escritura.
+
+        Notes
+        -----
+        - Si el contenedor padre no existe, el comportamiento depende
+          del backend. Algunos lo crearán automáticamente, otros
+          fallarán.  Se recomienda llamar a `create_path()` primero.
+        - Operación atómica: o se escriben todos los datos o falla.
+        - Al finalizar una operación exitosa, la URI debe apuntar a un
+          archivo u objeto individual.
         """
         ...
