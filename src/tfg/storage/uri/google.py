@@ -1,0 +1,179 @@
+import pathlib as pl
+import typing as tp
+
+from ..utils import DriveCache
+from .base import URIMapper
+
+# Se asume que el objeto 'service' viene de googleapiclient.discovery.build('drive', 'v3', ...)
+# Usamos tp.Any para el servicio para evitar dependencias complejas de tipado en este snippet.
+GoogleDriveService = tp.Any
+
+
+class GoogleDriveURIMapper(URIMapper):
+    """
+    Implementación de URIMapper para la API de Google Drive.
+
+    Traduce rutas estilo POSIX a identificadores opacos de Drive.
+    Maneja la ambigüedad de nombres tomando el primer resultado encontrado.
+
+    Parameters
+    ----------
+    service : GoogleDriveService
+        Cliente autenticado de la API de Google Drive (v3).
+    cache : DriveCache
+        Instancia del gestor de caché.
+    """
+
+    def __init__(self, service: GoogleDriveService, cache: DriveCache) -> None:
+        self._service = service
+        self._cache = cache
+        # Separador interno para el formato especial de rutas inexistentes
+        self._missing_sep = "|"
+
+    def to_generic(self, uri: str) -> str:
+        """
+        Convierte un ID nativo (id:xxx) a una ruta lógica aproximada.
+        Nota: Esta operación es costosa (camina hacia arriba) y puede ser
+        ambigua (múltiples padres).
+        """
+        if not uri.startswith("id:"):
+            # Si ya parece una ruta o no es un ID, se devuelve tal cual
+            return uri
+
+        file_id = uri[3:]  # Remover prefijo 'id:'
+        path_parts = []
+        current_id = file_id
+
+        # Loop de seguridad para evitar ciclos infinitos en estructuras corruptas
+        for _ in range(50):
+            if current_id == "root":
+                break
+
+            try:
+                file_meta = (
+                    self._service.files()
+                    .get(
+                        fileId=current_id,
+                        fields="name, parents",
+                        supportsAllDrives=True,
+                    )
+                    .execute()
+                )
+            except Exception:
+                # Si falla la lectura (permisos o no existe), retornamos el ID crudo
+                return uri
+
+            name = file_meta.get("name", "unknown")
+            path_parts.append(name)
+
+            parents = file_meta.get("parents", [])
+            if not parents:
+                # Llegamos a la cima accesible o es huérfano
+                break
+
+            # Tomamos el primer padre arbitrariamente
+            current_id = parents[0]
+
+        # Invertimos porque caminamos de hijo a padre
+        full_path = "/" + "/".join(reversed(path_parts))
+
+        # Opcional: Actualizar caché con la ruta descubierta
+        self._cache.set(full_path, file_id)
+
+        return full_path
+
+    def to_native(self, uri: str) -> str:
+        """
+        Convierte una ruta lógica POSIX a un ID nativo de Drive.
+
+        Si la ruta existe, devuelve "id:<file_id>".
+        Si la ruta NO existe (parcialmente), devuelve:
+        "path:<parte_faltante>|<id_ultimo_padre_conocido>"
+        """
+        # Normalización básica
+        uri = uri.strip()
+        if uri == "/" or uri == ".":
+            return "id:root"
+
+        # 1. Consulta directa al caché
+        cached_id = self._cache.get(uri)
+        if cached_id:
+            return f"id:{cached_id}"
+
+        # 2. Caminata por la jerarquía
+        parts = pl.Path(uri).parts
+        # Filtramos la raiz '/' si path.parts la incluye
+        parts = [p for p in parts if p != "/" and p != "\\"]
+
+        current_id = "root"
+        resolved_path = ""  # Para ir construyendo la llave del caché
+
+        for i, segment in enumerate(parts):
+            # Construir ruta parcial actual para consultar/guardar caché
+            resolved_path = (
+                f"{resolved_path}/{segment}" if resolved_path else segment
+            )
+
+            # Chequeo rápido de caché intermedio
+            cached_step = self._cache.get(resolved_path)
+            if cached_step:
+                current_id = cached_step
+                continue
+
+            # Búsqueda en API
+            found_id = self._find_child_id(parent_id=current_id, name=segment)
+
+            if found_id:
+                current_id = found_id
+                self._cache.set(resolved_path, current_id)
+            else:
+                # No encontrado. Preparamos el retorno especial.
+                # Resto de la ruta que falta por crear
+                remaining_path = "/".join(parts[i:])
+                return f"path:{remaining_path}{self._missing_sep}{current_id}"
+
+        return f"id:{current_id}"
+
+    def remove_from_cache(self, uri: str) -> None:
+        """
+        Elimina la entrada del caché correspondiente a la URI lógica dada.
+        Este método debe ser llamado por capas superiores tras un delete exitoso.
+        """
+        # Asumimos que la URI recibida es la lógica (genérica)
+        self._cache.remove(uri)
+
+    def _find_child_id(self, parent_id: str, name: str) -> str | None:
+        """Ayudante para buscar un archivo por nombre dentro de un padre."""
+        # Escapar comillas simples en el nombre por seguridad en el query
+        safe_name = name.replace("'", "\\'")
+
+        query = (
+            f"name = '{safe_name}' and "
+            f"'{parent_id}' in parents and "
+            f"trashed = false"
+        )
+
+        try:
+            response = (
+                self._service.files()
+                .list(
+                    q=query,
+                    spaces="drive",
+                    fields="files(id)",
+                    pageSize=1,  # Solo nos interesa el primero
+                    includeItemsFromAllDrives=True,
+                    supportsAllDrives=True,
+                )
+                .execute()
+            )
+
+            files = response.get("files", [])
+            if files:
+                return files[0]["id"]
+            return None
+
+        except Exception:
+            # En caso de error de red o permisos, asumimos no encontrado
+            # o dejamos propagar la excepción según política.
+            # Aquí propagamos para que el usuario sepa si falló la conexión.
+            raise
