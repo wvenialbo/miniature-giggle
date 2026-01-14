@@ -142,9 +142,7 @@ class Datasource(DatasourceContract):
         uri : str
             La URI genérica de los datos a eliminar.
         """
-        absolute_uri = self.local_mapper.to_absolute(uri)
-        native_uri = self.mapper.to_native(absolute_uri)
-        self.backend.delete(uri=native_uri)
+        self.backend.delete(uri=self._to_native_uri(uri))
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -165,9 +163,7 @@ class Datasource(DatasourceContract):
             True si los datos existen en la URI dada, False en caso
             contrario.
         """
-        absolute_uri = self.local_mapper.to_absolute(uri)
-        native_uri = self.mapper.to_native(absolute_uri)
-        return self.backend.exists(uri=native_uri)
+        return self.backend.exists(uri=self._to_native_uri(uri))
 
     def _get_handler_for_uri(self, uri: str) -> DataHandler:
         """Obtiene el handler apropiado para una URI genérica."""
@@ -207,9 +203,7 @@ class Datasource(DatasourceContract):
         """
         handler = self._get_handler_for_uri(uri)
 
-        absolute_uri = self.local_mapper.to_absolute(uri)
-        native_uri = self.mapper.to_native(absolute_uri)
-        raw_data = self.backend.read(uri=native_uri)
+        raw_data = self.backend.read(uri=self._to_native_uri(uri))
 
         return handler.load(stream=io.BytesIO(raw_data))
 
@@ -275,12 +269,12 @@ class Datasource(DatasourceContract):
             Los datos a escribir en la URI dada.
         """
         handler = self._get_handler_for_uri(uri)
+
         stream = io.BytesIO()
         handler.save(data=data, stream=stream)
         bytes_data = stream.getvalue()
 
-        absolute_uri = self.local_mapper.to_absolute(uri)
-        native_uri = self.mapper.to_native(absolute_uri)
+        native_uri = self._to_native_uri(uri)
         self.backend.write(uri=native_uri, data=bytes_data)
 
     def scan(self, *, prefix: str = "") -> list[str]:
@@ -305,12 +299,19 @@ class Datasource(DatasourceContract):
         tp.List[str]
             Una lista de URI que comienzan con el prefijo dado.
         """
-        absolute_prefix = self.local_mapper.to_absolute(uri=prefix or "/")
-        native_prefix = self.mapper.to_native(absolute_prefix)
+        native_prefix = self._to_native_uri(uri=prefix or "/")
 
-        native_items = self.backend.scan(prefix=native_prefix)
-        absolute_items = [
-            self.mapper.to_generic(item) for item in native_items
+        return [
+            self._to_generic_uri(item)
+            for item in self.backend.scan(prefix=native_prefix)
         ]
 
-        return [self.local_mapper.to_relative(item) for item in absolute_items]
+    def _to_generic_uri(self, uri: str) -> str:
+        """Convierte una URI nativa a genérica respecto el punto de montaje."""
+        absolute_uri = self.mapper.to_generic(uri)
+        return self.local_mapper.to_relative(absolute_uri)
+
+    def _to_native_uri(self, uri: str) -> str:
+        """Convierte una URI genérica a nativa respecto el punto de montaje."""
+        absolute_uri = self.local_mapper.to_absolute(uri)
+        return self.mapper.to_native(absolute_uri)
