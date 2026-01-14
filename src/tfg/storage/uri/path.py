@@ -7,37 +7,30 @@ class PathURIMapper(URIMapper):
     """
     Transforma entre URI genéricas y rutas del sistema de archivos.
 
-    Convierte entre URI lógicas y rutas absolutas del sistema de
-    archivos utilizando una ruta base especificada como raíz.
+    Convierte entre URI genéricas y rutas absolutas del sistema de
+    archivos.
 
     Los mapeadores de URI permiten que los backends almacenen datos en
-    ubicaciones nativas específicas del backend, mientras exponen rutas
-    genéricas logicas para el usuario.  Esto es útil para backends que
-    requieren estructuras de URI específicas o prefijos.
+    ubicaciones nativas específicas, mientras los clientes exponen rutas
+    genéricas logicas para el usuario.  Facilitando la interoperabilidad
+    entre distintos backends abstrayendo las diferencias estructurales
+    en sus modelos de URI.
 
-    Se adopta el formato POSIX/Unix para las URI lógicas, utilizando '/'
-    como separador de componentes de rutas.
-
-    Parameters
-    ----------
-    base_path : str
-        Ruta base para las URI genéricas.  Debe ser una ruta genérica
-        válida en el sistema de archivos local. Puede ser relativa o
-        absoluta y es resuelta a una ruta absoluta durante la
-        inicialización.
-
-    Attributes
-    ----------
-    base_path : pathlib.Path
-        La ruta base absoluta utilizada para las conversiones de URI.
-        Es una ruta en formato POSIX.
+    Se adopta el formato POSIX/Unix para las URI genéricas, usando '/'
+    como separador de componentes de rutas. Las URI lógicas se definen
+    respecto a una raíz genérica, que puede corresponder a diferentes
+    ubicaciones nativas en cada backend y cliente.  Es decir, el
+    parámetro `uri` en los métodos `to_generic` y `to_native` se
+    interpreta como una ruta absoluta o una relativa respecto a la raíz
+    del sistema de archivos nativo o la raíz lógica genérica,
+    respectivamente.
 
     Methods
     -------
     to_generic(uri: str) -> str
-        Convierte una URI nativa a una URI genérica.
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
     to_native(uri: str) -> str
-        Convierte una URI genérica a una URI nativa.
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
 
     Notes
     -----
@@ -45,48 +38,42 @@ class PathURIMapper(URIMapper):
       archivos de manera eficiente y portátil.
     """
 
-    def __init__(self, base_path: str) -> None:
-        cwd = pl.Path().resolve(strict=False)
-        crd = cwd / base_path
-        self.base_path = f"/{crd.relative_to(crd.anchor).as_posix()}"
+    def __init__(self) -> None:
+        self.native_root = pl.Path("/").resolve(strict=False)
 
     def __repr__(self) -> str:
-        return f"PathURIMapper(base_path='{self.base_path}')"
+        return "PathURIMapper()"
 
     def to_generic(self, uri: str) -> str:
         """
-        Convierte una URI nativa a una URI genérica.
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
 
         Parameters
         ----------
         uri : str
-            La URI nativa proporcionada por el sistema de archivos.
+            La URI nativa absoluta proporcionada por el backend.
 
         Returns
         -------
         str
-            La URI lógica transformada para el usuario.
+            La URI lógica (genérica absoluta) transformada para el
+            usuario.
         """
-        native_root = pl.Path(self.base_path).resolve(strict=False)
-        native_path = pl.Path(uri).relative_to(native_root)
-        generic_path = pl.PurePosixPath(f"/{native_path.as_posix()}")
-        return str(generic_path)
+        return f"/{pl.Path(uri).relative_to(self.native_root).as_posix()}"
 
     def to_native(self, uri: str) -> str:
         """
-        Convierte una URI genérica a una URI nativa.
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
 
         Parameters
         ----------
         uri : str
-            La URI lógica proporcionada por el usuario.
+            La URI lógica (genérica absoluta) proporcionada por el
+            usuario.
 
         Returns
         -------
         str
-            La URI nativa transformada para el sistema de archivos.
+            La URI nativa absoluta transformada para el backend.
         """
-        generic_root = pl.PurePosixPath(self.base_path)
-        generic_path = generic_root / uri.lstrip("/")
-        native_path = pl.Path(generic_path)
-        return str(native_path.resolve(strict=False))
+        return str(pl.Path(f"/{uri.lstrip('/')}").resolve(strict=False))
