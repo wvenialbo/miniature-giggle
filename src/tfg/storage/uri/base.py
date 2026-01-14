@@ -3,26 +3,29 @@ import typing as tp
 
 class URIMapper(tp.Protocol):
     """
-    Transforma entre URI genéricas y nativas del backend.
+    Transforma entre URI genéricas y URI nativas del backend.
 
     Los mapeadores de URI permiten que los backends almacenen datos en
-    ubicaciones nativas específicas del backend, mientras exponen rutas
-    genéricas logicas para el usuario.  Esto es útil para backends que
-    requieren estructuras de URI específicas o prefijos.
+    ubicaciones nativas específicas, mientras los clientes exponen rutas
+    genéricas logicas para el usuario.  Facilitando la interoperabilidad
+    entre distintos backends abstrayendo las diferencias estructurales
+    en sus modelos de URI.
 
-    Este protocolo facilita la interoperabilidad entre diferentes
-    backends de almacenamiento al abstraer las diferencias en las
-    estructuras de URI.
-
-    Se adopta el formato POSIX/Unix para las URI lógicas, utilizando '/'
-    como separador de componentes de rutas.
+    Se adopta el formato POSIX/Unix para las URI genéricas, usando '/'
+    como separador de componentes de rutas. Las URI lógicas se definen
+    respecto a una raíz genérica, que puede corresponder a diferentes
+    ubicaciones nativas en cada backend y cliente.  Es decir, el
+    parámetro `uri` en los métodos `to_generic` y `to_native` se
+    interpreta como una ruta absoluta o una relativa respecto a la raíz
+    del sistema de archivos nativo o la raíz lógica genérica,
+    respectivamente.
 
     Methods
     -------
     to_generic(uri: str) -> str
-        Convierte una URI nativa a una URI genérica.
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
     to_native(uri: str) -> str
-        Convierte una URI genérica a una URI nativa.
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
 
     Notes
     -----
@@ -41,32 +44,34 @@ class URIMapper(tp.Protocol):
 
     def to_generic(self, uri: str) -> str:
         """
-        Convierte una URI nativa a una URI genérica.
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
 
         Parameters
         ----------
         uri : str
-            La URI nativa proporcionada por el backend.
+            La URI nativa absoluta proporcionada por el backend.
 
         Returns
         -------
         str
-            La URI lógica transformada para el usuario.
+            La URI lógica (genérica absoluta) transformada para el
+            usuario.
         """
         ...
 
     def to_native(self, uri: str) -> str:
         """
-        Convierte una URI genérica a una URI nativa.
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
 
         Parameters
         ----------
         uri : str
-            La URI lógica proporcionada por el usuario.
+            La URI lógica (genérica absoluta) proporcionada por el
+            usuario.
 
         Returns
         -------
         str
-            La URI nativa transformada para el backend.
+            La URI nativa absoluta transformada para el backend.
         """
         ...
