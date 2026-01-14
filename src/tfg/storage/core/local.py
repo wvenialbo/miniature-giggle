@@ -5,31 +5,21 @@ Proporciona una interfaz simple para crear DataSourceContexts
 preconfigurados para diferentes backends (Colab, local, S3, etc.).
 """
 
-import pathlib as pl
-
 from ..backend import FilesystemBackend
-from ..datasource import Datasource, DatasourceContext
+from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
 from ..uri import PathURIMapper
 from .handlers import get_file_handlers
 
 
 def use_local_drive(
-    root_path: str = "",
-    mountpoint: str = ".",
     handlers: list[DataHandler] | None = None,
-) -> Datasource:
+) -> DatasourceContract:
     """
     Crea contexto para sistema de archivos local.
 
     Parameters
     ----------
-    root_path : str, optional
-        Ruta base dentro del sistema de archivos local.  Debe ser una
-        ruta relativa al punto de montaje.  Por defecto ''.
-    mountpoint : str, optional
-        Punto de montaje del sistema de archivos local.  Por defecto
-        '.'.
     handlers : list[DataHandler], optional
         Handlers de formato personalizados.
 
@@ -38,22 +28,14 @@ def use_local_drive(
     Datasource
         Contexto configurado listo para usar.
     """
-    if pl.Path(root_path).is_absolute():
-        raise ValueError(
-            "`root_path` debe ser una ruta relativa al punto de montaje: "
-            f"'{root_path}'"
-        )
-
-    # URI Mapper
-    full_base = str(pl.Path(mountpoint) / root_path)
-    mapper = PathURIMapper(base_path=full_base)
-
-    # Backend y handlers
     backend = FilesystemBackend()
+
+    mapper = PathURIMapper()
+
     if handlers is None:
         handlers = get_file_handlers()
 
-    return DatasourceContext(
+    return Datasource(
         backend=backend,
         mapper=mapper,
         handlers=handlers,
