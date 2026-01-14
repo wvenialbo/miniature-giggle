@@ -41,19 +41,67 @@ class FilesystemBackend(StorageBackend):
     def __repr__(self) -> str:
         return "FilesystemBackend()"
 
+    def create_path(self, *, path: str) -> str:
+        """
+        Crea una ruta o contenedor en el backend de almacenamiento.
+
+        Este método puede recibir dos tipos de entrada:
+            1. Un ID nativo del backend (cuando el recurso ya existe).
+            2. Una ruta POSIX (cuando el recurso no existe y se va a
+               crear).
+
+        - En el primer caso, el método es idempotente y devuelve el
+          mismo ID.
+        - En el segundo caso, crea recursivamente todos los contenedores
+          intermedios necesarios, emulando el comportamiento de `mkdir
+          -p`.  Esta operación es llamada por capas superiores antes de
+          `write()` para garantizar que exista el contenedor destino.
+
+        Parameters
+        ----------
+        path : str
+            Puede ser un ID nativo del backend (si el recurso ya existe)
+            o una ruta genérica (POSIX). Ej:
+            'experimentos/2024/dataset1'.
+
+        Returns
+        -------
+        str
+            URI nativa absoluta del contenedor creado o existente en el
+            backend.  Ej: 's3://bucket/experimentos/2024/dataset1/' o la
+            clave equivalente.
+
+        Notes
+        -----
+        - Operación idempotente: si el contenedor ya existe (o se recibe
+          un ID nativo), no se realiza ninguna acción y se devuelve la
+          URI correspondiente.
+        - Para backends que requieren contenedores preexistentes, estos
+          deben existir previamente; este método crea solo "prefijos" o
+          "directorios virtuales".
+        """
+        target = _check_uri(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        return str(target)
+
     def delete(self, *, uri: str) -> None:
         """
-        Elimina los datos en la ruta especificada.
+        Elimina los datos en la URI especificada.
 
-        Elimina archivos individuales; no elimina directorios.  La
-        operación es idempotente, la ruta puede no existir o ser un
-        directorio sin que se genere un error.  `uri` debe ser una ruta
-        nativa absoluta completa válida para el sistema de archivos.
+        Elimina archivos u objetos individuales. No elimina contenedores
+        o directorios completos.
 
         Parameters
         ----------
         uri : str
-            La ruta de los datos a eliminar.
+            URI nativa absoluta completa válida para el backend.  Ej:
+            'ftp://bucket/experimentos/data.csv'.
+
+        Notes
+        -----
+        - Operación idempotente: si la URI no existe, no se genera
+          error.
+        - No debe utilizarse para eliminar contenedores/directorios.
         """
         path = _check_uri(uri)
         if path.is_file():
@@ -61,65 +109,73 @@ class FilesystemBackend(StorageBackend):
 
     def exists(self, *, uri: str) -> bool:
         """
-        Verifica si los datos existen en la ruta especificada.
+        Verifica si los datos existen en la URI especificada.
 
-        Verifica si un archivo existe en la ruta dada.  La ruta debe
-        apuntar a un archivo individual.  `uri` debe ser una ruta nativa
-        absoluta completa válida para el sistema de archivos.
+        Verifica la existencia de un archivo u objeto individual, no de
+        contenedores o prefijos.
 
         Parameters
         ----------
         uri : str
-            La ruta de los datos a verificar.
+            URI nativa absoluta completa válida para el backend.
 
         Returns
         -------
         bool
-            True si los datos existen en la ruta dada, False en caso
-            contrario.
+            True si existe un archivo u objeto en la URI, False en caso
+            contrario (incluyendo cuando la URI apunta a un contenedor o
+            no existe).
         """
         path = _check_uri(uri)
         return path.exists()
 
     def read(self, *, uri: str) -> bytes:
         """
-        Lee los datos desde la ruta especificada.
-
-        Carga los datos desde la ruta dada.  La ruta debe apuntar a un
-        archivo individual.  `uri` debe ser una ruta nativa absoluta
-        completa válida para el sistema de archivos.
+        Lee los datos desde la URI especificada.
 
         Parameters
         ----------
         uri : str
-            La ruta de los datos a leer.
+            URI nativa absoluta completa válida para el backend.
 
         Returns
         -------
         bytes
-            Los datos leídos desde la ruta dada.
+            Contenido binario del archivo u objeto.
         """
         path = _check_uri(uri)
         return path.read_bytes()
 
     def scan(self, *, prefix: str) -> list[str]:
         """
-        Lista las rutas que comienzan con el prefijo especificado.
+        Lista las URI que comienzan con el prefijo especificado.
 
-        Obteniene la lista de todos los archivos cuyas rutas comienzan
-        con el prefijo dado.  `prefix` debe ser una ruta nativa absoluta
-        completa, o parcial, válida para el backend.  Devuelve una lista
-        de rutas nativas absolutas del backend.
+        Este método debe manejar internamente la paginación del backend
+        y devolver una lista completa de URIs que coinciden con el
+        prefijo.
 
         Parameters
         ----------
         prefix : str
-            El prefijo para filtrar las rutas.
+            Prefijo de URI nativa absoluta (completa o parcial) válida
+            para el backend. Puede incluir o no el separador de
+            contenedor.
 
         Returns
         -------
-        tp.List[str]
-            Una lista de rutas que comienzan con el prefijo dado.
+        list[str]
+            Lista de URIs nativas absolutas que comienzan con el
+            prefijo.  Solo incluye archivos/objetos, no contenedores
+            vacíos.
+
+        Notes
+        -----
+        - Solo devuelve URIs de archivos u objetos individuales, no
+          incluye contenedores o directorios vacíos.
+        - Maneja internamente toda la paginación del backend.
+        - Devuelve resultados completos sin límites de memoria.
+        - Para algunos backends (ej: sistemas de archivos), el prefijo
+          debe terminar con '/' para listar contenidos de un directorio.
         """
         path = _check_uri(prefix)
         base = path.parent
@@ -143,26 +199,30 @@ class FilesystemBackend(StorageBackend):
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
-        Escribe los datos en la ruta especificada.
-
-        Guarda los datos en la ruta dada.  Al finalizar la operación, la
-        ruta debe apuntar a un archivo individual.  `uri` debe ser una
-        ruta nativa absoluta completa válida para el sistema de
-        archivos.
+        Escribe los datos en la URI especificada.
 
         Parameters
         ----------
         uri : str
-            La ruta donde se escribirán los datos.
+            URI nativa absoluta completa válida para el backend.
         data : bytes
-            Los datos a escribir en la ruta dada.
+            Contenido binario a escribir.
+
+        Notes
+        -----
+        - Si el contenedor padre no existe, el comportamiento depende
+          del backend. Algunos lo crearán automáticamente, otros
+          fallarán.  Se recomienda llamar a `create_path()` primero.
+        - Operación atómica: o se escriben todos los datos o falla.
+        - Al finalizar una operación exitosa, la URI debe apuntar a un
+          archivo u objeto individual.
         """
         target = _check_uri(uri)
-        target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
 
 
 def _check_uri(uri: str) -> pl.Path:
+    """Verifica que la URI sea una ruta absoluta válida."""
     path = pl.Path(uri)
     if not path.is_absolute():
         raise ValueError(
