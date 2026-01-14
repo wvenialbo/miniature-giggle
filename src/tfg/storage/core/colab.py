@@ -3,7 +3,7 @@ import pathlib as pl
 import warnings
 
 from ..backend import FilesystemBackend
-from ..datasource import Datasource, DatasourceContext
+from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
 from ..uri import PathURIMapper
 from .handlers import get_file_handlers
@@ -214,7 +214,7 @@ def use_drive_for_colab(
     root_path: str = "MyDrive",
     mountpoint: str = "/content/drive",
     handlers: list[DataHandler] | None = None,
-) -> Datasource:
+) -> DatasourceContract:
     """
     Crea contexto para Google Drive para Google Colab.
 
@@ -242,23 +242,23 @@ def use_drive_for_colab(
 
     # Connection Manager
     connection = ColabDrive(mountpoint=mountpoint)
-
     connection.open(fail=True)
 
-    # URI Mapper: combina mountpoint + root_path
     mountpoint = connection.get_mountpoint()
-    full_base = str(pl.Path(mountpoint) / root_path)
-    mapper = PathURIMapper(base_path=full_base)
+    base_path = pl.Path(mountpoint) / root_path
 
-    # Backend y handlers
     backend = FilesystemBackend()
+
+    mapper = PathURIMapper()
+
     if handlers is None:
         handlers = get_file_handlers()
 
     global _drive
     _drive = connection
 
-    return DatasourceContext(
+    return Datasource(
+        mountpoint=str(base_path),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
@@ -282,10 +282,12 @@ def close_use_drive_for_colab(fail: bool = False) -> bool:
         la llamada, False en caso contrario.
     """
     global _drive
+
     if _drive is None:
         return True
 
     result = _drive.close(fail=fail)
+
     if result:
         _drive = None
 
