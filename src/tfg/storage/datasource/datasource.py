@@ -4,7 +4,7 @@ import typing as tp
 
 from ..backend import StorageBackend
 from ..handler import DataHandler
-from ..uri import URIMapper
+from ..uri import GenericURIMapper, URIMapper
 from .base import DatasourceContract
 
 
@@ -18,7 +18,7 @@ class Datasource(DatasourceContract):
     específicos.  Es el núcleo del sistema de almacenamiento.
 
     Los métodos que reciben URI esperan una URI genérica relativa a la
-    ruta base (`base_path`).  El mapeador convierte la URI genérica al
+    ruta base (`mountpoint`).  El mapeador convierte la URI genérica al
     identificador o a la ruta absoluta respecto al punto de montaje del
     backend.  Esto permite que el mismo código funcione con diferentes
     backends de almacenamiento sin cambios.
@@ -33,7 +33,7 @@ class Datasource(DatasourceContract):
 
     Parameters
     ----------
-    base_path : str
+    mountpoint : str
         Ruta base dentro del sistema de almacenamiento. Todas las URIs
         genéricas son relativas a esta ruta.
     backend : StorageBackend
@@ -45,7 +45,7 @@ class Datasource(DatasourceContract):
 
     Attributes
     ----------
-    base_path : str
+    mountpoint : str
         Ruta base dentro del sistema de almacenamiento. Todas las URIs
         genéricas son relativas a esta ruta.
     backend : StorageBackend
@@ -64,8 +64,7 @@ class Datasource(DatasourceContract):
         Verifica si existe el recurso en la URI especificada.
     load(uri: str) -> Any
         Carga un objeto desde la URI especificada.
-    register_handler(handler: DataHandler, replace: bool = False) ->
-    None
+    register_handler(handler: DataHandler, replace: bool = False) -> None
         Registra un manejador de formato o reemplaza uno existente.
     remove_handler(format_id: str) -> None
         Elimina el handler para una extensión.
@@ -80,21 +79,22 @@ class Datasource(DatasourceContract):
     def __init__(
         self,
         *,
-        base_path: str = "/",
+        mountpoint: str = "/",
         backend: StorageBackend,
         mapper: URIMapper,
         handlers: list[DataHandler],
     ) -> None:
-        self.base_path = base_path
+        self.mountpoint = mountpoint
         self.backend = backend
         self.mapper = mapper
+        self.local_mapper = GenericURIMapper(base_path=mountpoint)
         self.handlers = self._build_handler_mapper(handlers)
 
     def __repr__(self) -> str:
         handlers = ", ".join([repr(h) for h in self.handlers])
         return (
             "DataSourceContext("
-            f"base_path='{self.base_path}', "
+            f"mountpoint='{self.mountpoint}', "
             f"backend={repr(self.backend)}, "
             f"mapper={repr(self.mapper)}, "
             f"handlers=[{handlers}])"
@@ -142,7 +142,8 @@ class Datasource(DatasourceContract):
         uri : str
             La URI genérica de los datos a eliminar.
         """
-        native_uri = self.mapper.to_native(uri)
+        absolute_uri = self.local_mapper.to_absolute(uri)
+        native_uri = self.mapper.to_native(absolute_uri)
         self.backend.delete(uri=native_uri)
 
     def exists(self, *, uri: str) -> bool:
@@ -164,7 +165,8 @@ class Datasource(DatasourceContract):
             True si los datos existen en la URI dada, False en caso
             contrario.
         """
-        native_uri = self.mapper.to_native(uri)
+        absolute_uri = self.local_mapper.to_absolute(uri)
+        native_uri = self.mapper.to_native(absolute_uri)
         return self.backend.exists(uri=native_uri)
 
     def _get_handler_for_uri(self, uri: str) -> DataHandler:
@@ -205,7 +207,8 @@ class Datasource(DatasourceContract):
         """
         handler = self._get_handler_for_uri(uri)
 
-        native_uri = self.mapper.to_native(uri)
+        absolute_uri = self.local_mapper.to_absolute(uri)
+        native_uri = self.mapper.to_native(absolute_uri)
         raw_data = self.backend.read(uri=native_uri)
 
         return handler.load(stream=io.BytesIO(raw_data))
@@ -276,7 +279,8 @@ class Datasource(DatasourceContract):
         handler.save(data=data, stream=stream)
         bytes_data = stream.getvalue()
 
-        native_uri = self.mapper.to_native(uri)
+        absolute_uri = self.local_mapper.to_absolute(uri)
+        native_uri = self.mapper.to_native(absolute_uri)
         self.backend.write(uri=native_uri, data=bytes_data)
 
     def scan(self, *, prefix: str = "") -> list[str]:
@@ -301,11 +305,12 @@ class Datasource(DatasourceContract):
         tp.List[str]
             Una lista de URI que comienzan con el prefijo dado.
         """
-        normalized_prefix = prefix or "/"
-        native_prefix = self.mapper.to_native(normalized_prefix)
+        absolute_prefix = self.local_mapper.to_absolute(uri=prefix or "/")
+        native_prefix = self.mapper.to_native(absolute_prefix)
 
-        # Obtener URIs nativas del backend
         native_items = self.backend.scan(prefix=native_prefix)
+        absolute_items = [
+            self.mapper.to_generic(item) for item in native_items
+        ]
 
-        # Convertir a URIs genéricas
-        return [self.mapper.to_generic(item) for item in native_items]
+        return [self.local_mapper.to_relative(item) for item in absolute_items]
