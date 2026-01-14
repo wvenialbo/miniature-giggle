@@ -1,24 +1,17 @@
 import pathlib as pl
 
-from .base import URIMapper
 
-
-class GenericURIMapper(URIMapper):
+class GenericURIMapper:
     """
     Transforma URI genéricas respecto a una ruta base.
 
-    Convierte entre URI lógicas y respecto a una ruta base especificada
-    como raíz.  La finalidad es proporcionar una abstracción simple para
-    manejar rutas relativas dentro de un espacio de nombres definido.
-    Este mapeador no realiza conversiones complejas, sino que
-    simplemente ajusta las rutas relativas a una base fija.  Es usado en
-    componentes de alto nivel que requieren una referencia común para
-    las rutas, como, por ejemplo, en manejadores de repositorios.
-
-    Los mapeadores de URI permiten que los backends almacenen datos en
-    ubicaciones nativas específicas del backend, mientras exponen rutas
-    genéricas logicas para el usuario.  Esto es útil para backends que
-    requieren estructuras de URI específicas o prefijos.
+    Convierte entre URI genéricas absolutas y relativas (lógicas)
+    respecto a una ruta base fija especificada como raíz.  La finalidad
+    es proporcionar una abstracción simple para manejar rutas relativas
+    dentro de un espacio de nombres definido.  Es usado en componentes
+    de capas altas que requieren una referencia común para las rutas,
+    como, por ejemplo, en manejadores de repositorios o fuentes de
+    datos.
 
     Se adopta el formato POSIX/Unix para las URI lógicas, utilizando '/'
     como separador de componentes de rutas.
@@ -52,37 +45,37 @@ class GenericURIMapper(URIMapper):
     def __repr__(self) -> str:
         return f"GenericURIMapper(base_path='{self.base_path}')"
 
-    def to_generic(self, uri: str) -> str:
+    def to_relative(self, uri: str) -> str:
         """
-        Convierte una URI nativa a una lógica.
+        Convierte una URI absoluta a una URI relativa (lógica).
 
         Parameters
         ----------
         uri : str
-            La URI nativa proporcionada por el backend.
+            La URI absoluta proporcionada por el backend.
 
         Returns
         -------
         str
-            La URI lógica transformada para el usuario.
+            La URI relativa (lógica) transformada para el usuario.
         """
         native_root = pl.PurePosixPath(self.base_path)
         generic_path = pl.PurePosixPath(uri).relative_to(native_root)
         return f"/{str(generic_path)}"
 
-    def to_native(self, uri: str) -> str:
+    def to_absolute(self, uri: str) -> str:
         """
-        Convierte una URI lógica a una URI nativa.
+        Convierte una URI relativa (lógica) a una URI absoluta.
 
         Parameters
         ----------
         uri : str
-            La URI lógica proporcionada por el usuario.
+            La URI relativa (lógica) proporcionada por el usuario.
 
         Returns
         -------
         str
-            La URI nativa transformada para el backend.
+            La URI absoluta transformada para el backend.
         """
         generic_root = pl.PurePosixPath(self.base_path)
         native_path = generic_root / uri.lstrip("/")
