@@ -37,26 +37,24 @@ class StorageBackend(tp.Protocol):
     Dependencias:
         Los recursos necesarios (clientes SDK, sesiones, credenciales)
         deben ser inyectados en el constructor de la implementación
-        concreta, típicamente mediante una función factoría de
-        orquestación.
+        concreta, típicamente mediante una función factoría que crea el
+        objeto orquestador.
 
     Thread-safety:
         Las implementaciones deben ser thread-safe en la medida que el
         backend subyacente lo permita. Si el SDK del backend no es
-        thread-safe por defecto (ej: ciertas sesiones de boto3), la
-        implementación debe garantizar seguridad mediante mecanismos de
-        sincronización apropiados.  El acceso concurrente a diferentes
-        objetos debe ser soportado cuando el SDK lo permita. Las
-        limitaciones específicas deben documentarse en la implementación
-        concreta.
+        thread-safe por defecto, la implementación debe garantizar
+        seguridad mediante mecanismos de sincronización apropiados.  El
+        acceso concurrente a diferentes objetos debe ser soportado
+        cuando el SDK lo permita. Las limitaciones específicas deben
+        documentarse en la implementación concreta.
 
     Excepciones:
         - Para operaciones NO soportadas nativamente por el backend, se
           debe lanzar `RuntimeError` (ej: escritura en backend de solo
           lectura).
         - Para errores en operaciones soportadas, deben propagarse las
-          excepciones nativas del backend (BotoCoreError,
-          GoogleCloudError).
+          excepciones nativas del backend.
         - Operaciones idempotentes (delete, create_path) no deben lanzar
           error cuando el recurso no existe o ya existe respectivamente.
 
@@ -122,9 +120,8 @@ class StorageBackend(tp.Protocol):
         - Operación idempotente: si el contenedor ya existe (o se recibe
           un ID nativo), no se realiza ninguna acción y se devuelve la
           URI correspondiente.
-        - Para backends que requieren contenedores preexistentes (como
-          S3 buckets o Google Cloud Storage buckets), estos deben
-          existir previamente; este método crea solo "prefijos" o
+        - Para backends que requieren contenedores preexistentes, estos
+          deben existir previamente; este método crea solo "prefijos" o
           "directorios virtuales".
         """
         ...
@@ -140,7 +137,7 @@ class StorageBackend(tp.Protocol):
         ----------
         uri : str
             URI nativa absoluta completa válida para el backend.  Ej:
-            's3://bucket/experimentos/data.csv'.
+            'ftp://bucket/experimentos/data.csv'.
 
         Raises
         ------
