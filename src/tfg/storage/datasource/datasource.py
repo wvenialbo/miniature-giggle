@@ -275,6 +275,7 @@ class Datasource(DatasourceContract):
         bytes_data = stream.getvalue()
 
         native_uri = self._to_native_uri(uri)
+        self.backend.create_path(path=native_uri)
         self.backend.write(uri=native_uri, data=bytes_data)
 
     def scan(self, *, prefix: str = "") -> list[str]:
