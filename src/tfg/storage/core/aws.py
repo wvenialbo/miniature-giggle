@@ -6,13 +6,14 @@ from botocore import UNSIGNED
 from botocore.config import Config
 
 from ..backend import AWSBackend
-from ..cache import ScanCache, TimedScanCache
+from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
 from ..mapper import AWSURIMapper
 from .handlers import get_file_handlers
 
 S3_PREFIX = "s3://"
+POSIX_PREFIX = "/"
 
 
 def use_aws(
@@ -23,7 +24,6 @@ def use_aws(
     profile_name: str | None = None,
     region_name: str | None = None,
     cache_file: str | pl.Path | None = None,
-    mountpoint: str = S3_PREFIX,
     handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
     **session_kwargs: tp.Any,
@@ -94,18 +94,14 @@ def use_aws(
     # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
     # ScanCache
     cache_path_str = str(cache_file) if cache_file else None
-
-    if expire_after is not None:
-        scan_cache = TimedScanCache(
-            cache_file=cache_path_str, expire_after=expire_after
-        )
-    else:
-        scan_cache = ScanCache(cache_file=cache_path_str)
+    scan_cache = TimedScanCache(
+        cache_file=cache_path_str, expire_after=expire_after
+    )
 
     # 3. Instanciación de componentes
     # El Mapper es determinista: solo necesita saber el bucket y el
     # prefijo
-    mapper = AWSURIMapper(bucket=bucket, base_prefix=base_prefix)
+    mapper = AWSURIMapper(bucket=bucket)
 
     # El Backend recibe la sesión y la caché de escaneo
     backend = AWSBackend(
@@ -120,7 +116,8 @@ def use_aws(
         handlers = get_file_handlers()
 
     # 5. Retorno del Orquestador
-    # Pasamos s3_scan_cache como la caché principal del Datasource
+    # Pasamos scan_cache como la caché principal del Datasource
+    mountpoint = f"{POSIX_PREFIX}{base_prefix.lstrip(POSIX_PREFIX)}"
     return Datasource(
         mountpoint=mountpoint,
         backend=backend,
