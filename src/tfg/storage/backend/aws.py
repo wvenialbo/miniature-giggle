@@ -16,7 +16,7 @@ S3_PREFIX = "s3://"
 S3_SEPARATOR = "/"
 
 
-class S3Backend(StorageBackend):
+class AWSBackend(StorageBackend):
     def __init__(
         self,
         bucket: str,
