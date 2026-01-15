@@ -1,5 +1,6 @@
 import contextlib
 import pathlib as pl
+from importlib import resources
 from typing import Any
 
 from google.auth.transport.requests import Request
@@ -28,12 +29,19 @@ def _get_user_credentials(token_path: pl.Path) -> Any:
 
 
 def _run_interactive_auth(
-    credentials_path: pl.Path, token_path: pl.Path
+    credentials_path: pl.Path | None, token_path: pl.Path
 ) -> Any:
     """Lanza el flujo OAuth interactivo y guarda el token."""
-    flow = InstalledAppFlow.from_client_secrets_file(
-        str(credentials_path), _SCOPES
-    )
+    # Si el usuario no provee un JSON externo, usamos el de la librería
+    if credentials_path is None:
+        # Buscamos 'client_secrets.json' dentro del paquete 'tfg.storage'
+        with resources.path("tfg", "client_secrets.json") as p:
+            flow = InstalledAppFlow.from_client_secrets_file(str(p), _SCOPES)
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            str(credentials_path), _SCOPES
+        )
+
     creds = flow.run_local_server(port=0)
     token_path.write_text(creds.to_json())
     return creds
@@ -71,11 +79,11 @@ def _get_gdrive_credentials(credentials: str | pl.Path | None) -> Any:
 
 def use_google_drive(
     *,
-    credentials: str | pl.Path | None = None,
     cache_file: str | pl.Path | None = None,
     mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
+    credentials: str | pl.Path | None = None,
 ) -> DatasourceContract:
     """
     Crea un contexto de Datasource conectado a Google Drive vía API.
@@ -86,8 +94,6 @@ def use_google_drive(
 
     Parameters
     ----------
-    credentials : str | Path
-        Ruta al archivo JSON de credenciales de la cuenta de servicio.
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de IDs. Si es None,
         el caché será volátil (en memoria).
@@ -100,6 +106,8 @@ def use_google_drive(
     expire_after : float, optional
         Tiempo en segundos tras el cual las entradas del caché expiran.
         Si es None, el caché no expira.
+    credentials : str | Path
+        Ruta al archivo JSON de credenciales de la cuenta de servicio.
 
     Returns
     -------
