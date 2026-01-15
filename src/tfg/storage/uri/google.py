@@ -1,7 +1,7 @@
 import pathlib as pl
 import typing as tp
 
-from ..cache.simple import NamesCache
+from ..cache.simple import CacheBase
 from .base import URIMapper
 
 if tp.TYPE_CHECKING:
@@ -14,14 +14,31 @@ PATH_ID_SEPARATOR = "|"
 MAX_DEPTH = 50
 PATH_SEP = "/"
 
+DriveCache = CacheBase[str]
+
 
 class GoogleDriveURIMapper(URIMapper):
     """
-    Implementación de URIMapper para la API de Google Drive.
+    Transforma entre URI genéricas e ID nativos de Google Drive.
 
     Traduce rutas estilo POSIX a identificadores opacos de Drive.
     Maneja la ambigüedad de nombres tomando el primer resultado
     encontrado.
+
+    Los mapeadores de URI permiten que los backends almacenen datos en
+    ubicaciones nativas específicas, mientras los clientes exponen rutas
+    genéricas logicas para el usuario.  Facilitando la interoperabilidad
+    entre distintos backends abstrayendo las diferencias estructurales
+    en sus modelos de URI.
+
+    Se adopta el formato POSIX/Unix para las URI genéricas, usando '/'
+    como separador de componentes de rutas. Las URI lógicas se definen
+    respecto a una raíz genérica, que puede corresponder a diferentes
+    ubicaciones nativas en cada backend y cliente.  Es decir, el
+    parámetro `uri` en los métodos `to_generic` y `to_native` se
+    interpreta como una ruta absoluta o una relativa respecto a la raíz
+    del sistema de archivos nativo o la raíz lógica genérica,
+    respectivamente.
 
     Parameters
     ----------
@@ -29,17 +46,50 @@ class GoogleDriveURIMapper(URIMapper):
         Cliente autenticado de la API de Google Drive (v3).
     cache : DriveCache
         Instancia del gestor de caché.
+
+    Methods
+    -------
+    to_generic(uri: str) -> str
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
+    to_native(uri: str) -> str
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
+
+    Notes
+    -----
+    - La clase utiliza la biblioteca `pathlib` para manejar rutas de
+      archivos de manera eficiente y portátil.
     """
 
-    def __init__(self, service: "DriveResource", cache: NamesCache) -> None:
+    def __init__(self, service: "DriveResource", cache: DriveCache) -> None:
         self._service = service
         self._cache = cache
 
+    def __repr__(self) -> str:
+        return (
+            "GoogleDriveURIMapper"
+            f"({repr(self._service)}, {repr(self._cache)})"
+        )
+
     def to_generic(self, uri: str) -> str:
         """
-        Convierte un ID nativo (id://xxx) a una ruta lógica aproximada.
-        Nota: Esta operación es costosa (camina hacia arriba) y puede
-        ser ambigua (múltiples padres).
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
+
+        Transforma un ID nativo (id://xxx) a una ruta lógica aproximada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta proporcionada por el backend.
+
+        Returns
+        -------
+        str
+            URI genérica absoluta en formato POSIX.
+
+        Notes
+        -----
+        Esta operación es costosa (camina hacia arriba) y puede ser
+        ambigua (múltiples padres).
         """
         file_id = self._strip_prefix(uri, ID_PREFIX)
         path_parts: list[str] = []
@@ -87,11 +137,35 @@ class GoogleDriveURIMapper(URIMapper):
 
     def to_native(self, uri: str) -> str:
         """
-        Convierte una ruta lógica POSIX a un ID nativo de Drive.
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
 
-        Si la ruta existe, devuelve "id:<file_id>".
+        Transforma una ruta lógica POSIX a un ID nativo de Google Drive.
+
+        Si la ruta existe, devuelve "id://<file_id>".
         Si la ruta NO existe (parcialmente), devuelve:
-        "path:<parte_faltante>|<id_ultimo_padre_conocido>"
+        "path://<parte_faltante>|<id_ultimo_padre_conocido>"
+
+        Parameters
+        ----------
+        uri : str
+            URI genérica absoluta en formato POSIX.
+
+        Returns
+        -------
+        str
+            URI nativa absoluta (para objetos existentes) o una
+            ruta/formato especial (para objetos inexistentes o nuevos)
+            que `StorageBackend.create_path()` pueda interpretar.
+
+        Notes
+        -----
+        - Este método no distingue entre objetos inexistentes y nuevos;
+          ambos casos devuelven la misma ruta/formato. La distinción la
+          realiza el orquestador según la operación a ejecutar.
+        - En backends que permiten nombres duplicados (ejemplo: Google
+          Drive), devuelve el primer objeto encontrado con ese nombre.
+        - No valida la existencia del objeto; `StorageBackend.exists()`
+          debe usarse para verificación explícita.
         """
         # Normalización básica
         if uri == PATH_SEP:
