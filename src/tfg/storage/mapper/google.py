@@ -1,7 +1,7 @@
 import pathlib as pl
 import typing as tp
 
-from ..cache.simple import CacheBase
+from ..cache import CacheBase
 from .base import URIMapper
 
 if tp.TYPE_CHECKING:

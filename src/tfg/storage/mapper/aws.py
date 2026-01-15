@@ -1,4 +1,4 @@
-from ..mapper import URIMapper
+from .base import URIMapper
 
 S3_PREFIX = "s3://"
 S3_SEPARATOR = "/"
