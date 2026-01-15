@@ -84,7 +84,7 @@ class Datasource(DatasourceContract):
         backend: StorageBackend,
         mapper: URIMapper,
         handlers: list[DataHandler],
-        cache: AbstractCache | None = None,
+        cache: AbstractCache | None,
     ) -> None:
         self.mountpoint = mountpoint
         self.backend = backend
