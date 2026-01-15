@@ -7,7 +7,7 @@ from ..backend import GoogleDriveBackend
 from ..cache import NamesCache
 from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
-from ..uri import GoogleDriveURIMapper
+from ..mapper import GoogleDriveURIMapper
 from .handlers import get_file_handlers
 
 # Scope necesario para lectura/escritura completa en Drive

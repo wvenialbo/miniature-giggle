@@ -5,7 +5,7 @@ import typing as tp
 from ..backend import StorageBackend
 from ..cache import AbstractCache, NoopCache
 from ..handler import DataHandler
-from ..uri import GenericURIMapper, URIMapper
+from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceContract
 
 
@@ -84,7 +84,7 @@ class Datasource(DatasourceContract):
         backend: StorageBackend,
         mapper: URIMapper,
         handlers: list[DataHandler],
-        cache: AbstractCache | None,
+        cache: AbstractCache | None = None,
     ) -> None:
         self.mountpoint = mountpoint
         self.backend = backend
