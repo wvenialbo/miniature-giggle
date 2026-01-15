@@ -108,7 +108,7 @@
       version = { attr = "tfg.__version__" }
 
     [tool.setuptools.package-data]
-      tfg = ["py.typed"]
+      tfg = ["py.typed", "client_secrets.json"]
       #config = ["settings.json"]
 
     [tool.setuptools.packages.find]
