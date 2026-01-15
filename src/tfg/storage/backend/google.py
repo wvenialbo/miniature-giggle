@@ -3,19 +3,20 @@ import mimetypes
 import pathlib as pl
 import typing as tp
 
+from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 if tp.TYPE_CHECKING:
     # Importamos el tipo específico para Drive v3
-    from googleapiclient.discovery import Resource
-    from googleapiclient._apis.drive.v3.resources import DriveResource
+    from googleapiclient._apis.drive.v3.resources import DriveResource, File
 
 from .base import StorageBackend
 
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
+EMPTY_VALUE = ""
 
 
 class GoogleDriveBackend(StorageBackend):
@@ -49,7 +50,7 @@ class GoogleDriveBackend(StorageBackend):
       prefijos especiales ('path://...').
     """
 
-    def __init__(self, service: "Resource") -> None:
+    def __init__(self, service: Resource) -> None:
         self._service = tp.cast("DriveResource", service)
 
     def __repr__(self) -> str:
@@ -238,7 +239,7 @@ class GoogleDriveBackend(StorageBackend):
 
         folder_id = self._strip_prefix(prefix, ID_PREFIX)
         results: list[str] = []
-        page_token = None
+        page_token = EMPTY_VALUE
 
         query = f"'{folder_id}' in parents and trashed = false"
 
@@ -249,7 +250,7 @@ class GoogleDriveBackend(StorageBackend):
                     q=query,
                     spaces="drive",
                     fields="nextPageToken, files(id)",
-                    pageToken=page_token,  # type: ignore
+                    pageToken=page_token,
                     includeItemsFromAllDrives=True,
                     supportsAllDrives=True,
                 )
@@ -257,10 +258,10 @@ class GoogleDriveBackend(StorageBackend):
             )
 
             files = response.get("files", [])
-            ids = [f"{ID_PREFIX}{f['id']}" for f in files]  # type: ignore
+            ids = [f"{ID_PREFIX}{f.get('id')}" for f in files]
             results.extend(ids)
 
-            page_token = response.get("nextPageToken")
+            page_token = response.get("nextPageToken") or ""
             if not page_token:
                 break
 
@@ -317,10 +318,10 @@ class GoogleDriveBackend(StorageBackend):
             filename, parent_id = clean_uri.split(PATH_ID_SEPARATOR, 1)
 
             # Crear el archivo final
-            file_metadata = {"name": filename, "parents": [parent_id]}
+            file_metadata: "File" = {"name": filename, "parents": [parent_id]}
 
             self._service.files().create(
-                body=file_metadata,  # type: ignore
+                body=file_metadata,
                 media_body=media_body,
                 supportsAllDrives=True,
             ).execute()
@@ -353,16 +354,16 @@ class GoogleDriveBackend(StorageBackend):
         Recorre y crea carpetas si no existen.
         Retorna el ID de la carpeta más profunda.
         """
-        current_parent_id = root_id
+        current_parent_id: str = root_id
 
         for folder_name in folders:
             if found_id := self._find_folder_id(
-                current_parent_id, folder_name  # type: ignore
+                current_parent_id, folder_name
             ):
                 current_parent_id = found_id
             else:
                 # Crear carpeta
-                file_metadata = {
+                file_metadata: "File" = {
                     "name": folder_name,
                     "mimeType": "application/vnd.google-apps.folder",
                     "parents": [current_parent_id],
@@ -374,9 +375,9 @@ class GoogleDriveBackend(StorageBackend):
                     )
                     .execute()
                 )
-                current_parent_id = folder.get("id")
+                current_parent_id = folder.get("id") or ""  # patched!
 
-        return current_parent_id  # type: ignore
+        return current_parent_id
 
     def _find_folder_id(self, parent_id: str, name: str) -> str | None:
         """Busca una carpeta específica dentro de un padre."""
@@ -401,7 +402,7 @@ class GoogleDriveBackend(StorageBackend):
         )
 
         files = response.get("files", [])
-        return files[0]["id"] if files else None  # type: ignore
+        return files[0].get("id") if files else None
 
     def _guess_mime_type(self, uri: str) -> str | None:
         """Intenta adivinar el mimetype basado en la extensión."""
