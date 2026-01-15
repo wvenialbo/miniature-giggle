@@ -14,6 +14,8 @@ class FilesystemBackend(StorageBackend):
 
     Methods
     -------
+    create_path(uri: str) -> str
+        Crea una ruta o contenedor en el backend de almacenamiento.
     delete(uri: str) -> None
         Elimina los datos en la URI especificada.
     exists(uri: str) -> bool
