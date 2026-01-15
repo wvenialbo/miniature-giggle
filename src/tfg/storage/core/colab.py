@@ -209,7 +209,7 @@ class ColabDrive:
 _drive: ColabDrive | None = None
 
 
-def use_drive_for_colab(
+def use_colab_drive(
     *,
     root_path: str = "MyDrive",
     mountpoint: str = "/content/drive",
@@ -265,7 +265,7 @@ def use_drive_for_colab(
     )
 
 
-def close_use_drive_for_colab(fail: bool = False) -> bool:
+def close_colab_drive(fail: bool = False) -> bool:
     """
     Cierra la conexión con Google Drive usada en Colab.
 
