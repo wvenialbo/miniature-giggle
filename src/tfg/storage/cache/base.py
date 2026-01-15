@@ -14,10 +14,10 @@ class AbstractCache(tp.Protocol):
     -------
     clear() -> None
         Limpia todos los objetos almacenados en la caché.
+    invalidate(path: str) -> None
+        Elimina un objeto de la caché usando la ruta especificada.
     purge() -> None
         Elimina entradas expiradas de la caché.
-    remove(path: str) -> None
-        Elimina un objeto de la caché usando la ruta especificada.
     """
 
     def clear(self) -> None:
@@ -26,6 +26,17 @@ class AbstractCache(tp.Protocol):
 
         Esta operación elimina todos los objetos actualmente almacenados
         en la caché.
+        """
+        ...
+
+    def invalidate(self, path: str) -> None:
+        """
+        Elimina un objeto de la caché usando la ruta especificada.
+
+        Parameters
+        ----------
+        path : str
+            La ruta del objeto a eliminar de la caché.
         """
         ...
 
@@ -40,25 +51,14 @@ class AbstractCache(tp.Protocol):
         """
         ...
 
-    def remove(self, path: str) -> None:
-        """
-        Elimina un objeto de la caché usando la ruta especificada.
-
-        Parameters
-        ----------
-        path : str
-            La ruta del objeto a eliminar de la caché.
-        """
-        ...
-
 
 class CacheBase(AbstractCache, tp.Generic[T]):
     """
     Protocolo para cachés de almacenamiento de datos.
 
     Define la interfaz para cachés que almacenan datos en memoria o en
-    almacenamiento local para acelerar operaciones de lectura y escritura
-    en backends remotos.
+    almacenamiento local para acelerar operaciones de lectura y
+    escritura en backends remotos.
 
     Hereda de AbstractCache y añade métodos para obtener y establecer
     objetos en la caché.
@@ -83,8 +83,8 @@ class CacheBase(AbstractCache, tp.Generic[T]):
         Returns
         -------
         Any | None
-            El objeto almacenado en la caché bajo la ruta dada, o None si
-            no existe.
+            El objeto almacenado en la caché bajo la ruta dada, o None
+            si no existe.
         """
         ...
 
