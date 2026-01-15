@@ -3,10 +3,12 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import StorageBackend
-from ..cache import AbstractCache, NoopCache
+from ..cache import AbstractCache, DummyCache
 from ..handler import DataHandler
 from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceContract
+
+NoopCache = DummyCache[tp.Any]
 
 
 class Datasource(DatasourceContract):
