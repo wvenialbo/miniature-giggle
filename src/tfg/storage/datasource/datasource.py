@@ -10,6 +10,8 @@ from .base import DatasourceContract
 
 NoopCache = DummyCache[tp.Any]
 
+GENERIC_SUFFIX = ".*"
+
 
 class Datasource(DatasourceContract):
     """
@@ -185,14 +187,22 @@ class Datasource(DatasourceContract):
 
     def _get_handler_for_uri(self, uri: str) -> DataHandler:
         """Obtiene el handler apropiado para una URI genérica."""
+        has_generic_handler = GENERIC_SUFFIX in self.handlers
+
         suffix = pl.PurePosixPath(uri).suffix
 
         if not suffix:
+            if has_generic_handler:
+                return self.handlers[GENERIC_SUFFIX]
+
             raise ValueError(
                 f"La URI '{uri}' no tiene extensión de archivo reconocida."
             )
 
         if suffix not in self.handlers:
+            if has_generic_handler:
+                return self.handlers[GENERIC_SUFFIX]
+
             available_formats = ", ".join(self.handlers.keys())
             raise ValueError(
                 f"No hay un handler registrado para la extensión '{suffix}'. "
