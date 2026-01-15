@@ -4,7 +4,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build  # type: ignore
 
 from ..backend import GoogleDriveBackend
-from ..cache import DriveCache
+from ..cache import DriveCache, TimedDriveCache
 from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
 from ..mapper import GoogleDriveURIMapper
@@ -20,6 +20,7 @@ def use_google_drive(
     cache_file: str | pl.Path | None = None,
     mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
+    expire_after: float | None = None,
 ) -> DatasourceContract:
     """
     Crea un contexto de Datasource conectado a Google Drive vía API.
@@ -79,7 +80,13 @@ def use_google_drive(
     # 3. Inicialización del Cache
     # Si cache_file es None, NamesCache trabajará en memoria.
     cache_path_str = str(cache_file) if cache_file else None
-    drive_cache = DriveCache(cache_file=cache_path_str)
+
+    if expire_after is not None:
+        drive_cache = TimedDriveCache(
+            cache_file=cache_path_str, expire_after=expire_after
+        )
+    else:
+        drive_cache = DriveCache(cache_file=cache_path_str)
 
     # 4. Instanciación de Protocolos (Inyección de Dependencias)
     # Ambos componentes comparten la misma instancia de 'service'.
