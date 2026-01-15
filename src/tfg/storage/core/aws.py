@@ -10,6 +10,8 @@ from ..handler import DataHandler
 from ..mapper import AWSURIMapper
 from .handlers import get_file_handlers
 
+S3_PREFIX = "s3://"
+
 
 def use_aws(
     *,
@@ -18,7 +20,7 @@ def use_aws(
     profile_name: str | None = None,
     region_name: str | None = None,
     cache_file: str | pl.Path | None = None,
-    mountpoint: str = "s3://",
+    mountpoint: str = S3_PREFIX,
     handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
     **session_kwargs: tp.Any,
