@@ -1,4 +1,5 @@
 import pathlib as pl
+from typing import Any
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build  # type: ignore
@@ -12,6 +13,26 @@ from .handlers import get_file_handlers
 
 # Scope necesario para lectura/escritura completa en Drive
 _SCOPES = ["https://www.googleapis.com/auth/drive"]
+
+
+def _get_gdrive_credentials(credentials: str | pl.Path) -> Any:
+    """Extraído de la Sección 1: Validación y Carga de Credenciales."""
+    creds_path = pl.Path(credentials)
+    if not creds_path.exists():
+        raise FileNotFoundError(
+            f"No se encontró el archivo de credenciales: {creds_path}"
+        )
+
+    try:
+        creds = service_account.Credentials.from_service_account_file(
+            str(creds_path), scopes=_SCOPES
+        )
+    except ValueError as e:
+        raise ValueError(
+            f"Error al leer las credenciales de servicio: {e}"
+        ) from e
+
+    return creds
 
 
 def use_google_drive(
@@ -60,20 +81,7 @@ def use_google_drive(
     """
 
     # 1. Validación y Carga de Credenciales
-    creds_path = pl.Path(credentials)
-    if not creds_path.exists():
-        raise FileNotFoundError(
-            f"No se encontró el archivo de credenciales: {creds_path}"
-        )
-
-    try:
-        creds = service_account.Credentials.from_service_account_file(
-            str(creds_path), scopes=_SCOPES
-        )
-    except ValueError as e:
-        raise ValueError(
-            f"Error al leer las credenciales de servicio: {e}"
-        ) from e
+    creds = _get_gdrive_credentials(credentials)
 
     # 2. Construcción del Cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
