@@ -5,7 +5,7 @@ import warnings
 from ..backend import FilesystemBackend
 from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
-from ..uri import PathURIMapper
+from ..mapper import PathURIMapper
 from .handlers import get_file_handlers
 
 try:
