@@ -16,7 +16,7 @@ _SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 def use_google_drive(
     *,
-    service_account_json: str | pl.Path,
+    credentials: str | pl.Path,
     cache_file: str | pl.Path | None = None,
     mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
@@ -31,7 +31,7 @@ def use_google_drive(
 
     Parameters
     ----------
-    service_account_json : str | Path
+    credentials : str | Path
         Ruta al archivo JSON de credenciales de la cuenta de servicio.
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de IDs. Si es None,
@@ -42,6 +42,9 @@ def use_google_drive(
     handlers : list[DataHandler], optional
         Lista de handlers personalizados. Si es None, se cargan los
         valores por defecto.
+    expire_after : float, optional
+        Tiempo en segundos tras el cual las entradas del caché expiran.
+        Si es None, el caché no expira.
 
     Returns
     -------
@@ -57,7 +60,7 @@ def use_google_drive(
     """
 
     # 1. Validación y Carga de Credenciales
-    creds_path = pl.Path(service_account_json)
+    creds_path = pl.Path(credentials)
     if not creds_path.exists():
         raise FileNotFoundError(
             f"No se encontró el archivo de credenciales: {creds_path}"
