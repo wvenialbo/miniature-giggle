@@ -6,6 +6,7 @@ preconfigurados para diferentes backends (Colab, local, S3, etc.).
 """
 
 from ..handler import (
+    BypassHandler,
     CSVHandler,
     DataHandler,
     JSONHandler,
@@ -15,10 +16,11 @@ from ..handler import (
 )
 
 _DEFAULT_HANDLERS: list[DataHandler] = [
-    NumpyHandler(),
-    PickleHandler(),
+    BypassHandler(),
     CSVHandler(),
     JSONHandler(),
+    NumpyHandler(),
+    PickleHandler(),
     YAMLHandler(),
 ]
 
