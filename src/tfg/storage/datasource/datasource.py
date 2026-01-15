@@ -331,7 +331,7 @@ class Datasource(DatasourceContract):
         bytes_data = stream.getvalue()
 
         native_uri = self._to_native_uri(uri)
-        self.backend.create_path(uri=native_uri)
+        native_uri = self.backend.create_path(uri=native_uri)
         self.backend.write(uri=native_uri, data=bytes_data)
 
     def _to_generic_uri(self, uri: str) -> str:
