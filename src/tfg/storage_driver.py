@@ -5,6 +5,14 @@ from .utils import check_is_active, format_report, format_table, get_columns_siz
 from .filehandler import FileHandler
 from .filesystem import FileSystemMounter
 
+    def remove_from_cache(self, uri: str) -> None:
+        """
+        Elimina la entrada del caché correspondiente a la URI lógica dada.
+        Este método debe ser llamado por capas superiores tras un delete exitoso.
+        """
+        # Asumimos que la URI recibida es la lógica (genérica)
+        self._cache.remove(uri)
+
 
 class StorageDriver:
     """
