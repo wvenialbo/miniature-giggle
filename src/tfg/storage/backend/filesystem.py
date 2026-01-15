@@ -41,7 +41,7 @@ class FilesystemBackend(StorageBackend):
     def __repr__(self) -> str:
         return "FilesystemBackend()"
 
-    def create_path(self, *, path: str) -> str:
+    def create_path(self, *, uri: str) -> str:
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
 
@@ -80,7 +80,7 @@ class FilesystemBackend(StorageBackend):
           deben existir previamente; este método crea solo "prefijos" o
           "directorios virtuales".
         """
-        target = _check_uri(path)
+        target = _check_uri(uri)
         target.parent.mkdir(parents=True, exist_ok=True)
         return str(target)
 

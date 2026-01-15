@@ -19,7 +19,7 @@ class StorageBackend(tp.Protocol):
 
     Methods
     -------
-    create_path(path: str) -> str
+    create_path(uri: str) -> str
         Crea una ruta o contenedor en el backend de almacenamiento.
     delete(uri: str) -> None
         Elimina los datos en la URI especificada.
@@ -81,7 +81,7 @@ class StorageBackend(tp.Protocol):
         nativo. Este ID se utiliza posteriormente en `write()`.
     """
 
-    def create_path(self, *, path: str) -> str:
+    def create_path(self, *, uri: str) -> str:
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
 
@@ -99,7 +99,7 @@ class StorageBackend(tp.Protocol):
 
         Parameters
         ----------
-        path : str
+        uri : str
             Puede ser un ID nativo del backend (si el recurso ya existe)
             o una ruta genérica (POSIX). Ej:
             'experimentos/2024/dataset1'.

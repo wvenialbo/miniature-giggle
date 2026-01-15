@@ -170,19 +170,19 @@ class GoogleDriveBackend(StorageBackend):
 
         raise ValueError(f"Esquema de URI no soportado: {uri}")
 
-    def create_path(self, *, path: str) -> str:
+    def create_path(self, *, uri: str) -> str:
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
         """
         # Caso 1: ID ya existe, retornamos tal cual
-        if path.startswith(ID_PREFIX):
-            return path
+        if uri.startswith(ID_PREFIX):
+            return uri
 
         # CASO 2: Creación de archivo nuevo (requiere mkdir recursivo)
-        if path.startswith(PATH_PREFIX):
-            return self._do_create_path(path)
+        if uri.startswith(PATH_PREFIX):
+            return self._do_create_path(uri)
 
-        raise ValueError(f"Esquema de URI no soportado: {path}")
+        raise ValueError(f"Esquema de URI no soportado: {uri}")
 
     def _do_create_path(self, path: str) -> str:
         # Formato esperado: "path://sub/ruta/archivo.ext|parent_id"
