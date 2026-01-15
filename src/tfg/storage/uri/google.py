@@ -11,6 +11,8 @@ if tp.TYPE_CHECKING:
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
+MAX_DEPTH = 50
+PATH_SEP = "/"
 
 
 class GoogleDriveURIMapper(URIMapper):
@@ -32,31 +34,18 @@ class GoogleDriveURIMapper(URIMapper):
         self._service = service
         self._cache = cache
 
-    @staticmethod
-    def _strip_prefix(uri: str, prefix: str) -> str:
-        """Ayudante para remover un prefijo de una URI."""
-        if not uri.startswith(prefix):
-            raise ValueError(
-                f"La URI no comienza con el prefijo esperado: {prefix}"
-            )
-        return uri[len(prefix) :]
-
     def to_generic(self, uri: str) -> str:
         """
         Convierte un ID nativo (id://xxx) a una ruta lógica aproximada.
         Nota: Esta operación es costosa (camina hacia arriba) y puede ser
         ambigua (múltiples padres).
         """
-        if not uri.startswith(ID_PREFIX):
-            # Si ya parece una ruta o no es un ID, se devuelve tal cual
-            return uri
-
         file_id = self._strip_prefix(uri, ID_PREFIX)
         path_parts: list[str] = []
         current_id = file_id
 
         # Loop de seguridad para evitar ciclos infinitos en estructuras corruptas
-        for _ in range(50):
+        for _ in range(MAX_DEPTH):
             if current_id == "root":
                 break
 
@@ -86,7 +75,7 @@ class GoogleDriveURIMapper(URIMapper):
                 break
 
         # Invertimos porque caminamos de hijo a padre
-        full_path = "/" + "/".join(reversed(path_parts))
+        full_path = PATH_SEP + PATH_SEP.join(reversed(path_parts))
 
         # Opcional: Actualizar caché con la ruta descubierta
         self._cache.set(full_path, file_id)
@@ -102,17 +91,16 @@ class GoogleDriveURIMapper(URIMapper):
         "path:<parte_faltante>|<id_ultimo_padre_conocido>"
         """
         # Normalización básica
-        uri = uri.strip()
-        if uri in {"/", "."}:
+        if uri == PATH_SEP:
             return f"{ID_PREFIX}root"
 
         if cached_id := self._cache.get(uri):
             return f"{ID_PREFIX}{cached_id}"
 
         # 2. Caminata por la jerarquía
-        parts = pl.Path(uri).parts
+        parts = pl.PurePosixPath(uri).parts
         # Filtramos la raiz '/' si path.parts la incluye
-        parts = [p for p in parts if p not in ["/", "\\"]]
+        parts = [p for p in parts if p != PATH_SEP]
 
         current_id = "root"
         resolved_path = ""  # Para ir construyendo la llave del caché
@@ -120,7 +108,9 @@ class GoogleDriveURIMapper(URIMapper):
         for i, segment in enumerate(parts):
             # Construir ruta parcial actual para consultar/guardar caché
             resolved_path = (
-                f"{resolved_path}/{segment}" if resolved_path else segment
+                f"{resolved_path}{PATH_SEP}{segment}"
+                if resolved_path
+                else segment
             )
 
             if cached_step := self._cache.get(resolved_path):
@@ -135,7 +125,7 @@ class GoogleDriveURIMapper(URIMapper):
             else:
                 # No encontrado. Preparamos el retorno especial.
                 # Resto de la ruta que falta por crear
-                remaining_path = "/".join(parts[i:])
+                remaining_path = PATH_SEP.join(parts[i:])
                 return f"{PATH_PREFIX}{remaining_path}{PATH_ID_SEPARATOR}{current_id}"
 
         return f"{ID_PREFIX}{current_id}"
@@ -151,25 +141,27 @@ class GoogleDriveURIMapper(URIMapper):
             f"trashed = false"
         )
 
-        try:
-            response = (
-                self._service.files()
-                .list(
-                    q=query,
-                    spaces="drive",
-                    fields="files(id)",
-                    pageSize=1,  # Solo nos interesa el primero
-                    includeItemsFromAllDrives=True,
-                    supportsAllDrives=True,
-                )
-                .execute()
+        response = (
+            self._service.files()
+            .list(
+                q=query,
+                spaces="drive",
+                fields="files(id)",
+                pageSize=1,  # Solo nos interesa el primero
+                includeItemsFromAllDrives=True,
+                supportsAllDrives=True,
             )
+            .execute()
+        )
 
-            files = response.get("files", [])
-            return files[0]["id"] if files else None  # type: ignore
+        files = response.get("files", [])
+        return files[0]["id"] if files else None  # type: ignore
 
-        except Exception:
-            # En caso de error de red o permisos, asumimos no encontrado
-            # o dejamos propagar la excepción según política.
-            # Aquí propagamos para que el usuario sepa si falló la conexión.
-            raise
+    @staticmethod
+    def _strip_prefix(uri: str, prefix: str) -> str:
+        """Ayudante para remover un prefijo de una URI."""
+        if not uri.startswith(prefix):
+            raise ValueError(
+                f"La URI no comienza con el prefijo esperado: {prefix}"
+            )
+        return uri[len(prefix) :]
