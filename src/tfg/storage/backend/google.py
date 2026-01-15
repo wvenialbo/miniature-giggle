@@ -8,6 +8,7 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 if tp.TYPE_CHECKING:
     # Importamos el tipo específico para Drive v3
+    from googleapiclient.discovery import Resource
     from googleapiclient._apis.drive.v3.resources import DriveResource
 
 from .base import StorageBackend
@@ -48,8 +49,8 @@ class GoogleDriveBackend(StorageBackend):
       prefijos especiales ('path://...').
     """
 
-    def __init__(self, service: "DriveResource") -> None:
-        self._service = service
+    def __init__(self, service: "Resource") -> None:
+        self._service = tp.cast("DriveResource", service)
 
     def __repr__(self) -> str:
         return f"GoogleDriveBackend({repr(self._service)})"
