@@ -20,7 +20,8 @@ class GoogleDriveURIMapper(URIMapper):
     Implementación de URIMapper para la API de Google Drive.
 
     Traduce rutas estilo POSIX a identificadores opacos de Drive.
-    Maneja la ambigüedad de nombres tomando el primer resultado encontrado.
+    Maneja la ambigüedad de nombres tomando el primer resultado
+    encontrado.
 
     Parameters
     ----------
@@ -37,14 +38,15 @@ class GoogleDriveURIMapper(URIMapper):
     def to_generic(self, uri: str) -> str:
         """
         Convierte un ID nativo (id://xxx) a una ruta lógica aproximada.
-        Nota: Esta operación es costosa (camina hacia arriba) y puede ser
-        ambigua (múltiples padres).
+        Nota: Esta operación es costosa (camina hacia arriba) y puede
+        ser ambigua (múltiples padres).
         """
         file_id = self._strip_prefix(uri, ID_PREFIX)
         path_parts: list[str] = []
         current_id = file_id
 
-        # Loop de seguridad para evitar ciclos infinitos en estructuras corruptas
+        # Loop de seguridad para evitar ciclos infinitos en estructuras
+        # corruptas
         for _ in range(MAX_DEPTH):
             if current_id == "root":
                 break
@@ -60,7 +62,8 @@ class GoogleDriveURIMapper(URIMapper):
                     .execute()
                 )
             except Exception:
-                # Si falla la lectura (permisos o no existe), retornamos el ID crudo
+                # Si falla la lectura (permisos o no existe), retornamos
+                # el ID crudo
                 return uri
 
             name = file_meta.get("name", "unknown")
@@ -126,13 +129,19 @@ class GoogleDriveURIMapper(URIMapper):
                 # No encontrado. Preparamos el retorno especial.
                 # Resto de la ruta que falta por crear
                 remaining_path = PATH_SEP.join(parts[i:])
-                return f"{PATH_PREFIX}{remaining_path}{PATH_ID_SEPARATOR}{current_id}"
+                return (
+                    f"{PATH_PREFIX}{remaining_path}"
+                    f"{PATH_ID_SEPARATOR}{current_id}"
+                )
 
         return f"{ID_PREFIX}{current_id}"
 
     def _find_child_id(self, parent_id: str, name: str) -> str | None:
-        """Ayudante para buscar un archivo por nombre dentro de un padre."""
-        # Escapar comillas simples en el nombre por seguridad en el query
+        """
+        Ayudante para buscar un archivo por nombre dentro de un padre.
+        """
+        # Escapar comillas simples en el nombre por seguridad en el
+        # query
         safe_name = name.replace("'", "\\'")
 
         query = (
