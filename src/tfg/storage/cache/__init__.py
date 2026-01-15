@@ -1,5 +1,5 @@
 from .base import AbstractCache, CacheBase
-from .dummy import DummyCache, NoopCache
+from .dummy import DummyCache
 from .simple import DriveCache, ScanCache, SimpleCache
 from .timed import TimedCache, TimedDriveCache, TimedScanCache
 
@@ -8,7 +8,6 @@ __all__ = [
     "CacheBase",
     "DriveCache",
     "DummyCache",
-    "NoopCache",
     "ScanCache",
     "SimpleCache",
     "TimedCache",

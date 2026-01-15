@@ -83,6 +83,4 @@ class DummyCache(CacheBase[T]):
         pass
 
 
-NoopCache = DummyCache[int]
-
-__all__ = ["DummyCache", "NoopCache"]
+__all__ = ["DummyCache"]
