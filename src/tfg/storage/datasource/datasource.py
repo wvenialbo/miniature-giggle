@@ -199,6 +199,35 @@ class Datasource(DatasourceContract):
 
         return self.handlers[suffix]
 
+    def list(self, *, prefix: str = "") -> list[str]:
+        """
+        Enumera objetos cuya URI comienza con el prefijo especificado.
+
+        Obteniene la lista de todos los objetos cuyas URI comienzan con
+        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
+        o parcial, respecto el punto de montaje del backend.  Devuelve
+        una lista de URI genéricas respecto el punto de montaje del
+        backend.
+
+        Parameters
+        ----------
+        prefix : str
+            El prefijo para filtrar las URI listadas.  Debe ser una URI
+            genérica. Por defecto es una cadena vacía, que lista todas
+            las URI.
+
+        Returns
+        -------
+        tp.List[str]
+            Una lista de URI que comienzan con el prefijo dado.
+        """
+        native_prefix = self._to_native_uri(uri=prefix or "/")
+
+        return [
+            self._to_generic_uri(item)
+            for item in self.backend.scan(prefix=native_prefix)
+        ]
+
     def load(self, *, uri: str) -> tp.Any:
         """
         Carga un objeto desde la URI especificada.
@@ -304,35 +333,6 @@ class Datasource(DatasourceContract):
         native_uri = self._to_native_uri(uri)
         self.backend.create_path(uri=native_uri)
         self.backend.write(uri=native_uri, data=bytes_data)
-
-    def scan(self, *, prefix: str = "") -> list[str]:
-        """
-        Enumera objetos cuya URI comienza con el prefijo especificado.
-
-        Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
-        o parcial, respecto el punto de montaje del backend.  Devuelve
-        una lista de URI genéricas respecto el punto de montaje del
-        backend.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las URI listadas.  Debe ser una URI
-            genérica. Por defecto es una cadena vacía, que lista todas
-            las URI.
-
-        Returns
-        -------
-        tp.List[str]
-            Una lista de URI que comienzan con el prefijo dado.
-        """
-        native_prefix = self._to_native_uri(uri=prefix or "/")
-
-        return [
-            self._to_generic_uri(item)
-            for item in self.backend.scan(prefix=native_prefix)
-        ]
 
     def _to_generic_uri(self, uri: str) -> str:
         """Convierte una URI nativa a genérica respecto el punto de montaje."""

@@ -78,6 +78,28 @@ class DatasourceContract(tp.Protocol):
         """
         ...
 
+    def list(self, *, prefix: str = "") -> list[str]:
+        """
+        Enumera objetos cuya URI comienza con el prefijo especificado.
+
+        Obteniene la lista de todos los objetos cuyas URI comienzan con
+        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
+        o parcial, respecto el punto de montaje del backend.  Devuelve
+        una lista de URI genéricas respecto el punto de montaje del
+        backend.
+
+        Parameters
+        ----------
+        prefix : str
+            El prefijo para filtrar las URI listadas.
+
+        Returns
+        -------
+        tp.List[str]
+            Una lista de URI que comienzan con el prefijo dado.
+        """
+        ...
+
     def load(self, *, uri: str) -> tp.Any:
         """
         Carga un objeto desde la URI especificada.
@@ -149,27 +171,5 @@ class DatasourceContract(tp.Protocol):
             La URI donde se escribirán los datos.
         data : bytes
             Los datos a escribir en la URI dada.
-        """
-        ...
-
-    def scan(self, *, prefix: str = "") -> list[str]:
-        """
-        Enumera objetos cuya URI comienza con el prefijo especificado.
-
-        Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
-        o parcial, respecto el punto de montaje del backend.  Devuelve
-        una lista de URI genéricas respecto el punto de montaje del
-        backend.
-
-        Parameters
-        ----------
-        prefix : str
-            El prefijo para filtrar las URI listadas.
-
-        Returns
-        -------
-        tp.List[str]
-            Una lista de URI que comienzan con el prefijo dado.
         """
         ...
