@@ -13,6 +13,8 @@ from .handlers import get_file_handlers
 
 
 def use_local_drive(
+    *,
+    mountpoint: str | None = None,
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
@@ -36,6 +38,7 @@ def use_local_drive(
         handlers = get_file_handlers()
 
     return Datasource(
+        mountpoint=mountpoint or "/",
         backend=backend,
         mapper=mapper,
         handlers=handlers,
