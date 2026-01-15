@@ -94,4 +94,5 @@ def use_google_drive(
         backend=backend,
         mapper=mapper,
         handlers=handlers,
+        cache=drive_cache,
     )
