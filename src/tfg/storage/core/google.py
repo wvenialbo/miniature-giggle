@@ -67,7 +67,9 @@ def use_google_drive(
             str(creds_path), scopes=_SCOPES
         )
     except ValueError as e:
-        raise ValueError(f"Error al leer las credenciales de servicio: {e}")
+        raise ValueError(
+            f"Error al leer las credenciales de servicio: {e}"
+        ) from e
 
     # 2. Construcción del Cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
