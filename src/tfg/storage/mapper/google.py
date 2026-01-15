@@ -239,7 +239,7 @@ class GoogleDriveURIMapper(URIMapper):
         )
 
         files = response.get("files", [])
-        return files[0]["id"] if files else None  # type: ignore
+        return files[0].get("id") if files else None
 
     @staticmethod
     def _strip_prefix(uri: str, prefix: str) -> str:
