@@ -74,7 +74,7 @@ class S3Backend(StorageBackend):
         for page in paginator.paginate(Bucket=bucket, Prefix=key_prefix):
             if "Contents" in page:
                 results.extend(
-                    f"s3://{bucket}/{obj.get('Key')}"
+                    f"{S3_PREFIX}{bucket}/{obj.get('Key')}"
                     for obj in page["Contents"]
                 )
         self.scan_cache.set(prefix, results)
