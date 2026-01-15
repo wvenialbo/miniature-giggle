@@ -1,6 +1,6 @@
 import typing as tp
 
-import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from ..cache import CacheBase, DummyCache
@@ -20,15 +20,13 @@ class AWSBackend(StorageBackend):
     def __init__(
         self,
         bucket: str,
-        session: boto3.Session,
+        client: "S3Client",
         scan_cache: AWSCache | None = None,
+        config: Config | None = None,
     ) -> None:
         self.bucket_name = bucket
-        self.s3: "S3Client" = self._create_client(session)
+        self.s3 = client
         self.scan_cache: AWSCache = scan_cache or NoopCache()
-
-    def _create_client(self, session: boto3.Session) -> "S3Client":
-        return session.client("s3")
 
     def create_path(self, *, uri: str) -> str:
         # S3 es un espacio plano; no necesita crear directorios.

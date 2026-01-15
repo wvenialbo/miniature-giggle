@@ -2,6 +2,8 @@ import pathlib as pl
 import typing as tp
 
 import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 
 from ..backend import AWSBackend
 from ..cache import ScanCache, TimedScanCache
@@ -17,6 +19,7 @@ def use_aws(
     *,
     bucket: str,
     base_prefix: str = "",
+    anonymous: bool = True,
     profile_name: str | None = None,
     region_name: str | None = None,
     cache_file: str | pl.Path | None = None,
@@ -29,28 +32,39 @@ def use_aws(
     Crea un contexto de Datasource conectado a AWS S3.
 
     Configura un backend de objetos S3 con un mapeador determinista y
-    optimización de listado mediante caché de escaneo.
+    optimización de listado mediante caché de escaneo.  Soporta acceso
+    autenticado y anónimo (público).
 
     Parameters
     ----------
     bucket : str
         Nombre del bucket de S3.
     base_prefix : str, optional
-        Prefijo raíz dentro del bucket para este Datasource.
-        Por defecto "" (raíz del bucket).
+        Prefijo raíz dentro del bucket para este Datasource.  Por
+        defecto "" (raíz del bucket).
+    anonymous : bool, optional
+        Si es True, usa acceso anónimo (público) sin credenciales.  Si
+        es False, usa credenciales configuradas localmente. Por defecto
+        True.
     profile_name : str, optional
         Nombre del perfil de AWS configurado en la máquina local.
     region_name : str, optional
         Región de AWS (ej: 'us-east-1').
-    scan_cache_file : str | Path, optional
-        Ruta al archivo para persistir el caché de las operaciones 'scan'.
-        Crucial para buckets con miles de objetos.
+    cache_file : str | Path, optional
+        Ruta al archivo para persistir el caché de las operaciones
+        'scan'.  Crucial para buckets con miles de objetos.
     mountpoint : str, optional
-        Identificador lógico para el punto de montaje. Por defecto "s3://".
+        Identificador lógico para el punto de montaje. Por defecto
+        "s3://".
     handlers : list[DataHandler], optional
-        Lista de handlers personalizados. Si es None, se cargan los por defecto.
+        Lista de handlers personalizados. Si es None, se cargan los por
+        defecto.
+    expire_after : float, optional
+        Tiempo en segundos tras el cual expira la caché de escaneo. Si es
+        None, la caché no expira automáticamente.
     **session_kwargs : Any
-        Argumentos adicionales para boto3.Session (aws_access_key_id, etc.)
+        Argumentos adicionales para boto3.Session (aws_access_key_id,
+        etc.)
 
     Returns
     -------
@@ -58,12 +72,23 @@ def use_aws(
         Objeto orquestador configurado para AWS S3.
     """
 
-    # 1. Configuración de la Sesión de AWS
-    # Esto permite flexibilidad total: desde perfiles hasta llaves
-    # directas
-    session = boto3.Session(
-        profile_name=profile_name, region_name=region_name, **session_kwargs
-    )
+    # 1. Configuración de la Sesión de AWS y del cliente S3
+    # Acceso Anónimo vs Autenticado: Esto permite flexibilidad total,
+    # desde perfiles hasta llaves directas
+    config = None
+    if anonymous:
+        # Configuración UNSIGNED para acceso público sin credenciales
+        config = Config(signature_version=UNSIGNED)
+        # Forzamos una sesión vacía para evitar que boto3 busque archivos config
+        session = boto3.Session(region_name=region_name)
+    else:
+        session = boto3.Session(
+            profile_name=profile_name,
+            region_name=region_name,
+            **session_kwargs,
+        )
+
+    s3_client = session.client("s3", config=config)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
@@ -83,7 +108,12 @@ def use_aws(
     mapper = AWSURIMapper(bucket=bucket, base_prefix=base_prefix)
 
     # El Backend recibe la sesión y la caché de escaneo
-    backend = AWSBackend(bucket=bucket, session=session, scan_cache=scan_cache)
+    backend = AWSBackend(
+        bucket=bucket,
+        client=s3_client,
+        scan_cache=scan_cache,
+        config=config,
+    )
 
     # 4. Configuración de Handlers
     if handlers is None:
