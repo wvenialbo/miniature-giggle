@@ -21,17 +21,102 @@ class GoogleDriveBackend(StorageBackend):
     """
     Backend de almacenamiento para Google Drive API v3.
 
-    Implementa operaciones de E/S utilizando identificadores nativos
-    ('id://...') y maneja la creación de rutas inexistentes mediante
-    prefijos especiales ('path://...').
+    Esta clase proporciona métodos para interactuar con Google Drive API
+    v3, incluyendo operaciones de E/S para leer, escribir, eliminar y
+    listar archivos.  No conoce rutas lógicas, realiza operaciones
+    crudas de E/S sobre una ruta nativa absoluta.
+
+    Methods
+    -------
+    create_path(uri: str) -> str
+        Crea una ruta o contenedor en el backend de almacenamiento.
+    delete(uri: str) -> None
+        Elimina los datos en la URI especificada.
+    exists(uri: str) -> bool
+        Verifica si los datos existen en la URI especificada.
+    read(uri: str) -> bytes
+        Lee los datos desde la URI especificada.
+    scan(prefix: str) -> list[str]
+        Lista las URI que comienzan con el prefijo especificado.
+    write(uri: str, data: bytes) -> None
+        Escribe los datos en la URI especificada.
+
+    Notes
+    -----
+    - Implementa operaciones de E/S utilizando identificadores nativos
+      ('id://...') y maneja la creación de rutas inexistentes mediante
+      prefijos especiales ('path://...').
     """
 
     def __init__(self, service: "DriveResource") -> None:
         self._service = service
 
+    def __repr__(self) -> str:
+        return f"GoogleDriveBackend({repr(self._service)})"
+
+    def create_path(self, *, uri: str) -> str:
+        """
+        Crea una ruta o contenedor en el backend de almacenamiento.
+
+        Este método puede recibir dos tipos de entrada:
+            1. Un ID nativo del backend (cuando el recurso ya existe).
+            2. Una ruta POSIX (cuando el recurso no existe y se va a
+               crear).
+
+        - En el primer caso, el método es idempotente y devuelve el
+          mismo ID.
+        - En el segundo caso, crea recursivamente todos los contenedores
+          intermedios necesarios, emulando el comportamiento de `mkdir
+          -p`.  Esta operación es llamada por capas superiores antes de
+          `write()` para garantizar que exista el contenedor destino.
+
+        Parameters
+        ----------
+        uri : str
+            Puede ser un ID nativo del backend (si el recurso ya existe)
+            o una ruta genérica (POSIX). Ej:
+            'experimentos/2024/dataset1'.
+
+        Returns
+        -------
+        str
+            URI nativa absoluta del contenedor creado o existente en el
+            backend.  Ej: 's3://bucket/experimentos/2024/dataset1/' o la
+            clave equivalente.
+
+        Raises
+        ------
+        ValueError
+            Si la URI no tiene un esquema soportado.
+        """
+        # Caso 1: ID ya existe, retornamos tal cual
+        if uri.startswith(ID_PREFIX):
+            return uri
+
+        # CASO 2: Creación de archivo nuevo (requiere mkdir recursivo)
+        if uri.startswith(PATH_PREFIX):
+            return self._do_create_path(uri)
+
+        raise ValueError(f"Esquema de URI no soportado: '{uri}'")
+
     def delete(self, *, uri: str) -> None:
         """
-        Elimina un archivo o carpeta. Operación idempotente.
+        Elimina los datos en la URI especificada.
+
+        Elimina archivos u objetos individuales. No elimina contenedores
+        o directorios completos.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+            Ejemplo: 's3://bucket/experimentos/data.csv'.
+
+        Notes
+        -----
+        - Operación idempotente: si la URI no existe, no se genera
+          error.
+        - No debe utilizarse para eliminar contenedores/directorios.
         """
         # Si recibimos un 'path://', significa que el Mapper determinó
         # que el objeto no existe. Por idempotencia, no hacemos nada.
@@ -51,7 +136,22 @@ class GoogleDriveBackend(StorageBackend):
 
     def exists(self, *, uri: str) -> bool:
         """
-        Verifica la existencia mediante metadatos.
+        Verifica si los datos existen en la URI especificada.
+
+        Verifica la existencia de un archivo u objeto individual, no de
+        contenedores o prefijos.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        bool
+            True si existe un archivo u objeto en la URI, False en caso
+            contrario (incluyendo cuando la URI apunta a un contenedor o
+            no existe).
         """
         if uri.startswith(PATH_PREFIX):
             return False
@@ -69,10 +169,25 @@ class GoogleDriveBackend(StorageBackend):
 
     def read(self, *, uri: str) -> bytes:
         """
-        Descarga el contenido de un archivo en memoria.
+        Lee los datos desde la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        bytes
+            Contenido binario del archivo u objeto.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si la URI no existe.
         """
         if uri.startswith(PATH_PREFIX):
-            raise FileNotFoundError(f"El objeto no existe: {uri}")
+            raise FileNotFoundError(f"El objeto no existe: '{uri}'")
 
         file_id = self._strip_prefix(uri, ID_PREFIX)
         request = self._service.files().get_media(fileId=file_id)
@@ -89,8 +204,32 @@ class GoogleDriveBackend(StorageBackend):
 
     def scan(self, *, prefix: str) -> list[str]:
         """
-        Lista los hijos directos de un ID de carpeta dado como prefijo.
-        Maneja la paginación de la API.
+        Lista las URI que comienzan con el prefijo especificado.
+
+        Este método debe manejar internamente la paginación del backend
+        y devolver una lista completa de URIs que coinciden con el
+        prefijo.
+
+        Parameters
+        ----------
+        prefix : str
+            Prefijo de URI nativa absoluta (completa o parcial) válida
+            para el backend. Puede incluir o no el separador de
+            contenedor.
+
+        Returns
+        -------
+        list[str]
+            Lista de URIs nativas absolutas que comienzan con el
+            prefijo.  Solo incluye archivos/objetos, no contenedores
+            vacíos.
+
+        Notes
+        -----
+        - Solo devuelve URIs de archivos u objetos individuales; no
+          incluye contenedores o directorios vacíos.
+        - Maneja internamente toda la paginación del backend.
+        - Devuelve resultados completos sin límites de memoria.
         """
         # Si el prefijo es un path inexistente, no hay nada que listar
         if prefix.startswith(PATH_PREFIX):
@@ -128,9 +267,28 @@ class GoogleDriveBackend(StorageBackend):
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
-        Escribe datos. Crea directorios intermedios si recibe una
-        instrucción PATH_PREFIX.  Actualiza el archivo si recibe un
-        ID_PREFIX.
+        Escribe los datos en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+        data : bytes
+            Contenido binario a escribir.
+
+        Raises
+        ------
+        ValueError
+            Si la URI no tiene un esquema soportado.
+
+        Notes
+        -----
+        - Si el contenedor padre no existe, el comportamiento depende
+          del backend. Algunos lo crearán automáticamente, otros
+          fallarán.  Se recomienda llamar a `create_path()` primero.
+        - Operación atómica: o se escriben todos los datos o falla.
+        - Al finalizar una operación exitosa, la URI debe apuntar a un
+          archivo u objeto individual.
         """
         # Preparar el stream de datos
         media_body = MediaIoBaseUpload(
@@ -153,7 +311,7 @@ class GoogleDriveBackend(StorageBackend):
             # Formato esperado: "path://sub/ruta/archivo.ext|parent_id"
             clean_uri = self._strip_prefix(uri, PATH_PREFIX)
             if PATH_ID_SEPARATOR not in clean_uri:
-                raise ValueError(f"URI de creación malformada: {uri}")
+                raise ValueError(f"URI de creación malformada: '{uri}'")
 
             filename, parent_id = clean_uri.split(PATH_ID_SEPARATOR, 1)
 
@@ -168,27 +326,13 @@ class GoogleDriveBackend(StorageBackend):
 
             return
 
-        raise ValueError(f"Esquema de URI no soportado: {uri}")
+        raise ValueError(f"Esquema de URI no soportado: '{uri}'")
 
-    def create_path(self, *, uri: str) -> str:
-        """
-        Crea una ruta o contenedor en el backend de almacenamiento.
-        """
-        # Caso 1: ID ya existe, retornamos tal cual
-        if uri.startswith(ID_PREFIX):
-            return uri
-
-        # CASO 2: Creación de archivo nuevo (requiere mkdir recursivo)
-        if uri.startswith(PATH_PREFIX):
-            return self._do_create_path(uri)
-
-        raise ValueError(f"Esquema de URI no soportado: {uri}")
-
-    def _do_create_path(self, path: str) -> str:
+    def _do_create_path(self, uri: str) -> str:
         # Formato esperado: "path://sub/ruta/archivo.ext|parent_id"
-        clean_uri = self._strip_prefix(path, PATH_PREFIX)
+        clean_uri = self._strip_prefix(uri, PATH_PREFIX)
         if PATH_ID_SEPARATOR not in clean_uri:
-            raise ValueError(f"URI de creación malformada: {path}")
+            raise ValueError(f"URI de creación malformada: '{uri}'")
 
         relative_path, parent_id = clean_uri.split(PATH_ID_SEPARATOR, 1)
 
@@ -282,6 +426,6 @@ class GoogleDriveBackend(StorageBackend):
         """Ayudante para remover un prefijo de una URI."""
         if not uri.startswith(prefix):
             raise ValueError(
-                f"Se esperaba una URI '{prefix}', se recibió: {uri}"
+                f"Se esperaba una URI '{prefix}', se recibió: '{uri}'"
             )
         return uri[len(prefix) :]
