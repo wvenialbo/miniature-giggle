@@ -33,7 +33,7 @@ class TimedCache(CacheBase[T]):
     cache_file : str | None, optional
         Ruta al archivo donde se almacenará la caché en disco. Si es
         None, la caché solo existirá en memoria (por defecto None).
-    life_time : float | None, optional
+    expire_after : float | None, optional
         Tiempo de vida en segundos para cada objeto en la caché. Si es
         None, los objetos no expiran (por defecto None).
 
@@ -64,10 +64,10 @@ class TimedCache(CacheBase[T]):
     """
 
     def __init__(
-        self, cache_file: str | None = None, life_time: float | None = None
+        self, cache_file: str | None = None, expire_after: float | None = None
     ) -> None:
         self.life_time: float = (
-            float("+inf") if life_time is None else life_time
+            float("+inf") if expire_after is None else expire_after
         )
         self.cache_file = pl.Path(cache_file) if cache_file else None
         self.cache: dict[str, CacheItem[T]] = {}
