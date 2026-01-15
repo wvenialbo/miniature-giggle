@@ -1,7 +1,11 @@
+import contextlib
 import pathlib as pl
 from typing import Any
 
+from google.auth.transport.requests import Request
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials as UserCredentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build  # type: ignore
 
 from ..backend import GoogleDriveBackend
@@ -15,29 +19,59 @@ from .handlers import get_file_handlers
 _SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-def _get_gdrive_credentials(credentials: str | pl.Path) -> Any:
-    """Extraído de la Sección 1: Validación y Carga de Credenciales."""
+def _get_user_credentials(token_path: pl.Path) -> Any:
+    """Intenta cargar credenciales de usuario desde un token persistente."""
+    creds = UserCredentials.from_authorized_user_file(str(token_path), _SCOPES)
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    return creds
+
+
+def _run_interactive_auth(
+    credentials_path: pl.Path, token_path: pl.Path
+) -> Any:
+    """Lanza el flujo OAuth interactivo y guarda el token."""
+    flow = InstalledAppFlow.from_client_secrets_file(
+        str(credentials_path), _SCOPES
+    )
+    creds = flow.run_local_server(port=0)
+    token_path.write_text(creds.to_json())
+    return creds
+
+
+def _get_gdrive_credentials(credentials: str | pl.Path | None) -> Any:
+    """Gestiona la resolución de credenciales con control de flujo."""
+    token_path = pl.Path("token.json")
+
+    # 1. Prioridad: Token de usuario existente
+    if token_path.exists():
+        with contextlib.suppress(Exception):
+            return _get_user_credentials(token_path)
+    # 2. Validación de path de credenciales
+    if not credentials:
+        raise ValueError(
+            "Se requiere 'credentials' si no existe un 'token.json' válido."
+        )
+
     creds_path = pl.Path(credentials)
     if not creds_path.exists():
         raise FileNotFoundError(
             f"No se encontró el archivo de credenciales: {creds_path}"
         )
 
+    # 3. Intento como Service Account (Flujo original)
     try:
-        creds = service_account.Credentials.from_service_account_file(
+        return service_account.Credentials.from_service_account_file(
             str(creds_path), scopes=_SCOPES
         )
-    except ValueError as e:
-        raise ValueError(
-            f"Error al leer las credenciales de servicio: {e}"
-        ) from e
-
-    return creds
+    except ValueError:
+        # 4. Caída a flujo interactivo si no es Service Account
+        return _run_interactive_auth(creds_path, token_path)
 
 
 def use_google_drive(
     *,
-    credentials: str | pl.Path,
+    credentials: str | pl.Path | None = None,
     cache_file: str | pl.Path | None = None,
     mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
@@ -116,3 +150,6 @@ def use_google_drive(
         handlers=handlers,
         cache=drive_cache,
     )
+
+
+__all__ = ["use_google_drive"]
