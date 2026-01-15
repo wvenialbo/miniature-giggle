@@ -1,17 +1,17 @@
 from .base import AbstractCache, CacheBase
 from .dummy import DummyCache, NoopCache
-from .simple import InventoryCache, NamesCache, SimpleCache
-from .timed import TimedCache, TimedInventoryCache, TimedNamesCache
+from .simple import DriveCache, ScanCache, SimpleCache
+from .timed import TimedCache, TimedDriveCache, TimedScanCache
 
 __all__ = [
     "AbstractCache",
     "CacheBase",
+    "DriveCache",
     "DummyCache",
-    "InventoryCache",
-    "NamesCache",
     "NoopCache",
+    "ScanCache",
     "SimpleCache",
     "TimedCache",
-    "TimedInventoryCache",
-    "TimedNamesCache",
+    "TimedDriveCache",
+    "TimedScanCache",
 ]
