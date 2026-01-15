@@ -16,10 +16,10 @@ S3_PREFIX = "s3://"
 POSIX_PREFIX = "/"
 
 
-def use_aws(
+def use_aws_cloud(
     *,
     bucket: str,
-    base_prefix: str = "",
+    base_prefix: str | None = None,
     anonymous: bool = True,
     profile_name: str | None = None,
     region_name: str | None = None,
@@ -117,7 +117,8 @@ def use_aws(
 
     # 5. Retorno del Orquestador
     # Pasamos scan_cache como la caché principal del Datasource
-    mountpoint = f"{POSIX_PREFIX}{base_prefix.lstrip(POSIX_PREFIX)}"
+    prefix = base_prefix or ""
+    mountpoint = f"{POSIX_PREFIX}{prefix.lstrip(POSIX_PREFIX)}"
     return Datasource(
         mountpoint=mountpoint,
         backend=backend,
