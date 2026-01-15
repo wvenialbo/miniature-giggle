@@ -1,12 +1,16 @@
 import pathlib as pl
 import typing as tp
 
-from ..utils import DriveCache
+from ..cache.simple import NamesCache
 from .base import URIMapper
 
-# Se asume que el objeto 'service' viene de googleapiclient.discovery.build('drive', 'v3', ...)
-# Usamos tp.Any para el servicio para evitar dependencias complejas de tipado en este snippet.
-GoogleDriveService = tp.Any
+if tp.TYPE_CHECKING:
+    # Importamos el tipo específico para Drive v3
+    from googleapiclient._apis.drive.v3.resources import DriveResource
+
+ID_PREFIX = "id://"
+PATH_PREFIX = "path://"
+PATH_ID_SEPARATOR = "|"
 
 
 class GoogleDriveURIMapper(URIMapper):
@@ -18,30 +22,37 @@ class GoogleDriveURIMapper(URIMapper):
 
     Parameters
     ----------
-    service : GoogleDriveService
+    service : DriveResource
         Cliente autenticado de la API de Google Drive (v3).
     cache : DriveCache
         Instancia del gestor de caché.
     """
 
-    def __init__(self, service: GoogleDriveService, cache: DriveCache) -> None:
+    def __init__(self, service: "DriveResource", cache: NamesCache) -> None:
         self._service = service
         self._cache = cache
-        # Separador interno para el formato especial de rutas inexistentes
-        self._missing_sep = "|"
+
+    @staticmethod
+    def _strip_prefix(uri: str, prefix: str) -> str:
+        """Ayudante para remover un prefijo de una URI."""
+        if not uri.startswith(prefix):
+            raise ValueError(
+                f"La URI no comienza con el prefijo esperado: {prefix}"
+            )
+        return uri[len(prefix) :]
 
     def to_generic(self, uri: str) -> str:
         """
-        Convierte un ID nativo (id:xxx) a una ruta lógica aproximada.
+        Convierte un ID nativo (id://xxx) a una ruta lógica aproximada.
         Nota: Esta operación es costosa (camina hacia arriba) y puede ser
         ambigua (múltiples padres).
         """
-        if not uri.startswith("id:"):
+        if not uri.startswith(ID_PREFIX):
             # Si ya parece una ruta o no es un ID, se devuelve tal cual
             return uri
 
-        file_id = uri[3:]  # Remover prefijo 'id:'
-        path_parts = []
+        file_id = self._strip_prefix(uri, ID_PREFIX)
+        path_parts: list[str] = []
         current_id = file_id
 
         # Loop de seguridad para evitar ciclos infinitos en estructuras corruptas
@@ -66,13 +77,13 @@ class GoogleDriveURIMapper(URIMapper):
             name = file_meta.get("name", "unknown")
             path_parts.append(name)
 
-            parents = file_meta.get("parents", [])
-            if not parents:
+            if parents := file_meta.get("parents", []):
+                # Tomamos el primer padre arbitrariamente
+                current_id = parents[0]
+
+            else:
                 # Llegamos a la cima accesible o es huérfano
                 break
-
-            # Tomamos el primer padre arbitrariamente
-            current_id = parents[0]
 
         # Invertimos porque caminamos de hijo a padre
         full_path = "/" + "/".join(reversed(path_parts))
@@ -92,18 +103,16 @@ class GoogleDriveURIMapper(URIMapper):
         """
         # Normalización básica
         uri = uri.strip()
-        if uri == "/" or uri == ".":
-            return "id:root"
+        if uri in {"/", "."}:
+            return f"{ID_PREFIX}root"
 
-        # 1. Consulta directa al caché
-        cached_id = self._cache.get(uri)
-        if cached_id:
-            return f"id:{cached_id}"
+        if cached_id := self._cache.get(uri):
+            return f"{ID_PREFIX}{cached_id}"
 
         # 2. Caminata por la jerarquía
         parts = pl.Path(uri).parts
         # Filtramos la raiz '/' si path.parts la incluye
-        parts = [p for p in parts if p != "/" and p != "\\"]
+        parts = [p for p in parts if p not in ["/", "\\"]]
 
         current_id = "root"
         resolved_path = ""  # Para ir construyendo la llave del caché
@@ -114,33 +123,22 @@ class GoogleDriveURIMapper(URIMapper):
                 f"{resolved_path}/{segment}" if resolved_path else segment
             )
 
-            # Chequeo rápido de caché intermedio
-            cached_step = self._cache.get(resolved_path)
-            if cached_step:
+            if cached_step := self._cache.get(resolved_path):
                 current_id = cached_step
                 continue
 
-            # Búsqueda en API
-            found_id = self._find_child_id(parent_id=current_id, name=segment)
-
-            if found_id:
+            if found_id := self._find_child_id(
+                parent_id=current_id, name=segment
+            ):
                 current_id = found_id
                 self._cache.set(resolved_path, current_id)
             else:
                 # No encontrado. Preparamos el retorno especial.
                 # Resto de la ruta que falta por crear
                 remaining_path = "/".join(parts[i:])
-                return f"path:{remaining_path}{self._missing_sep}{current_id}"
+                return f"{PATH_PREFIX}{remaining_path}{PATH_ID_SEPARATOR}{current_id}"
 
-        return f"id:{current_id}"
-
-    def remove_from_cache(self, uri: str) -> None:
-        """
-        Elimina la entrada del caché correspondiente a la URI lógica dada.
-        Este método debe ser llamado por capas superiores tras un delete exitoso.
-        """
-        # Asumimos que la URI recibida es la lógica (genérica)
-        self._cache.remove(uri)
+        return f"{ID_PREFIX}{current_id}"
 
     def _find_child_id(self, parent_id: str, name: str) -> str | None:
         """Ayudante para buscar un archivo por nombre dentro de un padre."""
@@ -168,9 +166,7 @@ class GoogleDriveURIMapper(URIMapper):
             )
 
             files = response.get("files", [])
-            if files:
-                return files[0]["id"]
-            return None
+            return files[0]["id"] if files else None  # type: ignore
 
         except Exception:
             # En caso de error de red o permisos, asumimos no encontrado
