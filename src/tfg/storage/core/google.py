@@ -1,87 +1,96 @@
-import os
-import typing as tp
-import warnings
+import pathlib as pl
 
 from google.oauth2 import service_account
-from googleapiclient.discovery import Resource, build  # type: ignore
+from googleapiclient.discovery import build  # type: ignore
 
-from ..backend import GoogleDriveAPIBackend
+from ..backend import GoogleDriveBackend
+from ..cache import NamesCache
 from ..datasource import Datasource, DatasourceContract
 from ..handler import DataHandler
 from ..uri import GoogleDriveURIMapper
+from .handlers import get_file_handlers
+
+# Scope necesario para lectura/escritura completa en Drive
+_SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-class GoogleDrive:
-    def __init__(self, service: Resource) -> None:
-        self.service = service
-
-    def open(self, *, fail: bool = False) -> bool:
-        try:
-            # Test simple de conectividad
-            self.service.about().get(fields="user").execute()  # type: ignore
-            return True
-        except Exception as e:
-            self._report_failure(f"Error conectando a Drive API: {e}", fail)
-            return False
-
-    @staticmethod
-    def _report_failure(error_message: str, fail: bool) -> None:
-        """
-        Informa de un fallo lanzando una excepción o emitiendo una
-        advertencia.
-
-        Parameters
-        ----------
-        error_message : str
-            Mensaje de error a utilizar en la excepción o advertencia.
-        fail : bool
-            Si es True, lanza una excepción RuntimeError con el mensaje
-            de error.  Si es False, emite una advertencia RuntimeWarning
-            con el mensaje de error.
-
-        Returns
-        -------
-        None
-        """
-        if fail:
-            raise RuntimeError(error_message)
-
-        warnings.warn(error_message, RuntimeWarning)
-
-
-def use_drive_api(
+def use_google_drive(
     *,
-    root_path: str = "/",
-    service: Resource | None = None,
-    credentials_path: str | None = None,
+    service_account_json: str | pl.Path,
+    cache_file: str | pl.Path | None = None,
+    mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
-    Factoría para crear un contexto de Google Drive API.
+    Crea un contexto de Datasource conectado a Google Drive vía API.
+
+    Utiliza una cuenta de servicio (Service Account) para la autenticación
+    y configura un mapeo de rutas POSIX sobre la estructura de archivos
+    de Drive.
+
+    Parameters
+    ----------
+    service_account_json : str | Path
+        Ruta al archivo JSON de credenciales de la cuenta de servicio.
+    cache_file : str | Path, optional
+        Ruta al archivo para persistir el caché de IDs. Si es None,
+        el caché será volátil (en memoria).
+    mountpoint : str, optional
+        Identificador lógico para el punto de montaje en el Datasource.
+        Por defecto "gdrive://".
+    handlers : list[DataHandler], optional
+        Lista de handlers personalizados. Si es None, se cargan los
+        valores por defecto.
+
+    Returns
+    -------
+    Datasource
+        Objeto orquestador configurado con el backend de Drive API.
+
+    Raises
+    ------
+    FileNotFoundError
+        Si el archivo de credenciales no existe.
+    ValueError
+        Si las credenciales no son válidas.
     """
-    if service is None:
-        if credentials_path is None or not os.path.exists(credentials_path):
-            raise ValueError(
-                "Se requiere un objeto 'service' o una ruta válida a 'credentials_path'"
-            )
 
-        # Lógica de carga de credenciales (simplificada)
-        creds = service_account.Credentials.from_service_account_file(
-            credentials_path, scopes=["https://www.googleapis.com/auth/drive"]
+    # 1. Validación y Carga de Credenciales
+    creds_path = pl.Path(service_account_json)
+    if not creds_path.exists():
+        raise FileNotFoundError(
+            f"No se encontró el archivo de credenciales: {creds_path}"
         )
-        service = tp.cast(Resource, build("drive", "v3", credentials=creds))
 
-    connection = GoogleDrive(service=service)
-    backend = GoogleDriveAPIBackend(service=service)
+    try:
+        creds = service_account.Credentials.from_service_account_file(
+            str(creds_path), scopes=_SCOPES
+        )
+    except ValueError as e:
+        raise ValueError(f"Error al leer las credenciales de servicio: {e}")
 
-    # Reutilizamos GenericURIMapper ya que la API no usa paths nativos de SO
-    mapper = GoogleDriveURIMapper(base_path=root_path)
+    # 2. Construcción del Cliente de API (Service)
+    # cache_discovery=False evita advertencias en ciertos entornos y
+    # mejora el tiempo de inicio en implementaciones stateless.
+    service = build("drive", "v3", credentials=creds, cache_discovery=False)
 
+    # 3. Inicialización del Cache
+    # Si cache_file es None, NamesCache trabajará en memoria.
+    cache_path_str = str(cache_file) if cache_file else None
+    drive_cache = NamesCache(cache_file=cache_path_str)
+
+    # 4. Instanciación de Protocolos (Inyección de Dependencias)
+    # Ambos componentes comparten la misma instancia de 'service'.
+    mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
+    backend = GoogleDriveBackend(service=service)
+
+    # 5. Configuración de Handlers
     if handlers is None:
-        handlers = _get_file_handlers()
+        handlers = get_file_handlers()
 
+    # 6. Retorno del Datasource Orquestador
     return Datasource(
-        connection=connection,
+        mountpoint=mountpoint,
         backend=backend,
         mapper=mapper,
         handlers=handlers,
