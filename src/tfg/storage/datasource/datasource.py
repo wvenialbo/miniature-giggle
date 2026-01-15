@@ -3,6 +3,7 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import StorageBackend
+from ..cache import AbstractCache, NoopCache
 from ..handler import DataHandler
 from ..uri import GenericURIMapper, URIMapper
 from .base import DatasourceContract
@@ -83,12 +84,14 @@ class Datasource(DatasourceContract):
         backend: StorageBackend,
         mapper: URIMapper,
         handlers: list[DataHandler],
+        cache: AbstractCache | None = None,
     ) -> None:
         self.mountpoint = mountpoint
         self.backend = backend
         self.mapper = mapper
         self.local_mapper = GenericURIMapper(base_path=mountpoint)
         self.handlers = self._build_handler_mapper(handlers)
+        self.cache = cache or NoopCache()
 
     def __repr__(self) -> str:
         handlers = ", ".join([repr(h) for h in self.handlers])
@@ -128,6 +131,15 @@ class Datasource(DatasourceContract):
             for fmt_id in handler.format_id
         }
 
+    def clear_cache(self) -> None:
+        """
+        Limpia todos los objetos almacenados en la caché.
+
+        Esta operación elimina todos los objetos actualmente almacenados
+        en la caché.
+        """
+        self.cache.clear()
+
     def delete(self, *, uri: str) -> None:
         """
         Elimina el recurso con la URI especificada.
@@ -137,12 +149,16 @@ class Datasource(DatasourceContract):
         puede no existir sin que se genere un error.  `uri` debe ser una
         URI genérica respecto el punto de montaje del backend.
 
+        Si el recurso se elimina correctamente, también se invalida la
+        entrada correspondiente en la caché.
+
         Parameters
         ----------
         uri : str
             La URI genérica de los datos a eliminar.
         """
         self.backend.delete(uri=self._to_native_uri(uri))
+        self.cache.invalidate(path=uri)
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -206,6 +222,17 @@ class Datasource(DatasourceContract):
         raw_data = self.backend.read(uri=self._to_native_uri(uri))
 
         return handler.load(stream=io.BytesIO(raw_data))
+
+    def purge_cache(self) -> None:
+        """
+        Elimina entradas expiradas de la caché.
+
+        Las implementaciones pueden definir políticas de expiración para
+        los objetos almacenados en la caché (ejemplo: tiempo de vida
+        máximo). Esta función elimina todos los objetos que hayan
+        expirado según dichas políticas.
+        """
+        self.cache.purge()
 
     def register_handler(
         self, *, handler: DataHandler, replace: bool = False
