@@ -63,6 +63,9 @@ class CacheBase(AbstractCache, tp.Generic[T]):
     Hereda de AbstractCache y añade métodos para obtener y establecer
     objetos en la caché.
 
+    Hereda de AbstractCache y añade métodos para obtener y establecer
+    objetos en la caché.
+
     Methods
     -------
     get(path: str) -> Any
