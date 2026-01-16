@@ -4,11 +4,12 @@ from importlib import resources
 from typing import Any
 
 from google.auth.transport.requests import Request
-from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials as UserCredentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build  # type: ignore
+from platformdirs import user_data_dir
 
+from ... import __package_id__, __package_root__
 from ..backend import GoogleDriveBackend
 from ..cache import DriveCache, TimedDriveCache
 from ..datasource import Datasource, DatasourceContract
@@ -18,6 +19,21 @@ from .handlers import get_file_handlers
 
 # Scope necesario para lectura/escritura completa en Drive
 _SCOPES = ["https://www.googleapis.com/auth/drive"]
+_CLIENT_SECRETS = "secrets.json"
+_USER_SECRETS = "token.json"
+_SECRETS_LOCATION = "tfg.config"
+
+_APP_AUTHOR = __package_id__
+_APP_NAME = __package_root__
+
+
+def _get_token_path() -> pl.Path:
+    """
+    Resuelve la ubicación del token de manera programática según el OS.
+    """
+    # user_data_dir resuelve el protocolo nativo de cada OS automáticamente
+    path = pl.Path(user_data_dir(_APP_NAME, _APP_AUTHOR))
+    return path / _USER_SECRETS
 
 
 def _get_user_credentials(token_path: pl.Path) -> Any:
@@ -29,51 +45,26 @@ def _get_user_credentials(token_path: pl.Path) -> Any:
 
 
 def _run_interactive_auth(
-    credentials_path: pl.Path | None, token_path: pl.Path
+    creds_path: pl.Path | None, token_path: pl.Path
 ) -> Any:
     """Lanza el flujo OAuth interactivo y guarda el token."""
-    # Si el usuario no provee un JSON externo, usamos el de la librería
-    if credentials_path is None:
-        # Buscamos 'client_secrets.json' dentro del paquete 'tfg.storage'
-        with resources.path("tfg", "client_secrets.json") as p:
-            flow = InstalledAppFlow.from_client_secrets_file(str(p), _SCOPES)
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            str(credentials_path), _SCOPES
-        )
-
+    flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), _SCOPES)
     creds = flow.run_local_server(port=0)
     token_path.write_text(creds.to_json())
     return creds
 
 
-def _get_gdrive_credentials(credentials: str | pl.Path | None) -> Any:
+def _get_gdrive_credentials() -> Any:
     """Gestiona la resolución de credenciales con control de flujo."""
-    token_path = pl.Path("token.json")
-
     # 1. Prioridad: Token de usuario existente
+    token_path = _get_token_path()
     if token_path.exists():
         with contextlib.suppress(Exception):
             return _get_user_credentials(token_path)
-    # 2. Validación de path de credenciales
-    if not credentials:
-        raise ValueError(
-            "Se requiere 'credentials' si no existe un 'token.json' válido."
-        )
 
-    creds_path = pl.Path(credentials)
-    if not creds_path.exists():
-        raise FileNotFoundError(
-            f"No se encontró el archivo de credenciales: {creds_path}"
-        )
-
-    # 3. Intento como Service Account (Flujo original)
-    try:
-        return service_account.Credentials.from_service_account_file(
-            str(creds_path), scopes=_SCOPES
-        )
-    except ValueError:
-        # 4. Caída a flujo interactivo si no es Service Account
+    # 2. Caída a flujo interactivo si no es Service Account
+    source = resources.files(_SECRETS_LOCATION).joinpath(_CLIENT_SECRETS)
+    with resources.as_file(source) as creds_path:
         return _run_interactive_auth(creds_path, token_path)
 
 
@@ -83,7 +74,6 @@ def use_google_drive(
     mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
-    credentials: str | pl.Path | None = None,
 ) -> DatasourceContract:
     """
     Crea un contexto de Datasource conectado a Google Drive vía API.
@@ -123,7 +113,7 @@ def use_google_drive(
     """
 
     # 1. Validación y Carga de Credenciales
-    creds = _get_gdrive_credentials(credentials)
+    creds = _get_gdrive_credentials()
 
     # 2. Construcción del Cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
