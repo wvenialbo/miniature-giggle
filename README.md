@@ -34,9 +34,9 @@ Proyecto de fin de grado: Caracterización del ciclo diurno del tope de nubes de
         │
         └── 📂 mapper/            # Mapeadores de URI genéricas
             ├── 📄 base.py        # Protocolo para mapeadores de URI genéricas
-        │   ├── 📄 aws.py         # Mapeador de URI genéricas y claves de Amazon Web Services S3
-        │   ├── 📄 gcs.py         # Mapeador de URI genéricas y claves de Google Cloud Storage
-        │   ├── 📄 gdrive.py      # Mapeador de URI genéricas e ID nativos de Google Drive
+            ├── 📄 aws.py         # Mapeador de URI genéricas y claves de Amazon Web Services S3
+            ├── 📄 gcs.py         # Mapeador de URI genéricas y claves de Google Cloud Storage
+            ├── 📄 gdrive.py      # Mapeador de URI genéricas e ID nativos de Google Drive
             ├── 📄 generic.py     # Mapeador de URI genéricas respecto a una ruta base
             ├── 📄 path.py        # Mapeador de URI genéricas y rutas del sistema de archivos
             └── 📄 ...
