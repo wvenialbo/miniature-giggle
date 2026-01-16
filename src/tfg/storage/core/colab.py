@@ -4,9 +4,7 @@ import warnings
 
 from ..backend import FilesystemBackend
 from ..datasource import Datasource, DatasourceContract
-from ..handler import DataHandler
 from ..mapper import PathURIMapper
-from .handlers import get_file_handlers
 
 try:
     from google import colab
@@ -132,11 +130,7 @@ def _unmount_drive(fail: bool = False) -> None:
         _report_failure("Google Drive no se pudo desmontar", fail)
 
 
-def use_colab_drive(
-    *,
-    root_path: str | None = None,
-    handlers: list[DataHandler] | None = None,
-) -> DatasourceContract:
+def use_colab_drive(*, root_path: str | None = None) -> DatasourceContract:
     """
     Crea el contexto para el acceso a Google Drive en Google Colab.
 
@@ -145,8 +139,6 @@ def use_colab_drive(
     root_path : str, optional
         Ruta raíz dentro de Google Drive para el contexto. Si es None,
         se utiliza la raíz del Drive del usuario ("MyDrive").
-    handlers : list[DataHandler], optional
-        Handlers de formato personalizados.
 
     Returns
     -------
@@ -165,14 +157,10 @@ def use_colab_drive(
 
     mapper = PathURIMapper()
 
-    if handlers is None:
-        handlers = get_file_handlers()
-
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
-        handlers=handlers,
     )
 
 

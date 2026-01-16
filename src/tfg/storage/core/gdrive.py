@@ -13,9 +13,7 @@ from ... import __package_id__, __package_root__
 from ..backend import GoogleDriveBackend
 from ..cache import DriveCache, TimedDriveCache
 from ..datasource import Datasource, DatasourceContract
-from ..handler import DataHandler
 from ..mapper import GoogleDriveURIMapper
-from .handlers import get_file_handlers
 
 # Scope necesario para lectura/escritura completa en Drive
 _SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -73,7 +71,6 @@ def use_google_drive(
     *,
     root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
-    handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
 ) -> DatasourceContract:
     """
@@ -91,9 +88,6 @@ def use_google_drive(
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de IDs. Si es None,
         el caché será volátil (en memoria).
-    handlers : list[DataHandler], optional
-        Lista de handlers personalizados. Si es None, se cargan los
-        valores por defecto.
     expire_after : float, optional
         Tiempo en segundos tras el cual las entradas del caché expiran.
         Si es None, el caché no expira.
@@ -134,16 +128,11 @@ def use_google_drive(
 
     mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
 
-    # 5. Configuración de Handlers
-    if handlers is None:
-        handlers = get_file_handlers()
-
     # 6. Retorno del Datasource Orquestador
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
-        handlers=handlers,
         cache=drive_cache,
     )
 

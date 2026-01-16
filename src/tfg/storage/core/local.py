@@ -2,16 +2,10 @@ import pathlib as pl
 
 from ..backend import FilesystemBackend
 from ..datasource import Datasource, DatasourceContract
-from ..handler import DataHandler
 from ..mapper import PathURIMapper
-from .handlers import get_file_handlers
 
 
-def use_local_drive(
-    *,
-    root_path: str | None = None,
-    handlers: list[DataHandler] | None = None,
-) -> DatasourceContract:
+def use_local_drive(*, root_path: str | None = None) -> DatasourceContract:
     """
     Crea el contexto para el sistema de archivos local.
 
@@ -21,8 +15,6 @@ def use_local_drive(
         Ruta raíz dentro del sistema de archivos local para el contexto.
         Si es None, se utiliza la raíz del sistema ("/" en Unix, "C:\"
         en Windows).
-    handlers : list[DataHandler], optional
-        Handlers de formato personalizados.
 
     Returns
     -------
@@ -39,12 +31,8 @@ def use_local_drive(
 
     mapper = PathURIMapper()
 
-    if handlers is None:
-        handlers = get_file_handlers()
-
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
-        handlers=handlers,
     )

@@ -8,9 +8,7 @@ from botocore.config import Config
 from ..backend import AWSBackend
 from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
-from ..handler import DataHandler
 from ..mapper import AWSURIMapper
-from .handlers import get_file_handlers
 
 S3_PREFIX = "s3://"
 POSIX_PREFIX = "/"
@@ -23,7 +21,6 @@ def use_aws_cloud(
     profile_name: str | None = None,
     region_name: str | None = None,
     cache_file: str | pl.Path | None = None,
-    handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
     **session_kwargs: tp.Any,
 ) -> DatasourceContract:
@@ -48,9 +45,6 @@ def use_aws_cloud(
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de las operaciones
         'scan'.  Crucial para buckets con miles de objetos.
-    handlers : list[DataHandler], optional
-        Lista de handlers personalizados. Si es None, se cargan los por
-        defecto.
     expire_after : float, optional
         Tiempo en segundos tras el cual expira la caché de escaneo. Si es
         None, la caché no expira automáticamente.
@@ -121,16 +115,11 @@ def use_aws_cloud(
         config=config,
     )
 
-    # 4. Configuración de Handlers
-    if handlers is None:
-        handlers = get_file_handlers()
-
     # 5. Retorno del Orquestador
     # Pasamos scan_cache como la caché principal del Datasource
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
-        handlers=handlers,
         cache=scan_cache,
     )
