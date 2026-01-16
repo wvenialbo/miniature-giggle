@@ -28,6 +28,13 @@ class AWSBackend(StorageBackend):
         self.s3 = client
         self.scan_cache: AWSCache = scan_cache or NoopCache()
 
+    def __repr__(self) -> str:
+        return (
+            f"AWSBackend(bucket='{self.bucket_name}', "
+            f"client={repr(self.s3)}, "
+            f"scan_cache={repr(self.scan_cache)})"
+        )
+
     def create_path(self, *, uri: str) -> str:
         # S3 es un espacio plano; no necesita crear directorios.
         # Solo verificamos que la URI sea válida para este backend.

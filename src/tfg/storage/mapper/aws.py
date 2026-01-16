@@ -16,6 +16,9 @@ class AWSURIMapper(URIMapper):
     def __init__(self, bucket: str) -> None:
         self.bucket = bucket
 
+    def __repr__(self) -> str:
+        return f"AWSURIMapper(bucket='{self.bucket}')"
+
     def to_generic(self, uri: str) -> str:
         # uri: s3://my-bucket/base/data/file.csv -> /data/file.csv
         prefix = f"{S3_PREFIX}{self.bucket}{S3_SEPARATOR}"
