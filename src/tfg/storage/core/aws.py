@@ -19,7 +19,7 @@ POSIX_PREFIX = "/"
 def use_aws_cloud(
     *,
     bucket: str,
-    base_prefix: str | None = None,
+    root_path: str | None = None,
     anonymous: bool = True,
     profile_name: str | None = None,
     region_name: str | None = None,
@@ -39,9 +39,9 @@ def use_aws_cloud(
     ----------
     bucket : str
         Nombre del bucket de S3.
-    base_prefix : str, optional
+    root_path : str, optional
         Prefijo raíz dentro del bucket para este Datasource.  Por
-        defecto "" (raíz del bucket).
+        defecto None (raíz del bucket).
     anonymous : bool, optional
         Si es True, usa acceso anónimo (público) sin credenciales.  Si
         es False, usa credenciales configuradas localmente. Por defecto
@@ -53,9 +53,6 @@ def use_aws_cloud(
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de las operaciones
         'scan'.  Crucial para buckets con miles de objetos.
-    mountpoint : str, optional
-        Identificador lógico para el punto de montaje. Por defecto
-        "s3://".
     handlers : list[DataHandler], optional
         Lista de handlers personalizados. Si es None, se cargan los por
         defecto.
@@ -98,6 +95,12 @@ def use_aws_cloud(
         cache_file=cache_path_str, expire_after=expire_after
     )
 
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+
+    local_root = pl.PurePosixPath(POSIX_PREFIX)
+    mountpoint = local_root / base_path.as_posix()
+
     # 3. Instanciación de componentes
     # El Mapper es determinista: solo necesita saber el bucket y el
     # prefijo
@@ -117,10 +120,8 @@ def use_aws_cloud(
 
     # 5. Retorno del Orquestador
     # Pasamos scan_cache como la caché principal del Datasource
-    prefix = base_prefix or ""
-    mountpoint = f"{POSIX_PREFIX}{prefix.lstrip(POSIX_PREFIX)}"
     return Datasource(
-        mountpoint=mountpoint,
+        mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
