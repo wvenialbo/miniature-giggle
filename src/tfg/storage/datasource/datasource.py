@@ -1,10 +1,8 @@
 import io
-import pathlib as pl
 import typing as tp
 
 from ..backend import StorageBackend
 from ..cache import AbstractCache, DummyCache
-from ..handler import DataHandler
 from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceContract
 
@@ -67,18 +65,14 @@ class Datasource(DatasourceContract):
         Elimina el recurso con la URI especificada.
     exists(uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
-    load(uri: str) -> Any
-        Carga un objeto desde la URI especificada.
-    register_handler(handler: DataHandler, replace: bool = False) -> None
-        Registra un manejador de formato o reemplaza uno existente.
-    remove_handler(format_id: str) -> None
-        Elimina el handler para una extensión.
-    replace_handler(handler: DataHandler) -> None
-        Reemplaza un manejador de formato o reemplaza uno existente.
-    save(data: Any, uri: str) -> None
-        Guarda un objeto en la URI especificada.
-    scan(prefix: str = "") -> list[str]
+    get_buffer() -> io.BytesIO
+        Obtiene un buffer de bytes vacío.
+    list(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
+    load(uri: str) -> io.BytesIO
+        Carga un objeto desde la URI especificada.
+    save(uri: str, data: io.BytesIO) -> None
+        Guarda un objeto en la URI especificada.
     """
 
     def __init__(
@@ -87,53 +81,22 @@ class Datasource(DatasourceContract):
         mountpoint: str = "/",
         backend: StorageBackend,
         mapper: URIMapper,
-        handlers: list[DataHandler],
         cache: AbstractCache | None = None,
     ) -> None:
         self.mountpoint = mountpoint
         self.backend = backend
         self.mapper = mapper
         self.local_mapper = GenericURIMapper(base_path=mountpoint)
-        self.handlers = self._build_handler_mapper(handlers)
         self.cache = cache or NoopCache()
 
     def __repr__(self) -> str:
-        handlers = ", ".join([repr(h) for h in self.handlers])
         return (
             "DataSourceContext("
             f"mountpoint='{self.mountpoint}', "
             f"backend={repr(self.backend)}, "
             f"mapper={repr(self.mapper)}, "
-            f"handlers=[{handlers}])"
+            f"cache={repr(self.cache)})"
         )
-
-    def _build_handler_mapper(
-        self, handlers: list[DataHandler]
-    ) -> dict[str, DataHandler]:
-        """Construye diccionario extensión -> handler."""
-        format_ids = [
-            fmt_id for handler in handlers for fmt_id in handler.format_id
-        ]
-
-        if len(format_ids) != len(set(format_ids)):
-            repeated = sorted(
-                {
-                    fmt_id
-                    for fmt_id in format_ids
-                    if format_ids.count(fmt_id) > 1
-                }
-            )
-            duplicates = "', '".join(repeated)
-            raise ValueError(
-                "Múltiples handlers para el mismo formato de datos. "
-                f"Formatos duplicados: '{duplicates}'"
-            )
-
-        return {
-            fmt_id: handler
-            for handler in handlers
-            for fmt_id in handler.format_id
-        }
 
     def clear_cache(self) -> None:
         """
@@ -185,31 +148,16 @@ class Datasource(DatasourceContract):
         """
         return self.backend.exists(uri=self._to_native_uri(uri))
 
-    def _get_handler_for_uri(self, uri: str) -> DataHandler:
-        """Obtiene el handler apropiado para una URI genérica."""
-        has_generic_handler = GENERIC_SUFFIX in self.handlers
+    def get_buffer(self) -> io.BytesIO:
+        """
+        Obtiene un buffer de bytes vacío.
 
-        suffix = pl.PurePosixPath(uri).suffix
-
-        if not suffix:
-            if has_generic_handler:
-                return self.handlers[GENERIC_SUFFIX]
-
-            raise ValueError(
-                f"La URI '{uri}' no tiene extensión de archivo reconocida."
-            )
-
-        if suffix not in self.handlers:
-            if has_generic_handler:
-                return self.handlers[GENERIC_SUFFIX]
-
-            available_formats = ", ".join(self.handlers.keys())
-            raise ValueError(
-                f"No hay un handler registrado para la extensión '{suffix}'. "
-                f"Formatos disponibles: '{available_formats}'"
-            )
-
-        return self.handlers[suffix]
+        Returns
+        -------
+        io.BytesIO
+            Un buffer de bytes vacío para operaciones de E/S en memoria.
+        """
+        return io.BytesIO()
 
     def list(self, *, prefix: str = "") -> list[str]:
         """
@@ -240,7 +188,7 @@ class Datasource(DatasourceContract):
             for item in self.backend.scan(prefix=native_prefix)
         ]
 
-    def load(self, *, uri: str) -> tp.Any:
+    def load(self, *, uri: str) -> io.BytesIO:
         """
         Carga un objeto desde la URI especificada.
 
@@ -255,14 +203,11 @@ class Datasource(DatasourceContract):
 
         Returns
         -------
-        bytes
+        io.BytesIO
             Los datos leídos desde la URI dada.
         """
-        handler = self._get_handler_for_uri(uri)
-
-        raw_data = self.backend.read(uri=self._to_native_uri(uri))
-
-        return handler.load(stream=io.BytesIO(raw_data))
+        native_uri = self._to_native_uri(uri)
+        return io.BytesIO(self.backend.read(uri=native_uri))
 
     def purge_cache(self) -> None:
         """
@@ -275,53 +220,7 @@ class Datasource(DatasourceContract):
         """
         self.cache.purge()
 
-    def register_handler(
-        self, *, handler: DataHandler, replace: bool = False
-    ) -> None:
-        """
-        Registra un manejador de formato o reemplaza uno existente.
-
-        Parameters
-        ----------
-        handler : DataHandler
-            Manejador de datos a registrar.
-        replace : bool, optional
-            Si es True, reemplaza un manejador existente con el mismo
-            formato.  Si False, lanza error al encontrar conflictos.
-            Por defecto es False.
-        """
-        repeated = set(handler.format_id) & set(self.handlers.keys())
-        if repeated and not replace:
-            duplicates = "', '".join(sorted(repeated))
-            raise ValueError(
-                "Ya existe un handler para alguna de las extensiones: "
-                f"'{duplicates}'. Use un formato diferente o reemplace "
-                "el handler existente."
-            )
-
-        self.handlers |= dict.fromkeys(handler.format_id, handler)
-
-    def remove_handler(self, *, format_id: str) -> None:
-        """
-        Elimina el handler para una extensión.
-
-        Parameters
-        ----------
-        format_id : str
-            Identificador del formato (extensión) del handler a eliminar.
-        """
-        self.handlers.pop(format_id, None)
-
-    def replace_handler(self, *, handler: DataHandler) -> None:
-        """
-        Reemplaza un manejador de formato o reemplaza uno existente.
-
-        Reemplaza handlers existentes para las extensiones del nuevo
-        handler.  Si no existe, lo añade.
-        """
-        self.register_handler(handler=handler, replace=True)
-
-    def save(self, *, data: tp.Any, uri: str) -> None:
+    def save(self, *, uri: str, data: io.BytesIO) -> None:
         """
         Guarda un objeto en la URI especificada.
 
@@ -333,18 +232,12 @@ class Datasource(DatasourceContract):
         ----------
         uri : str
             La URI genérica donde se escribirán los datos.
-        data : bytes
+        data : io.BytesIO
             Los datos a escribir en la URI dada.
         """
-        handler = self._get_handler_for_uri(uri)
-
-        stream = io.BytesIO()
-        handler.save(data=data, stream=stream)
-        bytes_data = stream.getvalue()
-
         native_uri = self._to_native_uri(uri)
         native_uri = self.backend.create_path(uri=native_uri)
-        self.backend.write(uri=native_uri, data=bytes_data)
+        self.backend.write(uri=native_uri, data=data.getvalue())
 
     def _to_generic_uri(self, uri: str) -> str:
         """Convierte una URI nativa a genérica respecto el punto de montaje."""

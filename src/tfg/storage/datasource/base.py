@@ -1,6 +1,5 @@
+import io
 import typing as tp
-
-from ..handler import DataHandler
 
 
 class DatasourceContract(tp.Protocol):
@@ -22,23 +21,18 @@ class DatasourceContract(tp.Protocol):
 
     Methods
     -------
-    delete(generic_uri: str) -> None
+    delete(uri: str) -> None
         Elimina el recurso con la URI especificada.
-    exists(generic_uri: str) -> bool
+    exists(uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
-    load(generic_uri: str) -> Any
-        Carga un objeto desde la URI especificada.
-    register_handler(handler: DataHandler, replace: bool = False) ->
-    None
-        Registra un manejador de formato o reemplaza uno existente.
-    remove_handler(format_id: str) -> None
-        Elimina el handler para una extensión.
-    replace_handler(handler: DataHandler) -> None
-        Reemplaza un manejador de formato o reemplaza uno existente.
-    save(data: Any, generic_uri: str) -> None
-        Guarda un objeto en la URI especificada.
-    scan(prefix: str = "") -> list[str]
+    get_buffer() -> io.BytesIO
+        Obtiene un buffer de bytes vacío.
+    list(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
+    load(uri: str) -> io.BytesIO
+        Carga un objeto desde la URI especificada.
+    save(uri: str, data: io.BytesIO) -> None
+        Guarda un objeto en la URI especificada.
     """
 
     def delete(self, *, uri: str) -> None:
@@ -78,6 +72,17 @@ class DatasourceContract(tp.Protocol):
         """
         ...
 
+    def get_buffer(self) -> io.BytesIO:
+        """
+        Obtiene un buffer de bytes vacío.
+
+        Returns
+        -------
+        io.BytesIO
+            Un buffer de bytes vacío para operaciones de E/S en memoria.
+        """
+        ...
+
     def list(self, *, prefix: str = "") -> list[str]:
         """
         Enumera objetos cuya URI comienza con el prefijo especificado.
@@ -100,7 +105,7 @@ class DatasourceContract(tp.Protocol):
         """
         ...
 
-    def load(self, *, uri: str) -> tp.Any:
+    def load(self, *, uri: str) -> io.BytesIO:
         """
         Carga un objeto desde la URI especificada.
 
@@ -115,49 +120,12 @@ class DatasourceContract(tp.Protocol):
 
         Returns
         -------
-        bytes
+        io.BytesIO
             Los datos leídos desde la URI dada.
         """
         ...
 
-    def register_handler(
-        self, *, handler: DataHandler, replace: bool = False
-    ) -> None:
-        """
-        Registra un manejador de formato o reemplaza uno existente.
-
-        Parameters
-        ----------
-        handler : DataHandler
-            Manejador de datos a registrar.
-        replace : bool, optional
-            Si es True, reemplaza un manejador existente con el mismo
-            formato.  Si False, lanza error al encontrar conflictos.
-            Por defecto es False.
-        """
-        ...
-
-    def remove_handler(self, *, format_id: str) -> None:
-        """
-        Elimina el handler para una extensión.
-
-        Parameters
-        ----------
-        format_id : str
-            Identificador del formato (extensión) del handler a eliminar.
-        """
-        ...
-
-    def replace_handler(self, *, handler: DataHandler) -> None:
-        """
-        Reemplaza un manejador de formato o reemplaza uno existente.
-
-        Reemplaza handlers existentes para las extensiones del nuevo
-        handler.  Si no existe, lo añade.
-        """
-        ...
-
-    def save(self, *, data: tp.Any, uri: str) -> None:
+    def save(self, *, uri: str, data: io.BytesIO) -> None:
         """
         Guarda un objeto en la URI especificada.
 
@@ -169,7 +137,7 @@ class DatasourceContract(tp.Protocol):
         ----------
         uri : str
             La URI donde se escribirán los datos.
-        data : bytes
+        data : io.BytesIO
             Los datos a escribir en la URI dada.
         """
         ...
