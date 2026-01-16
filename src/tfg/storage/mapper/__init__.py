@@ -3,6 +3,7 @@ from .base import URIMapper
 from .gcs import GCSURIMapper
 from .gdrive import GoogleDriveURIMapper
 from .generic import GenericURIMapper
+from .ncei import NCEIURIMapper
 from .path import PathURIMapper
 
 __all__ = [
@@ -10,6 +11,7 @@ __all__ = [
     "GCSURIMapper",
     "GenericURIMapper",
     "GoogleDriveURIMapper",
+    "NCEIURIMapper",
     "PathURIMapper",
     "URIMapper",
 ]
