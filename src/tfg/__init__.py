@@ -9,10 +9,16 @@ tropicales en el Océano Atlántico Norte mediante aprendizaje automático
 y datos satelitales.
 """
 
-from .info import __package_id__, __package_name__, __version__
+from .info import (
+    __package_id__,
+    __package_name__,
+    __package_root__,
+    __version__,
+)
 
 __all__ = [
     "__package_id__",
     "__package_name__",
+    "__package_root__",
     "__version__",
 ]
