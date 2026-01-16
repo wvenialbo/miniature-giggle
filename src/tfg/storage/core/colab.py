@@ -153,7 +153,6 @@ def use_colab_drive(
     Datasource
         Contexto configurado listo para usar.
     """
-    # Connection Manager
     _mount_drive(fail=True)
 
     gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
