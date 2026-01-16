@@ -1,0 +1,96 @@
+from .base import URIMapper
+
+# Constantes de protocolo para GCS
+GCS_PREFIX = "gs://"
+GCS_SEPARATOR = "/"
+POSIX_SEPARATOR = "/"
+
+
+class GCSURIMapper(URIMapper):
+    """
+    Mapeador determinista para Google Cloud Storage (GCS).
+
+    Convierte entre rutas genéricas absolutas (POSIX) y URIs nativas
+    de Google Cloud Storage con el formato 'gs://bucket/path'.
+
+    Este mapeador es determinista y no requiere realizar llamadas a la
+    API de Google Cloud, ya que la estructura de objetos en GCS es
+    plana y basada en prefijos.
+
+    Parameters
+    ----------
+    bucket : str
+        Nombre del bucket de GCS que actúa como raíz nativa.
+    """
+
+    def __init__(self, bucket: str) -> None:
+        """
+        Inicializa el mapeador de GCS.
+
+        Parameters
+        ----------
+        bucket : str
+            Nombre del bucket de GCS.
+        """
+        self.bucket = bucket
+
+    def __repr__(self) -> str:
+        return f"GCSURIMapper(bucket='{self.bucket}')"
+
+    def to_generic(self, uri: str) -> str:
+        """
+        Convierte una URI nativa de GCS a una URI genérica absoluta.
+
+        Transforma una cadena 'gs://bucket/path/to/obj' en una ruta
+        lógica '/path/to/obj'.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta (ej: 'gs://mi-bucket/datos/file.csv').
+
+        Returns
+        -------
+        str
+            URI genérica absoluta en formato POSIX (ej: '/datos/file.csv').
+
+        Raises
+        ------
+        ValueError
+            Si la URI no pertenece al bucket configurado o no comienza
+            con el prefijo 'gs://'.
+        """
+        prefix = f"{GCS_PREFIX}{self.bucket}{GCS_SEPARATOR}"
+
+        if not uri.startswith(prefix):
+            raise ValueError(
+                f"La URI '{uri}' no es válida para el bucket de GCS: '{self.bucket}'"
+            )
+
+        # Extraemos la ruta eliminando el prefijo del bucket
+        path = uri[len(prefix) :]
+
+        # Aseguramos que comience con el separador POSIX
+        return f"{POSIX_SEPARATOR}{path.lstrip(POSIX_SEPARATOR)}"
+
+    def to_native(self, uri: str) -> str:
+        """
+        Convierte una URI genérica absoluta a una URI nativa de GCS.
+
+        Transforma una ruta lógica '/datos/file.csv' en la URI
+        nativa 'gs://mi-bucket/datos/file.csv'.
+
+        Parameters
+        ----------
+        uri : str
+            URI genérica absoluta en formato POSIX.
+
+        Returns
+        -------
+        str
+            URI nativa absoluta de GCS.
+        """
+        # Limpiamos el separador inicial para evitar doble slash tras el bucket
+        clean_path = uri.lstrip(POSIX_SEPARATOR)
+
+        return f"{GCS_PREFIX}{self.bucket}{GCS_SEPARATOR}{clean_path}"
