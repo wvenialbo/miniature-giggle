@@ -5,6 +5,7 @@ from .core import (
     set_default_handlers,
     use_aws_cloud,
     use_colab_drive,
+    use_gcs_cloud,
     use_google_drive,
     use_local_drive,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "set_default_handlers",
     "use_aws_cloud",
     "use_colab_drive",
+    "use_gcs_cloud",
     "use_google_drive",
     "use_local_drive",
 ]
