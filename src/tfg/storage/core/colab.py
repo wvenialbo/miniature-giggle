@@ -155,11 +155,10 @@ def use_colab_drive(
     """
     _mount_drive(fail=True)
 
-    gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
-
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
 
+    gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
     mountpoint = gdrive_root / base_path.as_posix()
 
     backend = FilesystemBackend()
