@@ -1,6 +1,8 @@
 import pathlib as pl
 import typing as tp
+import warnings
 
+from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
 
 from ..backend import GCSBackend
@@ -28,8 +30,16 @@ def use_gcs_cloud(
 
     Configura un backend de almacenamiento GCS con un mapeador
     determinista y optimización de listado mediante caché de escaneo.
+
     Soporta autenticación mediante Application Default Credentials (ADC)
     o parámetros explícitos.
+
+    Manejo de Autenticación:
+        1. Intenta usar credenciales por defecto (ADC) o las pasadas en
+           client_kwargs.
+        2. Si no encuentra credenciales, hace fallback automático a un
+           cliente ANÓNIMO (útil para buckets públicos como
+           gcp-public-data).
 
     Parameters
     ----------
@@ -61,21 +71,41 @@ def use_gcs_cloud(
         Objeto orquestador configurado para Google Cloud Storage.
     """
     # 1. Configuración del cliente de GCS
-    # Se instancia el cliente nativo usando el project_id y argumentos extra
-    # como credenciales explícitas si se proveen.
-    client = storage.Client(project=project_id, **client_kwargs)
+    #    Se instancia el cliente nativo usando el project_id y
+    #    argumentos extra como credenciales explícitas si se proveen.
+    try:
+        # Intentamos instanciar el cliente "normal" (busca credenciales)
+        client = storage.Client(project=project_id, **client_kwargs)
+    except DefaultCredentialsError:
+        # Si falla porque no hay credenciales, verificamos si el usuario
+        # intentó pasar credenciales explícitas que fallaron.
+        if "credentials" in client_kwargs:
+            # Si el usuario pasó credenciales y fallaron, relanzamos el
+            # error.
+            raise
+
+        # Si no pasó credenciales explícitas, asumimos que quiere acceso
+        # público.
+        # Esto es equivalente al Config(signature_version=UNSIGNED) de
+        # AWS.
+        warnings.warn(
+            "No se encontraron credenciales de Google Cloud. Se utilizará "
+            "un cliente ANÓNIMO (solo acceso a buckets públicos).",
+            RuntimeWarning,
+        )
+        client = storage.Client.create_anonymous_client()
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
-    # GCS se beneficia de ScanCache para evitar listar buckets grandes
-    # repetidamente.
+    #    GCS se beneficia de ScanCache para evitar listar buckets
+    #    grandes repetidamente.
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedScanCache(
         cache_file=cache_path_str, expire_after=expire_after
     )
 
     # 3. Resolución de Rutas (Lógica Simétrica a AWS)
-    # Resolvemos el base_path relativo a la raíz lógica para calcular
-    # el punto de montaje exacto.
+    #    Resolvemos el base_path relativo a la raíz lógica para calcular
+    #    el punto de montaje exacto.
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
 
@@ -83,10 +113,10 @@ def use_gcs_cloud(
     mountpoint = local_root / base_path.as_posix()
 
     # 4. Instanciación de componentes
-    # El Mapper es determinista: solo necesita saber el bucket
+    #    El Mapper es determinista: solo necesita saber el bucket
     mapper = GCSURIMapper(bucket=bucket)
 
-    # El Backend recibe el cliente instanciado y la caché de escaneo
+    #    El Backend recibe el cliente instanciado y la caché de escaneo
     backend = GCSBackend(
         bucket=bucket,
         client=client,
@@ -98,7 +128,7 @@ def use_gcs_cloud(
         handlers = get_file_handlers()
 
     # 6. Retorno del Orquestador
-    # Pasamos scan_cache como la caché principal del Datasource
+    #    Pasamos scan_cache como la caché principal del Datasource
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
