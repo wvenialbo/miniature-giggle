@@ -1,13 +1,12 @@
-from . import backend, cache, core, datasource, handler, mapper
+from . import backend, cache, core, datasource, mapper
 from .core import (
     release_colab_drive,
-    reset_default_handlers,
-    set_default_handlers,
     use_aws_cloud,
     use_colab_drive,
     use_gcs_cloud,
     use_google_drive,
     use_local_drive,
+    use_ncei_archive,
 )
 
 __all__ = [
@@ -15,14 +14,12 @@ __all__ = [
     "cache",
     "core",
     "datasource",
-    "handler",
     "mapper",
     "release_colab_drive",
-    "reset_default_handlers",
-    "set_default_handlers",
     "use_aws_cloud",
     "use_colab_drive",
     "use_gcs_cloud",
     "use_google_drive",
     "use_local_drive",
+    "use_ncei_archive",
 ]
