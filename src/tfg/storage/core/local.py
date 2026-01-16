@@ -1,9 +1,4 @@
-"""
-Fábrica para crear contextos de almacenamiento preconfigurados.
-
-Proporciona una interfaz simple para crear DataSourceContexts
-preconfigurados para diferentes backends (Colab, local, S3, etc.).
-"""
+import pathlib as pl
 
 from ..backend import FilesystemBackend
 from ..datasource import Datasource, DatasourceContract
@@ -14,7 +9,8 @@ from .handlers import get_file_handlers
 
 def use_local_drive(
     *,
-    mountpoint: str | None = None,
+    root_path: str | None = None,
+    mountpoint: str = "/",
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
@@ -30,6 +26,7 @@ def use_local_drive(
     Datasource
         Contexto configurado listo para usar.
     """
+    base_path = pl.Path(mountpoint or "/") / (root_path or "")
     backend = FilesystemBackend()
 
     mapper = PathURIMapper()
@@ -38,7 +35,7 @@ def use_local_drive(
         handlers = get_file_handlers()
 
     return Datasource(
-        mountpoint=mountpoint or "/",
+        mountpoint=str(base_path),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
