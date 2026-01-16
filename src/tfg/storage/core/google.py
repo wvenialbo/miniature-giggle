@@ -71,8 +71,8 @@ def _get_gdrive_credentials() -> Any:
 
 def use_google_drive(
     *,
+    root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
-    mountpoint: str = "gdrive://",
     handlers: list[DataHandler] | None = None,
     expire_after: float | None = None,
 ) -> DatasourceContract:
@@ -85,34 +85,24 @@ def use_google_drive(
 
     Parameters
     ----------
+    root_path : str, optional
+        Ruta raíz dentro de Google Drive para el contexto. Si es None,
+        se utiliza la raíz del Drive.
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de IDs. Si es None,
         el caché será volátil (en memoria).
-    mountpoint : str, optional
-        Identificador lógico para el punto de montaje en el Datasource.
-        Por defecto "gdrive://".
     handlers : list[DataHandler], optional
         Lista de handlers personalizados. Si es None, se cargan los
         valores por defecto.
     expire_after : float, optional
         Tiempo en segundos tras el cual las entradas del caché expiran.
         Si es None, el caché no expira.
-    credentials : str | Path
-        Ruta al archivo JSON de credenciales de la cuenta de servicio.
 
     Returns
     -------
     Datasource
         Objeto orquestador configurado con el backend de Drive API.
-
-    Raises
-    ------
-    FileNotFoundError
-        Si el archivo de credenciales no existe.
-    ValueError
-        Si las credenciales no son válidas.
     """
-
     # 1. Validación y Carga de Credenciales
     creds = _get_gdrive_credentials()
 
@@ -132,10 +122,17 @@ def use_google_drive(
     else:
         drive_cache = DriveCache(cache_file=cache_path_str)
 
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+
+    local_root = pl.PurePosixPath("/")
+    mountpoint = local_root / base_path.as_posix()
+
     # 4. Instanciación de Protocolos (Inyección de Dependencias)
     # Ambos componentes comparten la misma instancia de 'service'.
-    mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
     backend = GoogleDriveBackend(service=service)
+
+    mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
 
     # 5. Configuración de Handlers
     if handlers is None:
@@ -143,7 +140,7 @@ def use_google_drive(
 
     # 6. Retorno del Datasource Orquestador
     return Datasource(
-        mountpoint=mountpoint,
+        mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
