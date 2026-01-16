@@ -77,8 +77,8 @@ class TimedCache(CacheBase[T]):
 
     def __repr__(self) -> str:
         return (
-            f"<TimedCache items={len(self.cache)} "
-            f"life_time={self.life_time} file={self.cache_file}>"
+            f"TimedCache(cache_file='{self.cache_file}', "
+            f"expire_after={self.life_time})"
         )
 
     def clear(self) -> None:

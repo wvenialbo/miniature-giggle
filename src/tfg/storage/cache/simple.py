@@ -55,7 +55,7 @@ class SimpleCache(CacheBase[T]):
         self._load_from_disk()
 
     def __repr__(self) -> str:
-        return f"<SimpleCache items={len(self.cache)} file={self.cache_file}>"
+        return f"SimpleCache(cache_file='{self.cache_file}')"
 
     def clear(self) -> None:
         """
