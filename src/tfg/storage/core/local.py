@@ -10,14 +10,17 @@ from .handlers import get_file_handlers
 def use_local_drive(
     *,
     root_path: str | None = None,
-    mountpoint: str = "/",
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
-    Crea contexto para sistema de archivos local.
+    Crea el contexto para el sistema de archivos local.
 
     Parameters
     ----------
+    root_path : str, optional
+        Ruta raíz dentro del sistema de archivos local para el contexto.
+        Si es None, se utiliza la raíz del sistema ("/" en Unix, "C:\"
+        en Windows).
     handlers : list[DataHandler], optional
         Handlers de formato personalizados.
 
@@ -26,7 +29,12 @@ def use_local_drive(
     Datasource
         Contexto configurado listo para usar.
     """
-    base_path = pl.Path(mountpoint or "/") / (root_path or "")
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+
+    local_root = pl.PurePosixPath("/")
+    mountpoint = local_root / base_path.as_posix()
+
     backend = FilesystemBackend()
 
     mapper = PathURIMapper()
@@ -35,7 +43,7 @@ def use_local_drive(
         handlers = get_file_handlers()
 
     return Datasource(
-        mountpoint=str(base_path),
+        mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
