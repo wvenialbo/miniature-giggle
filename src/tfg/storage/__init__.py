@@ -1,6 +1,6 @@
 from . import backend, cache, core, datasource, handler, mapper
 from .core import (
-    close_colab_drive,
+    release_colab_drive,
     reset_default_handlers,
     set_default_handlers,
     use_aws_cloud,
@@ -12,11 +12,11 @@ from .core import (
 __all__ = [
     "backend",
     "cache",
-    "close_colab_drive",
     "core",
     "datasource",
     "handler",
     "mapper",
+    "release_colab_drive",
     "reset_default_handlers",
     "set_default_handlers",
     "use_aws_cloud",

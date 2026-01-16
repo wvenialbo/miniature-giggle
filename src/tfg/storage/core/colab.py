@@ -39,180 +39,102 @@ except ImportError:
         return False
 
 
-class ColabDrive:
+_MOUNT_POINT = "/content/drive"
+_ROOT_PATH = "MyDrive"
+
+
+def _is_mounted() -> bool:
     """
-    Gestiona la conexión con Google Drive desde Google Colab.
+    Verifica si el sistema de almacenamiento está montado.
+
+    Returns
+    -------
+    bool
+        True si el sistema de almacenamiento está montado, False en
+        caso contrario.
+    """
+    return running_on_colab() and pl.Path(_MOUNT_POINT).is_mount()
+
+
+def _mount_drive(fail: bool = False) -> None:
+    """
+    Abre la conexión con el sistema de almacenamiento.
+
+    Abre la conexión con el sistema de almacenamiento remoto y lo
+    monta en el punto de montaje obtenido por `get_mountpoint()`.
+
+    Si no se puede abrir la conexión y `fail` es True, se lanza una
+    excepción RuntimeError.  Si `fail` es False, se emite una
+    advertencia en su lugar.
 
     Parameters
     ----------
-    mountpoint : str, optional
-        Punto de montaje para el sistema de almacenamiento.  Por
-        defecto es "/content/drive".
-
-    Methods
-    -------
-    close(fail: bool = False) -> bool
-        Cierra la conexión con el sistema de almacenamiento.
-    ensure_mounted() -> None
-        Asegura que el sistema de almacenamiento esté montado.
-    get_mountpoint() -> str
-        Obtiene el punto de montaje del sistema de almacenamiento.
-    is_mounted() -> bool
-        Verifica si el sistema de almacenamiento está montado.
-    open(fail: bool = False) -> bool
-        Abre la conexión con el sistema de almacenamiento.
+    fail : bool, optional
+        Si es True, lanza una excepción si no se puede abrir la
+        conexión con el sistema de almacenamiento.  Por defecto es
+        False.
     """
+    if _is_mounted():
+        return
 
-    def __init__(self, *, mountpoint: str = "/content/drive") -> None:
-        self.mountpoint = mountpoint
+    colab_drive_mount(_MOUNT_POINT)
 
-    def __repr__(self) -> str:
-        return f"ColabDrive(mountpoint='{self.mountpoint}')"
-
-    def close(self, *, fail: bool = False) -> bool:
-        """
-        Cierra la conexión con el sistema de almacenamiento.
-
-        Desmonta y cierra la conexión con el sistema de almacenamiento
-        local o remoto.
-
-        Si no se puede cerrar la conexión y `fail` es True, se lanza una
-        excepción RuntimeError.  Si `fail` es False, se emite una
-        advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede cerrar la
-            conexión con el sistema de almacenamiento.  Por defecto es
-            False.
-
-        Returns
-        -------
-        bool
-            True si la conexión con el sistema de almacenamiento está
-            cerrada después de la llamada, False en caso contrario.
-        """
-        if not self.is_mounted():
-            return True
-
-        colab_drive_flush_and_unmount()
-
-        if self.is_mounted():
-            self._report_failure("Google Drive no se pudo desmontar", fail)
-            return False
-
-        return True
-
-    def ensure_mounted(self) -> None:
-        """
-        Asegura que el sistema de almacenamiento esté montado.
-
-        Si el sistema de almacenamiento no está montado, lo monta.
-        Si ya está montado, no hace nada.
-
-        Returns
-        -------
-        None
-        """
-        if not self.is_mounted():
-            self.open(fail=True)
-
-    def get_mountpoint(self) -> str:
-        """
-        Obtiene el punto de montaje del sistema de almacenamiento.
-
-        Devuelve la ruta del directorio dentro del sistema de archivos
-        local donde se montó el sistema de almacenamiento.
-
-        Returns
-        -------
-        str
-            La ruta del punto de montaje del sistema de almacenamiento.
-        """
-        return self.mountpoint
-
-    def is_mounted(self) -> bool:
-        """
-        Verifica si el sistema de almacenamiento está montado.
-
-        Returns
-        -------
-        bool
-            True si el sistema de almacenamiento está montado, False en
-            caso contrario.
-        """
-        return running_on_colab() and pl.Path(self.mountpoint).is_mount()
-
-    def open(self, *, fail: bool = False) -> bool:
-        """
-        Abre la conexión con el sistema de almacenamiento.
-
-        Abre la conexión con el sistema de almacenamiento remoto y lo
-        monta en el punto de montaje obtenido por `get_mountpoint()`.
-
-        Si no se puede abrir la conexión y `fail` es True, se lanza una
-        excepción RuntimeError.  Si `fail` es False, se emite una
-        advertencia en su lugar.
-
-        Parameters
-        ----------
-        fail : bool, optional
-            Si es True, lanza una excepción si no se puede abrir la
-            conexión con el sistema de almacenamiento.  Por defecto es
-            False.
-
-        Returns
-        -------
-        bool
-            True si la conexión con el sistema de almacenamiento está
-            abierta después de la llamada, False en caso contrario.
-        """
-        if self.is_mounted():
-            return True
-
-        colab_drive_mount(self.mountpoint)
-
-        if not self.is_mounted():
-            self._report_failure(
-                f"Google Drive no se pudo montar en '{self.mountpoint}'", fail
-            )
-            return False
-
-        return True
-
-    @staticmethod
-    def _report_failure(error_message: str, fail: bool) -> None:
-        """
-        Informa de un fallo lanzando una excepción o emitiendo una
-        advertencia.
-
-        Parameters
-        ----------
-        error_message : str
-            Mensaje de error a utilizar en la excepción o advertencia.
-        fail : bool
-            Si es True, lanza una excepción RuntimeError con el mensaje
-            de error.  Si es False, emite una advertencia RuntimeWarning
-            con el mensaje de error.
-
-        Returns
-        -------
-        None
-        """
-        if fail:
-            raise RuntimeError(error_message)
-
-        warnings.warn(error_message, RuntimeWarning)
+    if not _is_mounted():
+        _report_failure(
+            f"Google Drive no se pudo montar en '{_MOUNT_POINT}'", fail
+        )
 
 
-_drive: ColabDrive | None = None
+def _report_failure(error_message: str, fail: bool) -> None:
+    """
+    Informa de un fallo lanzando una excepción o emitiendo una
+    advertencia.
+
+    Parameters
+    ----------
+    error_message : str
+        Mensaje de error a utilizar en la excepción o advertencia.
+    fail : bool
+        Si es True, lanza una excepción RuntimeError con el mensaje
+        de error.  Si es False, emite una advertencia RuntimeWarning
+        con el mensaje de error.
+    """
+    if fail:
+        raise RuntimeError(error_message)
+
+    warnings.warn(error_message, RuntimeWarning)
+
+
+def _unmount_drive(fail: bool = False) -> None:
+    """
+    Cierra la conexión con el sistema de almacenamiento.
+
+    Desmonta y cierra la conexión con el sistema de almacenamiento
+    local o remoto.
+
+    Si no se puede cerrar la conexión y `fail` es True, se lanza una
+    excepción RuntimeError.  Si `fail` es False, se emite una
+    advertencia en su lugar.
+
+    Parameters
+    ----------
+    fail : bool, optional
+        Si es True, lanza una excepción si no se puede cerrar la
+        conexión con el sistema de almacenamiento.  Por defecto es
+        False.
+    """
+    if not _is_mounted():
+        return
+
+    colab_drive_flush_and_unmount()
+
+    if _is_mounted():
+        _report_failure("Google Drive no se pudo desmontar", fail)
 
 
 def use_colab_drive(
     *,
-    root_path: str = "MyDrive",
-    mountpoint: str = "/content/drive",
+    root_path: str | None = None,
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
@@ -221,11 +143,8 @@ def use_colab_drive(
     Parameters
     ----------
     root_path : str, optional
-        Ruta base dentro de Google Drive.  Debe ser una ruta relativa al
-        punto de montaje.  Por defecto 'MyDrive'.
-    mountpoint : str, optional
-        Punto de montaje de Google Drive en Colab.  Por defecto
-        '/content/drive'.
+        Ruta raíz dentro de Google Drive para el contexto. Si es None,
+        se utiliza la raíz del Drive del usuario ("MyDrive").
     handlers : list[DataHandler], optional
         Handlers de formato personalizados.
 
@@ -234,18 +153,15 @@ def use_colab_drive(
     Datasource
         Contexto configurado listo para usar.
     """
-    if pl.Path(root_path).is_absolute():
-        raise ValueError(
-            "`root_path` debe ser una ruta relativa dentro de Drive: "
-            f"'{root_path}'"
-        )
-
     # Connection Manager
-    connection = ColabDrive(mountpoint=mountpoint)
-    connection.open(fail=True)
+    _mount_drive(fail=True)
 
-    mountpoint = connection.get_mountpoint()
-    base_path = pl.Path(mountpoint) / root_path
+    gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
+
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+
+    mountpoint = gdrive_root / base_path.as_posix()
 
     backend = FilesystemBackend()
 
@@ -254,18 +170,15 @@ def use_colab_drive(
     if handlers is None:
         handlers = get_file_handlers()
 
-    global _drive
-    _drive = connection
-
     return Datasource(
-        mountpoint=str(base_path),
+        mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
         handlers=handlers,
     )
 
 
-def close_colab_drive(fail: bool = False) -> bool:
+def release_colab_drive(fail: bool = False) -> None:
     """
     Cierra la conexión con Google Drive usada en Colab.
 
@@ -281,14 +194,4 @@ def close_colab_drive(fail: bool = False) -> bool:
         True si la conexión con Google Drive está cerrada después de
         la llamada, False en caso contrario.
     """
-    global _drive
-
-    if _drive is None:
-        return True
-
-    result = _drive.close(fail=fail)
-
-    if result:
-        _drive = None
-
-    return result
+    _unmount_drive(fail=fail)
