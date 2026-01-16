@@ -26,7 +26,7 @@ class AWSBackend(StorageBackend):
     ) -> None:
         self.bucket_name = bucket
         self.s3 = client
-        self.scan_cache: AWSCache = scan_cache or NoopCache()
+        self.scan_cache = scan_cache or NoopCache()
 
     def __repr__(self) -> str:
         return (
