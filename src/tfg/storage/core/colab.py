@@ -138,7 +138,7 @@ def use_colab_drive(
     handlers: list[DataHandler] | None = None,
 ) -> DatasourceContract:
     """
-    Crea contexto para Google Drive para Google Colab.
+    Crea el contexto para el acceso a Google Drive en Google Colab.
 
     Parameters
     ----------
