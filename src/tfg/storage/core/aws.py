@@ -20,7 +20,6 @@ def use_aws_cloud(
     *,
     bucket: str,
     root_path: str | None = None,
-    anonymous: bool = True,
     profile_name: str | None = None,
     region_name: str | None = None,
     cache_file: str | pl.Path | None = None,
@@ -42,10 +41,6 @@ def use_aws_cloud(
     root_path : str, optional
         Prefijo raíz dentro del bucket para este Datasource.  Por
         defecto None (raíz del bucket).
-    anonymous : bool, optional
-        Si es True, usa acceso anónimo (público) sin credenciales.  Si
-        es False, usa credenciales configuradas localmente. Por defecto
-        True.
     profile_name : str, optional
         Nombre del perfil de AWS configurado en la máquina local.
     region_name : str, optional
@@ -68,22 +63,34 @@ def use_aws_cloud(
     DatasourceContract
         Objeto orquestador configurado para AWS S3.
     """
-
     # 1. Configuración de la Sesión de AWS y del cliente S3
     # Acceso Anónimo vs Autenticado: Esto permite flexibilidad total,
     # desde perfiles hasta llaves directas
-    config = None
-    if anonymous:
+
+    # 1.1. Intentar crear sesión con lo que haya
+    session = boto3.Session(
+        profile_name=profile_name, region_name=region_name, **session_kwargs
+    )
+    creds = session.get_credentials()
+
+    # 1.2. Determinar si debemos usar modo UNSIGNED
+    if creds is None:
+        # Si no hay credenciales en la sesión Y no se pasaron
+        # argumentos, es anónimo.
+        if profile_name or session_kwargs:
+            raise ValueError(
+                "No se pudieron obtener credenciales de AWS. "
+                "Por favor, revise la configuración de su perfil o las "
+                "credenciales proporcionadas."
+            )
         # Configuración UNSIGNED para acceso público sin credenciales
         config = Config(signature_version=UNSIGNED)
-        # Forzamos una sesión vacía para evitar que boto3 busque archivos config
+        # Forzamos una sesión vacía para evitar que boto3 busque
+        # archivos config
         session = boto3.Session(region_name=region_name)
+
     else:
-        session = boto3.Session(
-            profile_name=profile_name,
-            region_name=region_name,
-            **session_kwargs,
-        )
+        config = None
 
     s3_client = session.client("s3", config=config)
 
