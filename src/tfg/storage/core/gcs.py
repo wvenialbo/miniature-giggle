@@ -1,6 +1,5 @@
 import pathlib as pl
 import typing as tp
-import warnings
 
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
@@ -80,13 +79,6 @@ def use_gcs_cloud(
 
         # Si no pasó credenciales explícitas, asumimos que quiere acceso
         # público.
-        # Esto es equivalente al Config(signature_version=UNSIGNED) de
-        # AWS.
-        warnings.warn(
-            "No se encontraron credenciales de Google Cloud. Se utilizará "
-            "un cliente ANÓNIMO (solo acceso a buckets públicos).",
-            RuntimeWarning,
-        )
         client = storage.Client.create_anonymous_client()
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
