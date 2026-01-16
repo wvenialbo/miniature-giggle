@@ -50,6 +50,7 @@ def _run_interactive_auth(
     """Lanza el flujo OAuth interactivo y guarda el token."""
     flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), _SCOPES)
     creds = flow.run_local_server(port=0)
+    token_path.parent.mkdir(parents=True, exist_ok=True)
     token_path.write_text(creds.to_json())
     return creds
 
