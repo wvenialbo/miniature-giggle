@@ -1,8 +1,8 @@
 from .aws import AWSURIMapper
 from .base import URIMapper
 from .gcs import GCSURIMapper
+from .gdrive import GoogleDriveURIMapper
 from .generic import GenericURIMapper
-from .google import GoogleDriveURIMapper
 from .path import PathURIMapper
 
 __all__ = [
