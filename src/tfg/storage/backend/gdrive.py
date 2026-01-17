@@ -203,6 +203,25 @@ class GoogleDriveBackend(StorageBackend):
 
         return fh.getvalue()
 
+    def read_chunks(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        uri = self._check_uri(uri)
+        file_id = self._strip_prefix(uri, ID_PREFIX)
+
+        request = self._service.files().get_media(
+            fileId=file_id, supportsAllDrives=True
+        )
+        fh = io.BytesIO()
+        downloader = MediaIoBaseDownload(fh, request, chunksize=chunk_size)
+
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+            yield fh.getvalue()
+            fh.seek(0)
+            fh.truncate(0)
+
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -265,6 +284,19 @@ class GoogleDriveBackend(StorageBackend):
                 break
 
         return results
+
+    def size(self, *, uri: str) -> int:
+        if uri.startswith(PATH_PREFIX):
+            raise FileNotFoundError(f"El objeto no existe: '{uri}'")
+
+        file_id = self._strip_prefix(uri, ID_PREFIX)
+
+        file = (
+            self._service.files()
+            .get(fileId=file_id, fields="size", supportsAllDrives=True)
+            .execute()
+        )
+        return int(file.get("size", 0))
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
@@ -435,35 +467,3 @@ class GoogleDriveBackend(StorageBackend):
                 f"Se esperaba una URI '{prefix}', se recibió: '{uri}'"
             )
         return uri[len(prefix) :]
-
-    def size(self, *, uri: str) -> int:
-        if uri.startswith(PATH_PREFIX):
-            raise FileNotFoundError(f"El objeto no existe: '{uri}'")
-
-        file_id = self._strip_prefix(uri, ID_PREFIX)
-
-        file = (
-            self._service.files()
-            .get(fileId=file_id, fields="size", supportsAllDrives=True)
-            .execute()
-        )
-        return int(file.get("size", 0))
-
-    def read_chunks(
-        self, *, uri: str, chunk_size: int = 1024 * 1024
-    ) -> col.Iterable[bytes]:
-        uri = self._check_uri(uri)
-        file_id = self._strip_prefix(uri, ID_PREFIX)
-
-        request = self._service.files().get_media(
-            fileId=file_id, supportsAllDrives=True
-        )
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request, chunksize=chunk_size)
-
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-            yield fh.getvalue()
-            fh.seek(0)
-            fh.truncate(0)
