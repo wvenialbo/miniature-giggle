@@ -17,6 +17,33 @@ S3_SEPARATOR = "/"
 
 
 class AWSBackend(StorageBackend):
+    """
+    Backend de almacenamiento para Amazon Web Services S3.
+
+    Esta clase gestiona operaciones de lectura, escritura, eliminación y
+    listado de objetos en buckets de S3. Utiliza `boto3` como SDK
+    subyacente y cumple con el protocolo `StorageBackend`.
+
+    Parameters
+    ----------
+    bucket : str
+        Nombre del bucket de S3 sobre el cual opera esta instancia.
+    client : S3Client
+        Cliente de Amazon S3 ya instanciado y autenticado.
+    scan_cache : CacheBase[list[str]] | None, optional
+        Estrategia de caché para los resultados de `scan`. Si es None,
+        se utiliza un `DummyCache` (sin caché).
+
+    Attributes
+    ----------
+    bucket_name : str
+        Nombre del bucket de S3 sobre el cual opera esta instancia.
+    s3 : S3Client
+        Cliente autenticado de Amazon S3.
+    scan_cache : CacheBase[list[str]]
+        Instancia de caché para optimizar operaciones de listado (scan).
+    """
+
     def __init__(
         self,
         bucket: str,
@@ -36,11 +63,52 @@ class AWSBackend(StorageBackend):
         )
 
     def create_path(self, *, uri: str) -> str:
-        # S3 es un espacio plano; no necesita crear directorios.
-        # Solo verificamos que la URI sea válida para este backend.
+        """
+        Crea una ruta o contenedor en el backend de almacenamiento.
+
+        En AWS S3, al ser un almacenamiento de objetos plano, no existen
+        directorios reales. Este método actúa como un no-op idempotente
+        para cumplir con el protocolo.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa o ruta genérica.
+
+        Returns
+        ----------
+        str
+            La misma URI proporcionada.
+        """
         return uri
 
+    def delete(self, *, uri: str) -> None:
+        """
+        Elimina un objeto en el backend de almacenamiento.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa o ruta genérica del objeto a eliminar.
+        """
+        bucket, key = self._split_uri(uri)
+        self.s3.delete_object(Bucket=bucket, Key=key)
+        self.scan_cache.clear()
+
     def exists(self, *, uri: str) -> bool:
+        """
+        Verifica si un objeto existe en el backend de almacenamiento.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa o ruta genérica del objeto a verificar.
+
+        Returns
+        -------
+        bool
+            True si el objeto existe, False en caso contrario.
+        """
         bucket, key = self._split_uri(uri)
         try:
             self.s3.head_object(Bucket=bucket, Key=key)
@@ -49,6 +117,19 @@ class AWSBackend(StorageBackend):
             return False
 
     def read(self, *, uri: str) -> bytes:
+        """
+        Lee un objeto desde el backend de almacenamiento.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa o ruta genérica del objeto a leer.
+
+        Returns
+        -------
+        bytes
+            Contenido del objeto leído.
+        """
         bucket, key = self._split_uri(uri)
         try:
             response = self.s3.get_object(Bucket=bucket, Key=key)
@@ -59,14 +140,20 @@ class AWSBackend(StorageBackend):
                 f"Objeto no encontrado en AWS: '{uri}'"
             ) from e
 
-    def write(self, *, uri: str, data: bytes) -> None:
-        bucket, key = self._split_uri(uri)
-        # Inferencia simple de ContentType podría ir aquí o en el handler
-        self.s3.put_object(Bucket=bucket, Key=key, Body=data)
-        # Importante: Invalidar el cache de scan ya que la estructura cambió
-        self.scan_cache.clear()
-
     def scan(self, *, prefix: str) -> list[str]:
+        """
+        Lista las URI que comienzan con el prefijo especificado.
+
+        Parameters
+        ----------
+        prefix : str
+            Prefijo para filtrar los objetos a escanear.
+
+        Returns
+        -------
+        list[str]
+            Lista de URIs de los objetos que coinciden con el prefijo.
+        """
         # Intentar recuperar de caché
         cached = self.scan_cache.get(prefix)
         if cached is not None:
@@ -85,9 +172,21 @@ class AWSBackend(StorageBackend):
         self.scan_cache.set(prefix, results)
         return results
 
-    def delete(self, *, uri: str) -> None:
+    def write(self, *, uri: str, data: bytes) -> None:
+        """
+        Escribe un objeto en el backend de almacenamiento.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa o ruta genérica donde se escribirá el objeto.
+        data : bytes
+            Contenido del objeto a escribir.
+        """
         bucket, key = self._split_uri(uri)
-        self.s3.delete_object(Bucket=bucket, Key=key)
+        # Inferencia simple de ContentType podría ir aquí o en el handler
+        self.s3.put_object(Bucket=bucket, Key=key, Body=data)
+        # Importante: Invalidar el cache de scan ya que la estructura cambió
         self.scan_cache.clear()
 
     def _split_uri(self, uri: str) -> tuple[str, str]:
