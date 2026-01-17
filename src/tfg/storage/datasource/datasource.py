@@ -2,8 +2,6 @@ import collections.abc as col
 import io
 import typing as tp
 
-import tqdm
-
 from ..backend import StorageBackend
 from ..cache import AbstractCache, DummyCache
 from ..mapper import GenericURIMapper, URIMapper
@@ -174,7 +172,7 @@ class Datasource(DatasourceContract):
         Carga un objeto desde la URI especificada.
     load_stream(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
         Carga un objeto desde la URI especificada en fragmentos.
-    open(uri: str, chunk_size: int = 1MiB, show_progress: bool = False) -> io.BufferedIOBase
+    open(uri: str, chunk_size: int = 1MiB) -> io.BufferedIOBase
         Abre un stream de lectura (lazy) desde la URI especificada.
     purge_cache() -> None
         Elimina entradas expiradas de la caché.
@@ -333,11 +331,7 @@ class Datasource(DatasourceContract):
         return io.BytesIO(self.backend.read(uri=native_uri))
 
     def open(
-        self,
-        *,
-        uri: str,
-        chunk_size: int = 1024 * 1024,
-        show_progress: bool = False,
+        self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> io.BufferedIOBase:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
@@ -354,9 +348,6 @@ class Datasource(DatasourceContract):
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
             entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
-        show_progress : bool, optional
-            Indica si se debe mostrar una barra de progreso durante la
-            lectura del stream. Por defecto es False.
 
         Returns
         -------
@@ -365,29 +356,14 @@ class Datasource(DatasourceContract):
 
         Notes
         -----
-        - Si `show_progress` es True, se muestra una barra de progreso
-          durante la lectura del stream.
-        - Estamos acoplando la lógica de presentación (tqdm) con la
-          lógica de datos aquí.  Esto podría no ser ideal desde una
-          perspectiva de diseño limpio.
-        - ¿Qué pasa si el códgico se ejecuta desde una notebook usando
-          `tqdm.tqdm`? ¿Porqué esto puede fallar?
+        - Desacoplamos la lógica de presentación (tqdm) de la
+          lógica de datos. El método podría recibir un callback
+          o la abstracción de una clase encargada de la presentación
+          de progreso, o incluso una clase envolvente del iterador,
+          al estilo de tqdm, pero propia de la librería, de tal modo
+          a no acoplar a una tecnología en específico.
         """
-        generator = self.stream(uri=uri, chunk_size=chunk_size)
-
-        if show_progress:
-            total_size = self.get_size(uri=uri)
-            iterator = tqdm.tqdm(
-                generator,
-                total=total_size,
-                unit="B",
-                unit_scale=True,
-                desc=uri.split("/")[-1],
-                leave=True,
-            )
-        else:
-            iterator = generator
-
+        iterator = self.stream(uri=uri, chunk_size=chunk_size)
         return io.BufferedReader(StreamAdapter(iterator))
 
     def purge_cache(self) -> None:

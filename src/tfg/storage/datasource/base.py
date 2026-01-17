@@ -36,7 +36,7 @@ class DatasourceContract(tp.Protocol):
         Enumera objetos cuya URI comienza con el prefijo especificado.
     load(uri: str) -> io.BytesIO
         Carga un objeto desde la URI especificada.
-    open(uri: str, chunk_size: int = 1MiB, show_progress: bool = False) -> io.BufferedIOBase
+    open(uri: str, chunk_size: int = 1MiB) -> io.BufferedIOBase
         Abre un stream de lectura (lazy) desde la URI especificada.
     purge_cache() -> None
         Elimina entradas expiradas de la caché.
@@ -162,11 +162,7 @@ class DatasourceContract(tp.Protocol):
         ...
 
     def open(
-        self,
-        *,
-        uri: str,
-        chunk_size: int = 1024 * 1024,
-        show_progress: bool = False,
+        self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> io.BufferedIOBase:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
@@ -183,9 +179,6 @@ class DatasourceContract(tp.Protocol):
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
             entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
-        show_progress : bool, optional
-            Indica si se debe mostrar una barra de progreso durante la
-            lectura del stream. Por defecto es False.
 
         Returns
         -------
