@@ -23,14 +23,19 @@ Apply the [PEP 257 – Docstring Conventions](https://peps.python.org/pep-0257) 
 
 - Every public module, class, and function must have a docstring.
 - Use **strictly [numpydoc style](https://numpydoc.readthedocs.io)** for all docstrings.
-- Ensure the docstring includes sections like `Parameters`, `Returns`, and `Raises` where applicable.
+- Ensure the docstring includes sections like `Parameters`, `Attributes`, `Methods`, `Returns`, and `Raises` where applicable.
+- Up to 72 characters per line.
+- Use single space after a full-stop.
 
 ## Implementation Example
 
 ```python
 def calculate_velocity(initial_distance, time_delta):
     """
-    Calculate the velocity of an object.
+    Calculate the velocity of an object. (Must be single line, up to 72 characters)
+
+    Divide the length over the time spend to travel that length
+    (Can have multiple lines, each line up to 72 characters).
 
     Parameters
     ----------
