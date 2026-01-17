@@ -45,24 +45,6 @@ class GenericURIMapper:
     def __repr__(self) -> str:
         return f"GenericURIMapper(base_path='{self.base_path}')"
 
-    def to_relative(self, uri: str) -> str:
-        """
-        Convierte una URI absoluta a una URI relativa (lógica).
-
-        Parameters
-        ----------
-        uri : str
-            La URI absoluta proporcionada por el backend.
-
-        Returns
-        -------
-        str
-            La URI relativa (lógica) transformada para el usuario.
-        """
-        native_root = pl.PurePosixPath(self.base_path)
-        generic_path = pl.PurePosixPath(uri).relative_to(native_root)
-        return f"/{str(generic_path)}"
-
     def to_absolute(self, uri: str) -> str:
         """
         Convierte una URI relativa (lógica) a una URI absoluta.
@@ -80,3 +62,21 @@ class GenericURIMapper:
         generic_root = pl.PurePosixPath(self.base_path)
         native_path = generic_root / uri.lstrip("/")
         return str(native_path)
+
+    def to_relative(self, uri: str) -> str:
+        """
+        Convierte una URI absoluta a una URI relativa (lógica).
+
+        Parameters
+        ----------
+        uri : str
+            La URI absoluta proporcionada por el backend.
+
+        Returns
+        -------
+        str
+            La URI relativa (lógica) transformada para el usuario.
+        """
+        native_root = pl.PurePosixPath(self.base_path)
+        generic_path = pl.PurePosixPath(uri).relative_to(native_root)
+        return f"/{str(generic_path)}"
