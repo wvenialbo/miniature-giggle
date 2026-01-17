@@ -3,7 +3,6 @@ from .base import StorageBackend
 from .filesystem import FilesystemBackend
 from .gcs import GCSBackend
 from .gdrive import GoogleDriveBackend
-from .kaggle import KaggleBackend
 from .ncei import NCEIBackend
 
 __all__ = [
@@ -11,7 +10,6 @@ __all__ = [
     "FilesystemBackend",
     "GCSBackend",
     "GoogleDriveBackend",
-    "KaggleBackend",
     "NCEIBackend",
     "StorageBackend",
 ]
