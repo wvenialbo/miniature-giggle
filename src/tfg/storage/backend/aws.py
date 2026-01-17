@@ -1,3 +1,4 @@
+import collections.abc as col
 import typing as tp
 
 from botocore.config import Config
@@ -42,6 +43,25 @@ class AWSBackend(StorageBackend):
         Cliente autenticado de Amazon S3.
     scan_cache : CacheBase[list[str]]
         Instancia de caché para optimizar operaciones de listado (scan).
+
+    Methods
+    -------
+    create_path(uri: str) -> str
+        Crea una ruta o contenedor en el backend de almacenamiento.
+    delete(uri: str) -> None
+        Elimina un objeto en el backend de almacenamiento.
+    exists(uri: str) -> bool
+        Verifica si un objeto existe en el backend de almacenamiento.
+    read(uri: str) -> bytes
+        Lee un objeto desde el backend de almacenamiento.
+    read_chunk(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
+        Lee los datos desde la URI especificada de forma segmentada.
+    scan(prefix: str) -> list[str]
+        Lista las URI que comienzan con el prefijo especificado.
+    size(uri: str) -> int
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+    write(uri: str, data: bytes) -> None
+        Escribe un objeto en el backend de almacenamiento.
     """
 
     def __init__(
@@ -140,6 +160,44 @@ class AWSBackend(StorageBackend):
                 f"Objeto no encontrado en AWS: '{uri}'"
             ) from e
 
+    def read_chunk(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        """
+        Lee los datos desde la URI especificada de forma segmentada.
+
+        Permite procesar archivos grandes sin cargarlos por completo en
+        RAM y facilita el reporte de progreso en tiempo real.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MB. Por defecto 1MB.
+
+        Yields
+        ------
+        bytes
+            Fragmentos del contenido binario del archivo.
+        """
+        if chunk_size < 1024 * 1024:
+            raise ValueError("chunk_size debe ser al menos 1MB.")
+
+        bucket, key = self._split_uri(uri)
+        try:
+            response = self.s3.get_object(Bucket=bucket, Key=key)
+
+            # StreamingBody de boto3 tiene este método optimizado para
+            # streaming
+            yield from response["Body"].iter_chunks(chunk_size=chunk_size)
+
+        except ClientError as e:
+            raise FileNotFoundError(
+                f"Objeto no encontrado en AWS para streaming: '{uri}'"
+            ) from e
+
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -171,6 +229,29 @@ class AWSBackend(StorageBackend):
                 )
         self.scan_cache.set(prefix, results)
         return results
+
+    def size(self, *, uri: str) -> int:
+        """
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        int
+            Tamaño en bytes.
+        """
+        bucket, key = self._split_uri(uri)
+        try:
+            response = self.s3.head_object(Bucket=bucket, Key=key)
+            return response["ContentLength"]
+        except ClientError as e:
+            raise FileNotFoundError(
+                f"No se pudo obtener el tamaño de: '{uri}'"
+            ) from e
 
     def write(self, *, uri: str, data: bytes) -> None:
         """

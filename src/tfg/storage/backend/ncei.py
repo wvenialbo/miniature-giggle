@@ -1,3 +1,4 @@
+import collections.abc as col
 import re
 import urllib.parse as url
 
@@ -41,9 +42,10 @@ class NCEIBackend(StorageBackend):
         Verifica si un recurso existe en la URI dada.
     read(uri: str) -> bytes
         Lee y devuelve el contenido del recurso en la URI dada.
+    read_chunk(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
+        Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
-        Lista los archivos disponibles bajo el prefijo (URL de directorio)
-        dado.
+        Lista las URI que comienzan con el prefijo especificado.
     write(uri: str, data: bytes) -> None
         No soportado. Lanza RuntimeError.
     """
@@ -158,6 +160,41 @@ class NCEIBackend(StorageBackend):
         response.raise_for_status()
         return response.content
 
+    def read_chunk(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        """
+        Lee los datos desde la URI especificada de forma segmentada.
+
+        Permite procesar archivos grandes sin cargarlos por completo en
+        RAM y facilita el reporte de progreso en tiempo real.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MB. Por defecto 1MB.
+
+        Yields
+        ------
+        bytes
+            Fragmentos del contenido binario del archivo.
+        """
+        if chunk_size < 1024 * 1024:
+            raise ValueError("chunk_size debe ser al menos 1MB.")
+
+        # Es vital usar stream=True para no descargar el archivo al hacer el get
+        response = self._session.get(uri, timeout=15, stream=True)
+        response.raise_for_status()
+
+        # iter_content se encarga de ir pidiendo fragmentos al socket
+        # conforme los necesitamos
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            if chunk:  # Filtrar keep-alive chunks
+                yield chunk
+
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -228,6 +265,27 @@ class NCEIBackend(StorageBackend):
             self.scan_cache.set(folder_url, results)
 
         return results
+
+    def size(self, *, uri: str) -> int:
+        """
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        int
+            Tamaño en bytes.
+        """
+        response = self._session.head(uri, timeout=10)
+        response.raise_for_status()
+
+        # El header puede no existir si el servidor usa chunked encoding,
+        # en ese caso devolvemos 0 o manejamos la incertidumbre.
+        return int(response.headers.get("Content-Length", 0))
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
