@@ -30,33 +30,6 @@ class NCEIURIMapper(URIMapper):
     def __repr__(self) -> str:
         return f"NCEIURIMapper(base_url='{self.base_url}')"
 
-    def to_native(self, uri: str) -> str:
-        """
-        Convierte una ruta lógica en una URL absoluta de NCEI.
-
-        Parameters
-        ----------
-        uri : str
-            Ruta lógica en formato POSIX.
-            Ejemplo: '/data/file.csv'.
-
-        Returns
-        -------
-        str
-            URL absoluta de NCEI.
-            Ejemplo: 'https://www.ncei.noaa.gov/data/file.csv'.
-
-        Notes
-        -----
-        La ruta lógica puede comenzar con '/' o no.
-        """
-        relative_path = uri.lstrip("/")
-        return (
-            f"{self.base_url}/{relative_path}"
-            if relative_path
-            else self.base_url
-        )
-
     def to_generic(self, uri: str) -> str:
         """
         Convierte una URL de NCEI en una ruta lógica POSIX.
@@ -85,3 +58,30 @@ class NCEIURIMapper(URIMapper):
 
         path = uri.replace(self.base_url, "", 1)
         return "/" + path.lstrip("/")
+
+    def to_native(self, uri: str) -> str:
+        """
+        Convierte una ruta lógica en una URL absoluta de NCEI.
+
+        Parameters
+        ----------
+        uri : str
+            Ruta lógica en formato POSIX.
+            Ejemplo: '/data/file.csv'.
+
+        Returns
+        -------
+        str
+            URL absoluta de NCEI.
+            Ejemplo: 'https://www.ncei.noaa.gov/data/file.csv'.
+
+        Notes
+        -----
+        La ruta lógica puede comenzar con '/' o no.
+        """
+        relative_path = uri.lstrip("/")
+        return (
+            f"{self.base_url}/{relative_path}"
+            if relative_path
+            else self.base_url
+        )
