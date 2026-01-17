@@ -2,6 +2,8 @@ import collections.abc as col
 import io
 import typing as tp
 
+from .utils import ProgressFactory
+
 
 class DatasourceContract(tp.Protocol):
     """
@@ -36,7 +38,7 @@ class DatasourceContract(tp.Protocol):
         Enumera objetos cuya URI comienza con el prefijo especificado.
     load(uri: str) -> io.BytesIO
         Carga un objeto desde la URI especificada.
-    open(uri: str, chunk_size: int = 1MiB) -> io.BufferedIOBase
+    open(uri: str, chunk_size: int = 1MiB, progress_factory: ProgressFactory | None = None) -> io.BufferedIOBase
         Abre un stream de lectura (lazy) desde la URI especificada.
     purge_cache() -> None
         Elimina entradas expiradas de la caché.
@@ -162,7 +164,11 @@ class DatasourceContract(tp.Protocol):
         ...
 
     def open(
-        self, *, uri: str, chunk_size: int = 1024 * 1024
+        self,
+        *,
+        uri: str,
+        chunk_size: int = 1024 * 1024,
+        progress_factory: ProgressFactory | None = None,
     ) -> io.BufferedIOBase:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
@@ -179,6 +185,10 @@ class DatasourceContract(tp.Protocol):
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
             entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+        progress_factory : ProgressFactory | None, optional
+            Una función factoría para envolver el iterable de bytes
+            con una barra de progreso. Si es None, no se muestra
+            progreso. Por defecto None.
 
         Returns
         -------

@@ -6,7 +6,7 @@ from ..backend import StorageBackend
 from ..cache import AbstractCache, DummyCache
 from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceContract
-from .utils import StreamAdapter
+from .utils import ProgressFactory, StreamAdapter
 
 NoopCache = DummyCache[tp.Any]
 
@@ -238,7 +238,11 @@ class Datasource(DatasourceContract):
         return io.BytesIO(self.backend.read(uri=native_uri))
 
     def open(
-        self, *, uri: str, chunk_size: int = 1024 * 1024
+        self,
+        *,
+        uri: str,
+        chunk_size: int = 1024 * 1024,
+        progress_factory: ProgressFactory | None = None,
     ) -> io.BufferedIOBase:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
@@ -255,22 +259,27 @@ class Datasource(DatasourceContract):
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
             entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+        progress_factory : ProgressFactory | None, optional
+            Una función factoría para envolver el iterable de bytes
+            con una barra de progreso. Si es None, no se muestra
+            progreso. Por defecto None.
 
         Returns
         -------
         io.BufferedIOBase
             Un objeto de flujo de E/S para los datos en la URI dada.
-
-        Notes
-        -----
-        - Desacoplamos la lógica de presentación (tqdm) de la
-          lógica de datos. El método podría recibir un callback
-          o la abstracción de una clase encargada de la presentación
-          de progreso, o incluso una clase envolvente del iterador,
-          al estilo de tqdm, pero propia de la librería, de tal modo
-          a no acoplar a una tecnología en específico.
         """
         iterator = self.stream(uri=uri, chunk_size=chunk_size)
+
+        if progress_factory is not None:
+            total_size = self.get_size(uri=uri)
+            description = uri.split("/")[-1]
+            iterator = progress_factory(
+                iterable=iterator,
+                total_size=total_size,
+                description=description,
+            )
+
         return io.BufferedReader(StreamAdapter(iterator))
 
     def purge_cache(self) -> None:
