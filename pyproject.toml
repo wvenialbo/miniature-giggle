@@ -44,6 +44,7 @@
     "requests",
     "scipy",
     "seaborn",
+    "tqdm",
   ]
 
   # The description for your project
