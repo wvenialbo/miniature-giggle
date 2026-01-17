@@ -3,7 +3,7 @@ import pathlib as pl
 
 class GenericURIMapper:
     """
-    Transforma URI genéricas respecto a una ruta base.
+    Mapeador de rutas lógicas respecto a una ruta base.
 
     Convierte entre URI genéricas absolutas y relativas (lógicas)
     respecto a una ruta base fija especificada como raíz.  La finalidad

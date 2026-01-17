@@ -5,7 +5,7 @@ from .base import URIMapper
 
 class PathURIMapper(URIMapper):
     """
-    Transforma entre URI genéricas y rutas del sistema de archivos.
+    Mapeador de rutas lógicas en rutas del sistema de archivos.
 
     Convierte entre URI genéricas y rutas absolutas del sistema de
     archivos.

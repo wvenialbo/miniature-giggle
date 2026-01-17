@@ -3,7 +3,7 @@ import typing as tp
 
 class URIMapper(tp.Protocol):
     """
-    Protocolo para mapeadores de URI en almacenamiento de datos.
+    Protocolo para mapeadores de rutas lógicas a URIs nativas.
 
     Define la interfaz para convertir entre rutas lógicas (genéricas)
     utilizadas por los clientes y identificadores nativos específicos

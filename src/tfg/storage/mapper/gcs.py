@@ -8,7 +8,7 @@ POSIX_SEPARATOR = "/"
 
 class GCSURIMapper(URIMapper):
     """
-    Mapeador determinista para Google Cloud Storage (GCS).
+    Mapeador de rutas lógicas en URIs de Google Cloud Storage.
 
     Convierte entre rutas genéricas absolutas (POSIX) y URIs nativas
     de Google Cloud Storage con el formato 'gs://bucket/path'.

@@ -20,7 +20,7 @@ DriveCache = CacheBase[str]
 
 class GoogleDriveURIMapper(URIMapper):
     """
-    Transforma entre URI genéricas e ID nativos de Google Drive.
+    Mapeador de rutas lógicas en ID nativos de Google Drive.
 
     Traduce rutas estilo POSIX a identificadores opacos de Drive.
     Maneja la ambigüedad de nombres tomando el primer resultado
