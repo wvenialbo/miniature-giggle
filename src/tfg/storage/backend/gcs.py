@@ -1,6 +1,6 @@
+import collections.abc as col
 import contextlib
 import typing as tp
-from collections.abc import Iterator
 
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
@@ -25,6 +25,16 @@ class GCSBackend(StorageBackend):
     listado de objetos en buckets de GCS. Utiliza `google-cloud-storage`
     como SDK subyacente y cumple con el protocolo `StorageBackend`.
 
+    Parameters
+    ----------
+    bucket : str
+        Nombre del bucket de GCS sobre el cual opera esta instancia.
+    client : storage.Client
+        Cliente autenticado de Google Cloud Storage.
+    scan_cache : CacheBase[list[str]] | None, optional
+        Estrategia de caché para los resultados de `scan`. Si es None,
+        se utiliza un `DummyCache` (sin caché).
+
     Attributes
     ----------
     bucket_name : str
@@ -33,6 +43,25 @@ class GCSBackend(StorageBackend):
         Cliente autenticado de Google Cloud Storage.
     scan_cache : CacheBase[list[str]]
         Instancia de caché para optimizar operaciones de listado (scan).
+
+    Methods
+    -------
+    create_path(uri: str) -> str
+        Crea una ruta o contenedor en el backend de almacenamiento.
+    delete(uri: str) -> None
+        Elimina los datos en la URI especificada.
+    exists(uri: str) -> bool
+        Verifica si los datos existen en la URI especificada.
+    read(uri: str) -> bytes
+        Lee los datos desde la URI especificada.
+    read_chunks(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
+        Lee los datos desde la URI especificada de forma segmentada.
+    scan(prefix: str) -> list[str]
+        Lista las URI que comienzan con el prefijo especificado.
+    size(uri: str) -> int
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+    write(uri: str, data: bytes) -> None
+        Escribe los datos en la URI especificada.
     """
 
     def __init__(
@@ -41,20 +70,6 @@ class GCSBackend(StorageBackend):
         client: "storage.Client",
         scan_cache: GCSCache | None = None,
     ) -> None:
-        """
-        Inicializa el backend de GCS.
-
-        Parameters
-        ----------
-        bucket : str
-            Nombre del bucket de GCS.
-        client : storage.Client
-            Cliente de Google Cloud Storage ya instanciado y
-            autenticado.
-        scan_cache : CacheBase[list[str]] | None, optional
-            Estrategia de caché para los resultados de `scan`. Si es
-            None, se utiliza un `DummyCache` (sin caché).
-        """
         self.bucket_name = bucket
         self.client = client
         self.scan_cache: GCSCache = scan_cache or NoopCache()
@@ -150,6 +165,33 @@ class GCSBackend(StorageBackend):
                 f"Objeto no encontrado en GCS: '{uri}'"
             ) from e
 
+    def read_chunks(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        """
+        Lee los datos desde la URI especificada de forma segmentada.
+
+        Permite procesar archivos grandes sin cargarlos por completo en
+        RAM y facilita el reporte de progreso en tiempo real.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+
+        Yields
+        ------
+        bytes
+            Fragmentos del contenido binario del archivo.
+        """
+        blob = self._get_blob(uri)
+        with blob.open("rb", chunk_size=chunk_size) as f:
+            while chunk := tp.cast(bytes, f.read(chunk_size)):
+                yield chunk
+
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -178,7 +220,7 @@ class GCSBackend(StorageBackend):
 
         # list_blobs maneja la paginación automáticamente
         blobs = tp.cast(
-            Iterator[storage.Blob],
+            col.Iterator[storage.Blob],
             self.client.list_blobs(bucket, prefix=blob_prefix),
         )
 
@@ -194,6 +236,24 @@ class GCSBackend(StorageBackend):
         self.scan_cache.set(prefix, results)
 
         return results
+
+    def size(self, *, uri: str) -> int:
+        """
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        int
+            Tamaño en bytes.
+        """
+        blob = self._get_blob(uri)
+        blob.reload()  # Carga los metadatos desde la API
+        return blob.size if blob.size is not None else 0
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
