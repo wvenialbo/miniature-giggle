@@ -1,3 +1,4 @@
+import collections.abc as col
 import pathlib as pl
 
 from .base import StorageBackend
@@ -148,6 +149,13 @@ class FilesystemBackend(StorageBackend):
         path = _check_uri(uri)
         return path.read_bytes()
 
+    def read_chunks(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        with open(uri, "rb") as f:
+            while chunk := f.read(chunk_size):
+                yield chunk
+
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -198,6 +206,23 @@ class FilesystemBackend(StorageBackend):
             for entry in folder.rglob("*")
             if entry.is_file()
         ]
+
+    def size(self, *, uri: str) -> int:
+        """
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+
+        Returns
+        -------
+        int
+            Tamaño en bytes.
+        """
+        path = _check_uri(uri)
+        return path.stat().st_size
 
     def write(self, *, uri: str, data: bytes) -> None:
         """
