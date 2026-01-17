@@ -52,6 +52,8 @@ class NCEIBackend(StorageBackend):
         Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
         Lista las URI que comienzan con el prefijo especificado.
+    size(uri: str) -> int
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
     write(uri: str, data: bytes) -> None
         No soportado. Lanza RuntimeError.
     """

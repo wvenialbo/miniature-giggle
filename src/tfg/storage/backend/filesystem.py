@@ -23,8 +23,12 @@ class FilesystemBackend(StorageBackend):
         Verifica si los datos existen en la URI especificada.
     read(uri: str) -> bytes
         Lee los datos desde la URI especificada.
+    read_chunks(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
+        Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
         Lista las URI que comienzan con el prefijo especificado.
+    size(uri: str) -> int
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
     write(uri: str, data: bytes) -> None
         Escribe los datos en la URI especificada.
 
@@ -152,6 +156,25 @@ class FilesystemBackend(StorageBackend):
     def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> col.Iterable[bytes]:
+        """
+        Lee los datos desde la URI especificada de forma segmentada.
+
+        Permite procesar archivos grandes sin cargarlos por completo en
+        RAM y facilita el reporte de progreso en tiempo real.
+
+        Parameters
+        ----------
+        uri : str
+            URI nativa absoluta completa válida para el backend.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+
+        Yields
+        ------
+        bytes
+            Fragmentos del contenido binario del archivo.
+        """
         with open(uri, "rb") as f:
             while chunk := f.read(chunk_size):
                 yield chunk
