@@ -32,12 +32,6 @@ class KaggleURIMapper(URIMapper):
 
     def __init__(self, dataset: str) -> None:
         self.dataset = dataset
-        # Aseguramos que el dataset tenga el formato esperado owner/slug
-        if KAGGLE_SEPARATOR not in dataset:
-            raise ValueError(
-                f"Formato de dataset inválido: '{dataset}'. "
-                "Se esperaba 'owner/dataset-slug'."
-            )
         self.prefix = f"{KAGGLE_PREFIX}{dataset}{KAGGLE_SEPARATOR}"
 
     def __repr__(self) -> str:
