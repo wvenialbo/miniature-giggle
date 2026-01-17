@@ -25,6 +25,11 @@ class PathURIMapper(URIMapper):
     del sistema de archivos nativo o la raíz lógica genérica,
     respectivamente.
 
+    Attributes
+    ----------
+    native_root : pathlib.Path
+        La raíz absoluta del sistema de archivos nativo.
+
     Methods
     -------
     to_generic(uri: str) -> str

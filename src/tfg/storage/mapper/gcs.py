@@ -21,17 +21,21 @@ class GCSURIMapper(URIMapper):
     ----------
     bucket : str
         Nombre del bucket de GCS que actúa como raíz nativa.
+
+    Attributes
+    ----------
+    bucket : str
+        Nombre del bucket de GCS que actúa como raíz nativa.
+
+    Methods
+    -------
+    to_generic(uri: str) -> str
+        Convierte una URI nativa absoluta a una URI genérica absoluta.
+    to_native(uri: str) -> str
+        Convierte una URI genérica absoluta a una URI nativa absoluta.
     """
 
     def __init__(self, bucket: str) -> None:
-        """
-        Inicializa el mapeador de GCS.
-
-        Parameters
-        ----------
-        bucket : str
-            Nombre del bucket de GCS.
-        """
         self.bucket = bucket
 
     def __repr__(self) -> str:

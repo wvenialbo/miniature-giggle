@@ -48,6 +48,13 @@ class GoogleDriveURIMapper(URIMapper):
     cache : DriveCache
         Instancia del gestor de caché.
 
+    Attributes
+    ----------
+    _service : DriveResource
+        Cliente autenticado de la API de Google Drive (v3).
+    _cache : DriveCache
+        Instancia del gestor de caché.
+
     Methods
     -------
     to_generic(uri: str) -> str
