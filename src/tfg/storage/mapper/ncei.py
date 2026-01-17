@@ -27,6 +27,9 @@ class NCEIURIMapper(URIMapper):
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
 
+    def __repr__(self) -> str:
+        return f"NCEIURIMapper(base_url='{self.base_url}')"
+
     def to_native(self, uri: str) -> str:
         """
         Convierte una ruta lógica en una URL absoluta de NCEI.
