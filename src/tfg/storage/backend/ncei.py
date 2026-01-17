@@ -48,7 +48,7 @@ class NCEIBackend(StorageBackend):
         Verifica si un recurso existe en la URI dada.
     read(uri: str) -> bytes
         Lee y devuelve el contenido del recurso en la URI dada.
-    read_chunk(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
+    read_chunks(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
         Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
         Lista las URI que comienzan con el prefijo especificado.

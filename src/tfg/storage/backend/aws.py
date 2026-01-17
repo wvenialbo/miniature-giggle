@@ -54,7 +54,7 @@ class AWSBackend(StorageBackend):
         Verifica si un objeto existe en el backend de almacenamiento.
     read(uri: str) -> bytes
         Lee un objeto desde el backend de almacenamiento.
-    read_chunk(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
+    read_chunks(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
         Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
         Lista las URI que comienzan con el prefijo especificado.
