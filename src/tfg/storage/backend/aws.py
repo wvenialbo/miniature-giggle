@@ -160,7 +160,7 @@ class AWSBackend(StorageBackend):
                 f"Objeto no encontrado en AWS: '{uri}'"
             ) from e
 
-    def read_chunk(
+    def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> col.Iterable[bytes]:
         """

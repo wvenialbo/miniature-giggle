@@ -168,7 +168,7 @@ class NCEIBackend(StorageBackend):
         response.raise_for_status()
         return response.content
 
-    def read_chunk(
+    def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> col.Iterable[bytes]:
         """

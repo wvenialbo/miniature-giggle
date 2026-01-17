@@ -28,7 +28,7 @@ class StorageBackend(tp.Protocol):
         Verifica si los datos existen en la URI especificada.
     read(uri: str) -> bytes
         Lee los datos desde la URI especificada.
-    read_chunk(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
+    read_chunks(uri: str, chunk_size: int = 1024 * 1024) -> Iterable[bytes]
         Lee los datos desde la URI especificada de forma segmentada.
     scan(prefix: str) -> list[str]
         Lista las URI que comienzan con el prefijo especificado.
@@ -206,7 +206,7 @@ class StorageBackend(tp.Protocol):
         """
         ...
 
-    def read_chunk(
+    def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> col.Iterable[bytes]:
         """
