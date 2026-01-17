@@ -1,3 +1,4 @@
+import collections.abc as col
 import io
 import typing as tp
 
@@ -21,27 +22,46 @@ class DatasourceContract(tp.Protocol):
 
     Methods
     -------
+    clear_cache() -> None
+        Limpia todos los objetos almacenados en la caché.
     delete(uri: str) -> None
         Elimina el recurso con la URI especificada.
     exists(uri: str) -> bool
         Verifica si existe el recurso en la URI especificada.
     get_buffer() -> io.BytesIO
         Obtiene un buffer de bytes vacío.
+    get_size(uri: str) -> int
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
     list(prefix: str = "") -> list[str]
         Enumera objetos cuya URI comienza con el prefijo especificado.
     load(uri: str) -> io.BytesIO
         Carga un objeto desde la URI especificada.
+    open(uri: str, chunk_size: int = 1MiB, show_progress: bool = False) -> io.BufferedIOBase
+        Abre un stream de lectura (lazy) desde la URI especificada.
+    purge_cache() -> None
+        Elimina entradas expiradas de la caché.
     save(uri: str, data: io.BytesIO) -> None
         Guarda un objeto en la URI especificada.
+    stream(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
+        Carga un objeto desde la URI especificada en fragmentos.
     """
+
+    def clear_cache(self) -> None:
+        """
+        Limpia todos los objetos almacenados en la caché.
+
+        Esta operación elimina todos los objetos actualmente almacenados
+        en la caché.
+        """
+        ...
 
     def delete(self, *, uri: str) -> None:
         """
         Elimina el recurso con la URI especificada.
 
-        Elimina archivos u objetos individuales si existen.  No elimina
-        contenedores o directorios.  La operación es idempotente, la URI
-        puede no existir sin que se genere un error.  `uri` debe ser una
+        Elimina archivos u objetos individuales si existen. No elimina
+        contenedores o directorios. La operación es idempotente, la URI
+        puede no existir sin que se genere un error. `uri` debe ser una
         URI genérica respecto el punto de montaje del backend.
 
         Parameters
@@ -55,8 +75,8 @@ class DatasourceContract(tp.Protocol):
         """
         Verifica si existe el recurso en la URI especificada.
 
-        Verifica si un archivo u objeto existe en la URI dada.  La URI
-        debe apuntar a un archivo u objeto individual.  `uri` debe ser
+        Verifica si un archivo u objeto existe en la URI dada. La URI
+        debe apuntar a un archivo u objeto individual. `uri` debe ser
         una URI genérica respecto el punto de montaje del backend.
 
         Parameters
@@ -83,13 +103,29 @@ class DatasourceContract(tp.Protocol):
         """
         ...
 
+    def get_size(self, *, uri: str) -> int:
+        """
+        Obtiene el tamaño en bytes del objeto en la URI especificada.
+
+        Parameters
+        ----------
+        uri : str
+            La URI genérica de los datos a verificar.
+
+        Returns
+        -------
+        int
+            Tamaño en bytes del objeto en la URI dada.
+        """
+        ...
+
     def list(self, *, prefix: str = "") -> list[str]:
         """
         Enumera objetos cuya URI comienza con el prefijo especificado.
 
         Obteniene la lista de todos los objetos cuyas URI comienzan con
-        el prefijo dado.  `prefix` debe ser una URI genérica, completa,
-        o parcial, respecto el punto de montaje del backend.  Devuelve
+        el prefijo dado. `prefix` debe ser una URI genérica, completa,
+        o parcial, respecto el punto de montaje del backend. Devuelve
         una lista de URI genéricas respecto el punto de montaje del
         backend.
 
@@ -109,8 +145,8 @@ class DatasourceContract(tp.Protocol):
         """
         Carga un objeto desde la URI especificada.
 
-        Carga los datos desde la URI dada.  La URI debe apuntar a un
-        archivo u objeto individual.  `uri` debe ser una URI genérica
+        Carga los datos desde la URI dada. La URI debe apuntar a un
+        archivo u objeto individual. `uri` debe ser una URI genérica
         respecto el punto de montaje del backend.
 
         Parameters
@@ -125,12 +161,56 @@ class DatasourceContract(tp.Protocol):
         """
         ...
 
+    def open(
+        self,
+        *,
+        uri: str,
+        chunk_size: int = 1024 * 1024,
+        show_progress: bool = False,
+    ) -> io.BufferedIOBase:
+        """
+        Abre un stream de lectura (lazy) desde la URI especificada.
+
+        Ideal para archivos grandes que se pasan a funcioness que pueden
+        trabajar con streams de bytes en memoria. La URI debe apuntar a
+        un archivo u objeto individual. `uri` debe ser una URI genérica
+        respecto el punto de montaje del backend.
+
+        Parameters
+        ----------
+        uri : str
+            La URI de los datos a abrir.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+        show_progress : bool, optional
+            Indica si se debe mostrar una barra de progreso durante la
+            lectura del stream. Por defecto es False.
+
+        Returns
+        -------
+        io.BufferedIOBase
+            Un objeto de flujo de E/S para los datos en la URI dada.
+        """
+        ...
+
+    def purge_cache(self) -> None:
+        """
+        Elimina entradas expiradas de la caché.
+
+        Las implementaciones pueden definir políticas de expiración para
+        los objetos almacenados en la caché (ejemplo: tiempo de vida
+        máximo). Esta función elimina todos los objetos que hayan
+        expirado según dichas políticas.
+        """
+        ...
+
     def save(self, *, uri: str, data: io.BytesIO) -> None:
         """
         Guarda un objeto en la URI especificada.
 
-        Guarda los datos en la URI dada.  Al finalizar la operación, la
-        URI debe apuntar a un archivo u objeto individual.  `uri` debe
+        Guarda los datos en la URI dada. Al finalizar la operación, la
+        URI debe apuntar a un archivo u objeto individual. `uri` debe
         ser una URI genérica respecto el punto de montaje del backend.
 
         Parameters
@@ -139,5 +219,31 @@ class DatasourceContract(tp.Protocol):
             La URI donde se escribirán los datos.
         data : io.BytesIO
             Los datos a escribir en la URI dada.
+        """
+        ...
+
+    def stream(
+        self, *, uri: str, chunk_size: int = 1024 * 1024
+    ) -> col.Iterable[bytes]:
+        """
+        Carga un objeto desde la URI especificada en fragmentos.
+
+        Carga los datos desde la URI dada en fragmentos de tamaño
+        `chunk_size`. La URI debe apuntar a un archivo u objeto
+        individual. `uri` debe ser una URI genérica respecto el punto
+        de montaje del backend.
+
+        Parameters
+        ----------
+        uri : str
+            La URI de los datos a leer.
+        chunk_size : int, optional
+            Tamaño sugerido de cada fragmento en bytes. Debe ser un
+            entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
+
+        Yields
+        ------
+        bytes
+            Fragmentos de datos leídos desde la URI dada.
         """
         ...
