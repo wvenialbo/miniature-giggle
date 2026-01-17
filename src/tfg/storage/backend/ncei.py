@@ -23,6 +23,9 @@ class NCEIBackend(StorageBackend):
 
     Parameters
     ----------
+    session : requests.Session
+        Sesión HTTP configurada para realizar solicitudes al repositorio
+        NCEI.
     scan_cache : CacheBase[list[str]] | None, optional
         Estrategia de caché para los resultados de `scan`. Si es None,
         se utiliza un `DummyCache` (sin caché).
@@ -31,6 +34,9 @@ class NCEIBackend(StorageBackend):
     ----------
     scan_cache : CacheBase[list[str]]
         Instancia de caché para optimizar operaciones de listado (scan).
+    session : requests.Session
+        Sesión HTTP configurada para realizar solicitudes al repositorio
+        NCEI.
 
     Methods
     -------
@@ -50,9 +56,11 @@ class NCEIBackend(StorageBackend):
         No soportado. Lanza RuntimeError.
     """
 
-    def __init__(self, scan_cache: NCEICache | None = None) -> None:
+    def __init__(
+        self, session: requests.Session, scan_cache: NCEICache | None = None
+    ) -> None:
         self.scan_cache = scan_cache or NoopCache()
-        self._session = requests.Session()
+        self.session = session
 
     def __repr__(self) -> str:
         return f"NCEIBackend(scan_cache={repr(self.scan_cache)})"
@@ -132,7 +140,7 @@ class NCEIBackend(StorageBackend):
             contrario (incluyendo cuando la URI apunta a un contenedor o
             no existe).
         """
-        response = self._session.head(uri, timeout=10)
+        response = self.session.head(uri, timeout=10)
         return response.status_code == 200
 
     def read(self, *, uri: str) -> bytes:
@@ -156,7 +164,7 @@ class NCEIBackend(StorageBackend):
         RuntimeError
             Si el backend no soporta operaciones de lectura.
         """
-        response = self._session.get(uri, timeout=15)
+        response = self.session.get(uri, timeout=15)
         response.raise_for_status()
         return response.content
 
@@ -186,7 +194,7 @@ class NCEIBackend(StorageBackend):
             raise ValueError("chunk_size debe ser al menos 1MB.")
 
         # Es vital usar stream=True para no descargar el archivo al hacer el get
-        response = self._session.get(uri, timeout=15, stream=True)
+        response = self.session.get(uri, timeout=15, stream=True)
         response.raise_for_status()
 
         # iter_content se encarga de ir pidiendo fragmentos al socket
@@ -240,7 +248,7 @@ class NCEIBackend(StorageBackend):
             if cached is not None:
                 return cached
 
-        response = self._session.get(folder_url, timeout=15)
+        response = self.session.get(folder_url, timeout=15)
         if response.status_code != 200:
             return []
 
@@ -280,7 +288,7 @@ class NCEIBackend(StorageBackend):
         int
             Tamaño en bytes.
         """
-        response = self._session.head(uri, timeout=10)
+        response = self.session.head(uri, timeout=10)
         response.raise_for_status()
 
         # El header puede no existir si el servidor usa chunked encoding,

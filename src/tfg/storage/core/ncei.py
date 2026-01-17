@@ -1,5 +1,7 @@
 import pathlib as pl
 
+import requests
+
 from ..backend import NCEIBackend
 from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
@@ -38,8 +40,10 @@ def use_ncei_archive(
     mountpoint = local_root / base_path.as_posix()
 
     # 2. Instanciar componentes
+    session = requests.Session()
+
     mapper = NCEIURIMapper(base_url=base_url)
-    backend = NCEIBackend(scan_cache=scan_cache)
+    backend = NCEIBackend(session=session, scan_cache=scan_cache)
 
     # 3. Retornar orquestador
     # El mountpoint es "/" porque el Mapper ya gestiona la base_url
