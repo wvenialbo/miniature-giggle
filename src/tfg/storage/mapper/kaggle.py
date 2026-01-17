@@ -19,6 +19,8 @@ class KaggleURIMapper(URIMapper):
     ----------
     dataset : str
         Identificador del dataset de Kaggle que actúa como raíz nativa.
+    prefix : str
+        Prefijo de las URIs nativas para este dataset.
 
     Methods
     -------
@@ -29,13 +31,14 @@ class KaggleURIMapper(URIMapper):
     """
 
     def __init__(self, dataset: str) -> None:
+        self.dataset = dataset
         # Aseguramos que el dataset tenga el formato esperado owner/slug
         if KAGGLE_SEPARATOR not in dataset:
             raise ValueError(
                 f"Formato de dataset inválido: '{dataset}'. "
                 "Se esperaba 'owner/dataset-slug'."
             )
-        self.dataset = dataset.strip(KAGGLE_SEPARATOR)
+        self.prefix = f"{KAGGLE_PREFIX}{dataset}{KAGGLE_SEPARATOR}"
 
     def __repr__(self) -> str:
         return f"KaggleURIMapper(dataset='{self.dataset}')"
@@ -54,16 +57,11 @@ class KaggleURIMapper(URIMapper):
         str
             URI genérica absoluta en formato POSIX.
         """
-        # uri: kaggle://zillow/zecon/data/file.csv -> /data/file.csv
-        prefix = f"{KAGGLE_PREFIX}{self.dataset}{KAGGLE_SEPARATOR}"
-        if not uri.startswith(prefix):
+        if not uri.startswith(self.prefix):
             raise ValueError(
                 f"La URI '{uri}' no pertenece al dataset '{self.dataset}'"
             )
-
-        path = uri[len(prefix) :]
-
-        return f"{POSIX_SEPARATOR}{path.lstrip(POSIX_SEPARATOR)}"
+        return uri[len(self.prefix) - 1 :]
 
     def to_native(self, uri: str) -> str:
         """
@@ -72,13 +70,13 @@ class KaggleURIMapper(URIMapper):
         Parameters
         ----------
         uri : str
-            La URI lógica (genérica absoluta) proporcionada por el usuario.
+            La URI lógica (genérica absoluta) proporcionada por el
+            usuario.
 
         Returns
         -------
         str
             La URI nativa absoluta transformada (esquema kaggle://).
         """
-        # uri: /data/file.csv -> kaggle://zillow/zecon/data/file.csv
         clean_path = uri.lstrip(POSIX_SEPARATOR)
-        return f"{KAGGLE_PREFIX}{self.dataset}{KAGGLE_SEPARATOR}{clean_path}"
+        return f"{self.prefix}{clean_path}"
