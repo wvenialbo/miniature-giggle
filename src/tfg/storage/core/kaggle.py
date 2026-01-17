@@ -86,7 +86,7 @@ def use_kaggle_dataset(
 
     backend = KaggleBackend(
         api=api,
-        dataset_id=dataset,
+        dataset=dataset,
         scan_cache=scan_cache,
     )
 
