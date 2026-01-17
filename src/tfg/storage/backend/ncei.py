@@ -183,7 +183,7 @@ class NCEIBackend(StorageBackend):
             URI nativa absoluta completa válida para el backend.
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
-            entero positivo con valor mínimo de 1MB. Por defecto 1MB.
+            entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
 
         Yields
         ------
