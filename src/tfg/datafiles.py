@@ -1,4 +1,5 @@
 import dataclasses as dc
+import io
 import json
 import typing as tp
 
@@ -7,23 +8,8 @@ import numpy.typing as npt
 
 from .utils import to_indices
 
+StrOrBytesPath = io.BytesIO | io.BufferedReader | str
 
-    def _resolve_path(self, uri: str) -> str:
-        """
-        Resuelve la URI a una ruta de archivo absoluta.
-
-        Parameters
-        ----------
-        uri : str
-            La URI a resolver.
-
-        Returns
-        -------
-        str
-            La ruta de archivo absoluta correspondiente a la URI.
-        """
-        full_path = os.path.join(self.mountpoint, uri)
-        return os.path.normpath(full_path)
 
 @dc.dataclass(kw_only=True, frozen=True)
 class DatasetInfo:
@@ -75,16 +61,22 @@ class Dataset:
         return to_indices(self.valid_mask)
 
 
-class DatasetRepository:
-
-    def __init__(self, *, drive: GoogleDriver) -> None:
-        self.drive = drive
+class DatasetLoader:
 
     def __repr__(self) -> str:
-        return f"DatasetRepository(drive={repr(self.drive)})"
+        return "DatasetRepository()"
 
-    def activate(self) -> None:
-        self.drive.mount()
+    def load(
+        self,
+        *,
+        file: StrOrBytesPath,
+        dtype: npt.DTypeLike | None = None,
+    ) -> Dataset:
+        data = np.load(file=file, allow_pickle=False)
+
+        metainfo = self._extract_info(data)
+
+        return self._construct_dataset(metainfo, dtype)
 
     @classmethod
     def _construct_dataset(
@@ -168,9 +160,6 @@ class DatasetRepository:
 
         return timeseries.T
 
-    def deactivate(self) -> None:
-        self.drive.unmount()
-
     @staticmethod
     def _extract_info(data: tp.Any) -> DatasetInfo:
         metainfo: dict[str, tp.Any] = json.loads(str(data["metadata"][0]))
@@ -182,15 +171,4 @@ class DatasetRepository:
         )
         metainfo["timeseries_shape"] = tuple(metainfo["timeseries_shape"])
 
-        datainfo = DatasetInfo(**metainfo)
-
-        return datainfo
-
-    def load(self, *, src: str, dtype: npt.DTypeLike | None = None) -> Dataset:
-        data = self.drive.load(filename=src)
-
-        metainfo = self._extract_info(data)
-
-        dataset = self._construct_dataset(metainfo, dtype)
-
-        return dataset
+        return DatasetInfo(**metainfo)
