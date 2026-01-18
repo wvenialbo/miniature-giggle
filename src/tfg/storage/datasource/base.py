@@ -2,7 +2,7 @@ import collections.abc as col
 import io
 import typing as tp
 
-from .utils import ProgressFactory
+from .utils import ProgressTracker
 
 
 class DatasourceContract(tp.Protocol):
@@ -168,7 +168,7 @@ class DatasourceContract(tp.Protocol):
         *,
         uri: str,
         chunk_size: int = 1024 * 1024,
-        progress_factory: ProgressFactory | None = None,
+        tracker: ProgressTracker | None = None,
     ) -> io.BufferedIOBase:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
@@ -185,10 +185,10 @@ class DatasourceContract(tp.Protocol):
         chunk_size : int, optional
             Tamaño sugerido de cada fragmento en bytes. Debe ser un
             entero positivo con valor mínimo de 1MiB. Por defecto 1MiB.
-        progress_factory : ProgressFactory | None, optional
-            Una función factoría para envolver el iterable de bytes
-            con una barra de progreso. Si es None, no se muestra
-            progreso. Por defecto None.
+        tracker : ProgressTracker | None, optional
+            Una función que encapsula un iterable de bytes y reporta el
+            progreso de la operación de lectura. Si es None, no se
+            reporta el progreso.  Por defecto None.
 
         Returns
         -------

@@ -97,7 +97,7 @@ class StreamAdapter(io.RawIOBase):
         return bytes_read
 
 
-class ProgressFactory(tp.Protocol):
+class ProgressTracker(tp.Protocol):
     def __call__(
         self,
         *,
