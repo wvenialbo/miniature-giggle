@@ -79,7 +79,8 @@ class Datasource(DatasourceContract):
         Carga un objeto desde la URI especificada.
     load_stream(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
         Carga un objeto desde la URI especificada en fragmentos.
-    open(uri: str, chunk_size: int = 1MiB) -> io.BufferedIOBase
+    open(uri: str, chunk_size: int = 1MiB,
+         tracker: ProgressTracker | None = None) -> io.BufferedReader
         Abre un stream de lectura (lazy) desde la URI especificada.
     purge_cache() -> None
         Elimina entradas expiradas de la caché.
@@ -243,7 +244,7 @@ class Datasource(DatasourceContract):
         uri: str,
         chunk_size: int = 1024 * 1024,
         tracker: ProgressTracker | None = None,
-    ) -> io.BufferedIOBase:
+    ) -> io.BufferedReader:
         """
         Abre un stream de lectura (lazy) desde la URI especificada.
 
@@ -266,7 +267,7 @@ class Datasource(DatasourceContract):
 
         Returns
         -------
-        io.BufferedIOBase
+        io.BufferedReader
             Un objeto de flujo de E/S para los datos en la URI dada.
         """
         iterator = self.stream(uri=uri, chunk_size=chunk_size)
