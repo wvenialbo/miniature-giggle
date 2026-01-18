@@ -1,9 +1,108 @@
+import contextlib
+import locale
+import os
 import typing as tp
 import warnings
 
 import numpy as np
 import numpy.typing as npt
 import scipy as sp
+
+LangType = tp.Literal["en", "es"]
+
+SUPPORTED_LANG = set(tp.get_args(LangType))
+
+
+def _get_lang(lang_param: str | None) -> str:
+    """
+    Determina el idioma para mostrar la ayuda según la precedencia
+    establecida.
+
+    Parameters
+    ----------
+    lang_param : str | None
+        Idioma proporcionado explícitamente ('en' o 'es'). Si es None, se
+        intentará detectar el idioma automáticamente.
+
+    Returns
+    -------
+    str
+        El idioma seleccionado ('en' o 'es').
+
+    Raises
+    ------
+    ValueError
+        Si el parámetro `lang_param` no es None, y no es 'en' ni 'es'.
+    """
+    # 1. Verificar el parámetro lang
+    if lang_param is not None:
+        if lang_param not in SUPPORTED_LANG:
+            raise ValueError(
+                f"El idioma '{lang_param}' no es válido. "
+                "Use 'en' para inglés o 'es' para español."
+            )
+        print(f"Idioma seleccionado por parámetro: {lang_param}")
+        return lang_param
+
+    # 2. Verificar la variable de entorno GOESDL_LANG
+    if env_lang := os.environ.get("GOESDL_LANG"):
+        env_lang = env_lang.strip().lower()
+        if env_lang in SUPPORTED_LANG:
+            print(f"Idioma seleccionado por variable de entorno: {env_lang}")
+            return env_lang
+
+        # Si la variable existe pero tiene un valor no válido,
+        # ¿continuamos con el siguiente método o notificamos de la configuración incorrecta?
+
+    # 3. Intentar detectar el idioma del sistema operativo
+
+    with contextlib.suppress(Exception):
+        sys_lang, _ = locale.getdefaultlocale()
+        if sys_lang:
+            lang_code = sys_lang.split("_")[0].lower()
+            if lang_code in SUPPORTED_LANG:
+                print(f"Idioma detectado del sistema operativo: {lang_code}")
+                return lang_code
+
+    # 4. Por defecto: inglés
+    return "en"
+
+
+# Función de prueba para verificar el comportamiento
+def test_lang_selection() -> None:
+    """Función para probar la selección de idioma"""
+    print("=== Pruebas de selección de idioma ===")
+
+    # Guardar estado original de variables de entorno
+    original_env = os.environ.get("GOESDL_LANG")
+
+    # Test 1: Parámetro explícito
+    print("\n1. Con parámetro 'es':")
+    print(f"   Resultado: {_get_lang('es')}")
+
+    # Test 2: Parámetro 'en'
+    print("\n2. Con parámetro 'en':")
+    print(f"   Resultado: {_get_lang('en')}")
+
+    # Test 3: Variable de entorno
+    print("\n3. Con variable GOESDL_LANG='es':")
+    os.environ["GOESDL_LANG"] = "es"
+    print(f"   Resultado: {_get_lang(None)}")
+
+    # Test 4: Parámetro inválido
+    print("\n4. Con parámetro inválido 'fr':")
+    try:
+        _get_lang("fr")
+    except ValueError as e:
+        print(f"   Excepción: {e}")
+
+    # Restaurar variable de entorno
+    if original_env:
+        os.environ["GOESDL_LANG"] = original_env
+    else:
+        del os.environ["GOESDL_LANG"]
+
+    print("\n=== Fin de pruebas ===")
 
 
 def _check_is_fitted(self: tp.Any, attributes: list[str]) -> None:
@@ -1327,3 +1426,11 @@ class PropagationAnalyzer:
 
         plt.tight_layout()
         return fig, axes, result
+
+
+if __name__ == "__main__":
+    # Ejecutar pruebas
+    test_lang_selection()
+
+    # Mostrar idioma detectado actualmente
+    print(f"Idioma detectado actualmente: {_get_lang(None)}")
