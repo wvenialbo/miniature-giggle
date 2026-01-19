@@ -123,12 +123,12 @@ def _authenticate_interactive(
     # Lógica de decisión: Refrescar vs. Nuevo Flow
     if credentials and credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
-        tokens.save(credentials)
 
     # Abre una ventana en el navegador o da un link para pegar un código
     if not credentials or not credentials.valid:
         credentials = _run_interactive_auth(config)
-        tokens.save(credentials)
+
+    tokens.save(credentials)
 
     return credentials
 
