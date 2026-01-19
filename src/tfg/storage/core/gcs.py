@@ -14,7 +14,7 @@ POSIX_PREFIX = "/"
 
 
 def _get_gcs_anonymous_client(
-    project_id: str | None = None,
+    project: str | None, **client_kwargs: tp.Any
 ) -> storage.Client:
     """
     Crea un cliente anónimo de Google Cloud Storage.
@@ -30,16 +30,19 @@ def _get_gcs_anonymous_client(
     storage.Client
         Cliente anónimo de GCS.
     """
-    if project_id is not None:
+    if project is not None:
+        print("intentando credenciales anónimas")
         return storage.Client(
-            project=project_id, credentials=AnonymousCredentials()
+            project=project,
+            credentials=AnonymousCredentials(),
+            **client_kwargs,
         )
+    print("usando credenciales anónimas")
     return storage.Client.create_anonymous_client()
 
 
 def _get_gcs_default_client(
-    project_id: str | None = None,
-    **client_kwargs: tp.Any,
+    project: str | None, **client_kwargs: tp.Any
 ) -> storage.Client:
     """
     Crea un cliente de Google Cloud Storage usando credenciales por
@@ -59,12 +62,12 @@ def _get_gcs_default_client(
     storage.Client
         Cliente de GCS autenticado.
     """
-    return storage.Client(project=project_id, **client_kwargs)
+    print("intentando credenciales normales")
+    return storage.Client(project=project, **client_kwargs)
 
 
 def _get_gcs_client(
-    project_id: str | None = None,
-    **client_kwargs: tp.Any,
+    project: str | None, **client_kwargs: tp.Any
 ) -> storage.Client:
     """
     Crea un cliente de Google Cloud Storage, intentando primero con
@@ -90,9 +93,8 @@ def _get_gcs_client(
     try:
         # Intentamos instanciar el cliente "normal" (usa las
         # credenciales provistas o busca las ADC del entorno).
-        print("intentando credenciales normales")
         return _get_gcs_default_client(
-            project_id,
+            project=project,
             **client_kwargs,
         )
     except DefaultCredentialsError:
@@ -104,9 +106,9 @@ def _get_gcs_client(
             raise
         # Si no pasó credenciales explícitas, asumimos que quiere acceso
         # público.
-        print("usando credenciales anónimas")
         return _get_gcs_anonymous_client(
-            project_id,
+            project=project,
+            **client_kwargs,
         )
 
 
@@ -114,7 +116,7 @@ def use_gcs_cloud(
     *,
     bucket: str,
     root_path: str | None = None,
-    project_id: str | None = None,
+    project: str | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
     **client_kwargs: tp.Any,
@@ -142,7 +144,7 @@ def use_gcs_cloud(
     root_path : str, optional
         Prefijo raíz dentro del bucket para este Datasource. Por defecto
         None (raíz del bucket).
-    project_id : str, optional
+    project : str, optional
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
     cache_file : str | Path, optional
@@ -161,8 +163,10 @@ def use_gcs_cloud(
     DatasourceContract
         Objeto orquestador configurado para Google Cloud Storage.
     """
+    print(project)
+    print(client_kwargs)
     # 1. Configuración del cliente de GCS
-    client = _get_gcs_client(project=project_id, **client_kwargs)
+    client = _get_gcs_client(project=project, **client_kwargs)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     #    GCS se beneficia de ScanCache para evitar listar buckets
