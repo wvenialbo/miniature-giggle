@@ -9,10 +9,10 @@ from ..mapper import PathURIMapper
 try:
     from google import colab
 
-    def colab_drive_flush_and_unmount() -> None:  # type: ignore
+    def colab_drive_flush_and_unmount() -> None:
         colab.drive.flush_and_unmount()
 
-    def colab_drive_mount(mountpoint: str) -> None:  # type: ignore
+    def colab_drive_mount(mountpoint: str) -> None:
         colab.drive.mount(mountpoint)
 
     def running_on_colab() -> bool:
@@ -21,12 +21,12 @@ try:
 except ImportError:
 
     def colab_drive_flush_and_unmount() -> None:
-        colab_not_found_error()
+        colab_not_found_error(_MOUNT_POINT)
 
-    def colab_drive_mount(_: str) -> None:
-        colab_not_found_error()
+    def colab_drive_mount(mountpoint: str) -> None:
+        colab_not_found_error(mountpoint)
 
-    def colab_not_found_error() -> None:
+    def colab_not_found_error(mountpoint: str) -> None:
         raise RuntimeError(
             "El módulo 'colab' de Google no está disponible. "
             "Asegúrate de estar ejecutando este código en "
