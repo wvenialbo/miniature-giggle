@@ -165,6 +165,7 @@
         "reportMissingTypeStubs": "none",
         "reportUnknownMemberType": "none",
         "reportUnnecessaryIsInstance": "none",
+        "reportUnknownVariableType": "none",
     },
     "python.analysis.exclude": [
         "**/.venv",
