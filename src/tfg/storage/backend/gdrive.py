@@ -8,11 +8,15 @@ from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
+from ..cache import CacheBase
+
 if tp.TYPE_CHECKING:
     # Importamos el tipo específico para Drive v3
     from googleapiclient._apis.drive.v3.resources import DriveResource, File
 
 from .base import StorageBackend
+
+DriveCache = CacheBase[str]
 
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
@@ -55,8 +59,9 @@ class GoogleDriveBackend(StorageBackend):
       prefijos especiales ('path://...').
     """
 
-    def __init__(self, service: Resource) -> None:
+    def __init__(self, service: Resource, cache: DriveCache) -> None:
         self._service = tp.cast("DriveResource", service)
+        self._cache = cache
 
     def __repr__(self) -> str:
         return f"GoogleDriveBackend({repr(self._service)})"
@@ -160,19 +165,7 @@ class GoogleDriveBackend(StorageBackend):
             contrario (incluyendo cuando la URI apunta a un contenedor o
             no existe).
         """
-        if uri.startswith(PATH_PREFIX):
-            return False
-
-        file_id = self._strip_prefix(uri, ID_PREFIX)
-        try:
-            self._service.files().get(
-                fileId=file_id, fields="id", supportsAllDrives=True
-            ).execute()
-            return True
-        except HttpError as e:
-            if e.resp.status == 404:
-                return False
-            raise
+        return uri.startswith(ID_PREFIX)
 
     def read(self, *, uri: str) -> bytes:
         """
@@ -322,9 +315,7 @@ class GoogleDriveBackend(StorageBackend):
         int
             Tamaño en bytes.
         """
-        if uri.startswith(PATH_PREFIX):
-            raise FileNotFoundError(f"El objeto no existe: '{uri}'")
-
+        uri = self._check_uri(uri)
         file_id = self._strip_prefix(uri, ID_PREFIX)
 
         file = (
@@ -382,16 +373,26 @@ class GoogleDriveBackend(StorageBackend):
             if PATH_ID_SEPARATOR not in clean_uri:
                 raise ValueError(f"URI de creación malformada: '{uri}'")
 
-            filename, parent_id = clean_uri.split(PATH_ID_SEPARATOR, 1)
+            parent_path, filename, parent_id = clean_uri.split(
+                PATH_ID_SEPARATOR, 2
+            )
 
             # Crear el archivo final
             file_metadata: "File" = {"name": filename, "parents": [parent_id]}
 
-            self._service.files().create(
-                body=file_metadata,
-                media_body=media_body,
-                supportsAllDrives=True,
-            ).execute()
+            response = (
+                self._service.files()
+                .create(
+                    body=file_metadata,
+                    media_body=media_body,
+                    supportsAllDrives=True,
+                )
+                .execute()
+            )
+
+            full_logical_path = pl.PurePosixPath(parent_path) / filename
+            file_id = response.get("id") or ""  # patched!
+            self._cache.set(str(full_logical_path), file_id)
 
             return
 
@@ -408,25 +409,32 @@ class GoogleDriveBackend(StorageBackend):
         if PATH_ID_SEPARATOR not in clean_uri:
             raise ValueError(f"URI de creación malformada: '{uri}'")
 
-        relative_path, parent_id = clean_uri.split(PATH_ID_SEPARATOR, 1)
+        parent_path, child_path, parent_id = clean_uri.split(
+            PATH_ID_SEPARATOR, 2
+        )
 
         # Separar carpetas del nombre del archivo final
-        path_obj = pl.Path(relative_path)
+        path_obj = pl.PurePosixPath(child_path)
         filename = path_obj.name
         folders = path_obj.parent.parts
 
         # Crear carpetas intermedias y obtener el ID final donde alojar
         # el archivo
-        target_folder_id = self._mkdir_recursive(folders, parent_id)
+        target_folder_id = self._mkdir_recursive(
+            parent_path, folders, parent_id
+        )
 
         return f"{PATH_PREFIX}{filename}{PATH_ID_SEPARATOR}{target_folder_id}"
 
-    def _mkdir_recursive(self, folders: tuple[str, ...], root_id: str) -> str:
+    def _mkdir_recursive(
+        self, parent: str, folders: tuple[str, ...], root_id: str
+    ) -> str:
         """
         Recorre y crea carpetas si no existen.
         Retorna el ID de la carpeta más profunda.
         """
         current_parent_id: str = root_id
+        current_logical_path = pl.PurePosixPath(parent)
 
         for folder_name in folders:
             if found_id := self._find_folder_id(
@@ -447,7 +455,19 @@ class GoogleDriveBackend(StorageBackend):
                     )
                     .execute()
                 )
-                current_parent_id = folder.get("id") or ""  # patched!
+
+                created_id = folder.get("id")
+
+                if created_id is None:
+                    raise RuntimeError(
+                        f"No se pudo crear la carpeta "
+                        f"'{current_logical_path / folder_name}'"
+                    )
+
+                current_parent_id = created_id
+
+            current_logical_path = current_logical_path / folder_name
+            self._cache.set(str(current_logical_path), current_parent_id)
 
         return current_parent_id
 

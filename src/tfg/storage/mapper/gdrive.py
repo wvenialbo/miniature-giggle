@@ -9,13 +9,13 @@ if tp.TYPE_CHECKING:
     from googleapiclient._apis.drive.v3.resources import DriveResource
     from googleapiclient.discovery import Resource
 
+DriveCache = CacheBase[str]
+
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
 MAX_DEPTH = 50
 PATH_SEP = "/"
-
-DriveCache = CacheBase[str]
 
 
 class GoogleDriveURIMapper(URIMapper):
@@ -183,40 +183,39 @@ class GoogleDriveURIMapper(URIMapper):
             return f"{ID_PREFIX}{cached_id}"
 
         # 2. Caminata por la jerarquía
-        parts = pl.PurePosixPath(uri).parts
+        parts = list(pl.PurePosixPath(uri).parts)
         # Filtramos la raiz '/' si path.parts la incluye
         parts = [p for p in parts if p != PATH_SEP]
 
-        current_id = "root"
-        resolved_path = ""  # Para ir construyendo la llave del caché
+        parent_id = "root"
 
+        current_logical_path = pl.PurePosixPath(PATH_SEP)
         for i, segment in enumerate(parts):
             # Construir ruta parcial actual para consultar/guardar caché
-            resolved_path = (
-                f"{resolved_path}{PATH_SEP}{segment}"
-                if resolved_path
-                else segment
-            )
+            current_logical_path = current_logical_path / segment
+            parent_path = str(current_logical_path)
 
-            if cached_step := self._cache.get(resolved_path):
-                current_id = cached_step
+            if cached_step := self._cache.get(parent_path):
+                parent_id = cached_step
                 continue
 
             if found_id := self._find_child_id(
-                parent_id=current_id, name=segment
+                parent_id=parent_id, name=segment
             ):
-                current_id = found_id
-                self._cache.set(resolved_path, current_id)
+                parent_id = found_id
+                self._cache.set(parent_path, parent_id)
             else:
                 # No encontrado. Preparamos el retorno especial.
-                # Resto de la ruta que falta por crear
-                remaining_path = PATH_SEP.join(parts[i:])
+                # Ruta existente, resto de la ruta que falta por crear,
+                # e ID de la ruta existente.
+                child_path = PATH_SEP.join(parts[i:])
                 return (
-                    f"{PATH_PREFIX}{remaining_path}"
-                    f"{PATH_ID_SEPARATOR}{current_id}"
+                    f"{PATH_PREFIX}{parent_path}"
+                    f"{PATH_ID_SEPARATOR}{child_path}"
+                    f"{PATH_ID_SEPARATOR}{parent_id}"
                 )
 
-        return f"{ID_PREFIX}{current_id}"
+        return f"{ID_PREFIX}{parent_id}"
 
     def _find_child_id(self, parent_id: str, name: str) -> str | None:
         """
