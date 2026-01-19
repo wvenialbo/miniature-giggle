@@ -93,6 +93,12 @@ def _run_interactive_auth(config: AuthConfig) -> Credentials:
         config.secrets_name
     )
     with resources.as_file(source) as creds_path:
+        if not creds_path.exists():
+            raise FileNotFoundError(
+                "No se encontró el archivo de configuración de cliente "
+                f"en '{source}'. Asegúrate de que la librería se instaló "
+                "correctamente con los recursos incluidos."
+            )
         flow = InstalledAppFlow.from_client_secrets_file(
             client_secrets_file=str(creds_path), scopes=config.scopes
         )
