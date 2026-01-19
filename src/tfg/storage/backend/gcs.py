@@ -2,11 +2,10 @@ import collections.abc as col
 import contextlib
 import typing as tp
 
-from google.cloud import storage
-from google.cloud.exceptions import NotFound
-
 from ..cache import CacheBase, DummyCache
 from .base import StorageBackend
+
+Client = tp.Any
 
 # Definición de tipos para el caché
 GCSCache = CacheBase[list[str]]
@@ -29,7 +28,7 @@ class GCSBackend(StorageBackend):
     ----------
     bucket : str
         Nombre del bucket de GCS sobre el cual opera esta instancia.
-    client : storage.Client
+    client : Client
         Cliente autenticado de Google Cloud Storage.
     scan_cache : CacheBase[list[str]] | None, optional
         Estrategia de caché para los resultados de `scan`. Si es None,
@@ -39,7 +38,7 @@ class GCSBackend(StorageBackend):
     ----------
     bucket_name : str
         Nombre del bucket de GCS sobre el cual opera esta instancia.
-    client : storage.Client
+    client : Client
         Cliente autenticado de Google Cloud Storage.
     scan_cache : CacheBase[list[str]]
         Instancia de caché para optimizar operaciones de listado (scan).
@@ -67,11 +66,13 @@ class GCSBackend(StorageBackend):
     def __init__(
         self,
         bucket: str,
-        client: "storage.Client",
+        client: Client,
         scan_cache: GCSCache | None = None,
     ) -> None:
+        from google.cloud import storage  # type: ignore
+
         self.bucket_name = bucket
-        self.client = client
+        self.client: storage.Client = client
         self.scan_cache: GCSCache = scan_cache or NoopCache()
 
     def __repr__(self) -> str:
@@ -112,13 +113,12 @@ class GCSBackend(StorageBackend):
         uri : str
             URI nativa absoluta.
         """
+        from google.cloud.exceptions import NotFound
+
         blob = self._get_blob(uri)
 
         with contextlib.suppress(NotFound):
             blob.delete()
-
-        # Importante: Invalidar el caché al modificar la estructura
-        self.scan_cache.clear()
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -134,9 +134,11 @@ class GCSBackend(StorageBackend):
         bool
             True si el blob existe, False en caso contrario.
         """
-        blob = self._get_blob(uri)
-        # blob.exists() realiza una llamada a la API
-        return blob.exists()
+        from google.cloud import storage  # type: ignore
+
+        blob: storage.Blob = self._get_blob(uri)
+
+        return bool(blob.exists())
 
     def read(self, *, uri: str) -> bytes:
         """
@@ -157,13 +159,11 @@ class GCSBackend(StorageBackend):
         FileNotFoundError
             Si el objeto no existe en GCS (captura `NotFound`).
         """
-        blob = self._get_blob(uri)
-        try:
-            return blob.download_as_bytes()
-        except NotFound as e:
-            raise FileNotFoundError(
-                f"Objeto no encontrado en GCS: '{uri}'"
-            ) from e
+        from google.cloud import storage  # type: ignore
+
+        blob: storage.Blob = self._get_blob(uri)
+
+        return bytes(blob.download_as_bytes())
 
     def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
@@ -187,7 +187,9 @@ class GCSBackend(StorageBackend):
         bytes
             Fragmentos del contenido binario del archivo.
         """
-        blob = self._get_blob(uri)
+        from google.cloud import storage  # type: ignore
+
+        blob: storage.Blob = self._get_blob(uri)
         with blob.open("rb", chunk_size=chunk_size) as f:
             while chunk := tp.cast(bytes, f.read(chunk_size)):
                 yield chunk
@@ -209,6 +211,8 @@ class GCSBackend(StorageBackend):
         list[str]
             Lista de URIs nativas absolutas encontradas.
         """
+        from google.cloud import storage  # type: ignore
+
         # Intentar recuperar de caché
         cached = self.scan_cache.get(prefix)
         if cached is not None:
@@ -221,13 +225,15 @@ class GCSBackend(StorageBackend):
         # list_blobs maneja la paginación automáticamente
         blobs = tp.cast(
             col.Iterator[storage.Blob],
-            self.client.list_blobs(bucket, prefix=blob_prefix),
+            self.client.list_blobs(
+                bucket, prefix=blob_prefix, fields="items(name),nextPageToken"
+            ),
         )
 
         results: list[str] = []
 
+        blob: storage.Blob
         for blob in blobs:
-            blob: storage.Blob
             # Construir la URI nativa completa
             full_uri = f"{ID_PREFIX}{bucket_name}{SEPARATOR}{blob.name}"
             results.append(full_uri)
@@ -271,10 +277,7 @@ class GCSBackend(StorageBackend):
         # upload_from_string acepta bytes si se pasan como tal
         blob.upload_from_string(data)
 
-        # Importante: Invalidar el caché de scan ya que la estructura cambió
-        self.scan_cache.clear()
-
-    def _get_blob(self, uri: str) -> storage.Blob:
+    def _get_blob(self, uri: str) -> tp.Any:
         bucket_name, blob_name = self._split_uri(uri)
         bucket = self.client.bucket(bucket_name)
         return bucket.blob(blob_name)
