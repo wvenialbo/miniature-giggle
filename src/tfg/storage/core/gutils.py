@@ -2,9 +2,6 @@ import os
 import pathlib as pl
 import typing as tp
 from dataclasses import dataclass
-from importlib import resources
-
-from platformdirs import user_data_dir
 
 from ... import __package_id__, __package_root__
 
@@ -19,14 +16,18 @@ class _AuthConfig:
     secrets_name: str = "secrets.json"
     secrets_package: str = "tfg.config"
     token_name: str = "token.json"
+    timeout: int = 15
+
+    # Define los scopes necesarios para GCS
     scopes: tuple[str, ...] = (
         "https://www.googleapis.com/auth/cloud-platform",
         "https://www.googleapis.com/auth/devstorage.full_control",
     )
-    timeout: int = 15
 
     @property
     def token_path(self) -> pl.Path:
+        from platformdirs import user_data_dir
+
         path = pl.Path(user_data_dir(self.app_name, self.app_author))
         return path / self.token_name
 
@@ -45,22 +46,20 @@ class _TokenManager:
             return OAuthCredentials.from_authorized_user_file(
                 str(path), self.config.scopes
             )
+
         return None
 
     def save(self, credentials: tp.Any) -> None:
         from google.oauth2.credentials import Credentials as OAuthCredentials
 
+        target = tp.cast(OAuthCredentials, credentials)
+
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(path, "w") as file:
-            target = tp.cast(OAuthCredentials, credentials)
-            file.write(target.to_json())
+        path.write_text(target.to_json())
 
 
 _CONFIG = _AuthConfig()
-
-
 _tokens = _TokenManager(_CONFIG)
 
 
@@ -97,7 +96,9 @@ def _running_on_colab() -> bool:
     return bool(os.getenv("COLAB_RELEASE_TAG"))
 
 
-def _run_interactive_auth(config: _AuthConfig) -> tp.Any:
+def _run_interactive_auth(config: _AuthConfig) -> Credentials:
+    from importlib import resources
+
     from google_auth_oauthlib.flow import InstalledAppFlow
 
     source = resources.files(config.secrets_package).joinpath(
@@ -105,8 +106,7 @@ def _run_interactive_auth(config: _AuthConfig) -> tp.Any:
     )
     with resources.as_file(source) as creds_path:
         flow = InstalledAppFlow.from_client_secrets_file(
-            client_secrets_file=str(creds_path),
-            scopes=config.scopes,
+            client_secrets_file=str(creds_path), scopes=config.scopes
         )
 
     return flow.run_local_server(port=0)
@@ -114,11 +114,10 @@ def _run_interactive_auth(config: _AuthConfig) -> tp.Any:
 
 def _authenticate_interactive(
     config: _AuthConfig, tokens: _TokenManager
-) -> tp.Any:
+) -> Credentials:
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials as OAuthCredentials
 
-    # Define los scopes necesarios para GCS
     credentials = tp.cast(OAuthCredentials, tokens.load())
 
     # Lógica de decisión: Refrescar vs. Nuevo Flow
@@ -136,7 +135,7 @@ def _authenticate_interactive(
 
 def _authenticate_user(
     project_id: str | None, config: _AuthConfig, tokens: _TokenManager
-) -> tp.Any | None:
+) -> Credentials | None:
     """
     Autentica el usuario en Google Colab para acceder a GCS.
 
