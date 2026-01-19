@@ -1434,3 +1434,400 @@ if __name__ == "__main__":
 
     # Mostrar idioma detectado actualmente
     print(f"Idioma detectado actualmente: {_get_lang(None)}")
+
+
+
+!pip install colorama
+from typing import Union, Optional
+from enum import Enum
+from dataclasses import dataclass
+import textwrap
+from colorama import init, Fore, Style
+
+# Inicializar colorama para colores en consola
+init(autoreset=True)
+
+# ============================================================================
+# CONFIGURACIÓN DE VALORES VÁLIDOS
+# ============================================================================
+
+class DatasetType(Enum):
+    """Tipos de datasets disponibles"""
+    LANDSAT = "landsat"
+    SENTINEL = "sentinel"
+
+class SceneType(Enum):
+    """Tipos de escenas disponibles"""
+    URBAN = "urban"
+    RURAL = "rural"
+    COASTAL = "coastal"
+    FOREST = "forest"
+
+class OriginType(Enum):
+    """Orígenes de datos disponibles"""
+    NASA = "nasa"
+    ESA = "esa"
+    USGS = "usgs"
+    JAXA = "jaxa"
+
+class VersionType(Enum):
+    """Versiones disponibles"""
+    V1_0 = "v1.0"
+    V2_0 = "v2.0"
+    V2_1 = "v2.1"
+    V3_0 = "v3.0"
+
+# Mapeo de datasets a escenas permitidas
+DATASET_SCENES = {
+    DatasetType.LANDSAT: [SceneType.URBAN, SceneType.RURAL, SceneType.FOREST],
+    DatasetType.SENTINEL: [SceneType.URBAN, SceneType.COASTAL, SceneType.FOREST],
+}
+
+# Mapeo de datasets a orígenes permitidos
+DATASET_ORIGINS = {
+    DatasetType.LANDSAT: [OriginType.NASA, OriginType.USGS],
+    DatasetType.SENTINEL: [OriginType.ESA],
+}
+
+# ============================================================================
+# CLASES BASE
+# ============================================================================
+
+@dataclass
+class GridsatBase:
+    """Clase base para datasets Gridsat"""
+    dataset: DatasetType
+    scene: SceneType
+    origins: list[OriginType]
+    versions: list[VersionType]
+
+    def __post_init__(self):
+        """Validación después de la inicialización"""
+        self._validate()
+
+    def _validate(self):
+        """Método de validación común"""
+        if self.dataset not in DATASET_SCENES:
+            raise ValueError(f"Dataset {self.dataset} no válido")
+
+        if self.scene not in DATASET_SCENES[self.dataset]:
+            raise ValueError(
+                f"Escena {self.scene} no válida para dataset {self.dataset}. "
+                f"Escenas permitidas: {[s.value for s in DATASET_SCENES[self.dataset]]}"
+            )
+
+        for origin in self.origins:
+            if origin not in DATASET_ORIGINS[self.dataset]:
+                raise ValueError(
+                    f"Origen {origin} no válido para dataset {self.dataset}. "
+                    f"Orígenes permitidos: {[o.value for o in DATASET_ORIGINS[self.dataset]]}"
+                )
+
+    def process(self):
+        """Método para procesar datos"""
+        raise NotImplementedError
+
+class LandsatGridsat(GridsatBase):
+    """Clase específica para dataset Landsat"""
+
+    def __init__(self, scene: SceneType, origins: list[OriginType], versions: list[VersionType]):
+        super().__init__(
+            dataset=DatasetType.LANDSAT,
+            scene=scene,
+            origins=origins,
+            versions=versions
+        )
+
+    def process(self):
+        """Procesamiento específico de Landsat"""
+        return f"Procesando Landsat - Escena: {self.scene.value}"
+
+    def __str__(self):
+        return f"LandsatGridsat(scene={self.scene.value}, origins={[o.value for o in self.origins]})"
+
+class SentinelGridsat(GridsatBase):
+    """Clase específica para dataset Sentinel"""
+
+    def __init__(self, scene: SceneType, origins: list[OriginType], versions: list[VersionType]):
+        super().__init__(
+            dataset=DatasetType.SENTINEL,
+            scene=scene,
+            origins=origins,
+            versions=versions
+        )
+
+    def process(self):
+        """Procesamiento específico de Sentinel"""
+        return f"Procesando Sentinel - Escena: {self.scene.value}"
+
+    def __str__(self):
+        return f"SentinelGridsat(scene={self.scene.value}, origins={[o.value for o in self.origins]})"
+
+# ============================================================================
+# FUNCIÓN FACTORÍA CON AYUDA ELEGANTE
+# ============================================================================
+
+def print_help(
+    missing_param: Optional[str] = None,
+    dataset: Optional[str] = None,
+    scene: Optional[str] = None
+) -> None:
+    """
+    Imprime una ayuda estructurada y elegante para el usuario.
+
+    Args:
+        missing_param: Parámetro que falta (opcional)
+        dataset: Dataset proporcionado (opcional)
+        scene: Escena proporcionada (opcional)
+    """
+    help_text = f"""
+{Fore.CYAN}{Style.BRIGHT}{'='*60}
+{'GRIDSAT FACTORY - AYUDA'.center(60)}
+{'='*60}{Style.RESET_ALL}
+
+{Fore.YELLOW}📋 {Style.BRIGHT}USO:{Style.RESET_ALL}
+    use_gridsat(
+        dataset='landsat' | 'sentinel',
+        scene='urban' | 'rural' | 'coastal' | 'forest',
+        origins='nasa' | 'esa' | 'usgs' | 'jaxa' (o lista),
+        versions='v1.0' | 'v2.0' | 'v2.1' | 'v3.0' (o lista)
+    )
+
+{Fore.RED if missing_param else Fore.YELLOW}⚠️  {Style.BRIGHT}PARÁMETRO REQUERIDO FALTANTE:{Style.RESET_ALL} {missing_param or 'Ninguno'}
+"""
+
+    # Información específica basada en lo que ya se proporcionó
+    if dataset:
+        help_text += f"\n{Fore.GREEN}✅ Dataset proporcionado: {dataset}{Style.RESET_ALL}\n"
+
+    if scene:
+        help_text += f"{Fore.GREEN}✅ Escena proporcionada: {scene}{Style.RESET_ALL}\n"
+
+    help_text += f"""
+{Fore.GREEN}📊 {Style.Bright}DATASETS DISPONIBLES:{Style.RESET_ALL}
+    {Fore.CYAN}• landsat{Style.RESET_ALL}
+      - Escenas: {', '.join([s.value for s in DATASET_SCENES[DatasetType.LANDSAT]])}
+      - Orígenes: {', '.join([o.value for o in DATASET_ORIGINS[DatasetType.LANDSAT]])}
+
+    {Fore.CYAN}• sentinel{Style.RESET_ALL}
+      - Escenas: {', '.join([s.value for s in DATASET_SCENES[DatasetType.SENTINEL]])}
+      - Orígenes: {', '.join([o.value for o in DATASET_ORIGINS[DatasetType.SENTINEL]])}
+
+{Fore.MAGENTA}🎯 {Style.Bright}ESCENAS DISPONIBLES:{Style.RESET_ALL}
+"""
+    for scene_enum in SceneType:
+        datasets_compatibles = [
+            d.value for d in DATASET_SCENES
+            if scene_enum in DATASET_SCENES[d]
+        ]
+        help_text += f"    • {scene_enum.value}: compatible con {', '.join(datasets_compatibles)}\n"
+
+    help_text += f"""
+{Fore.BLUE}🌍 {Style.Bright}ORÍGENES DISPONIBLES:{Style.RESET_ALL}
+"""
+    for origin in OriginType:
+        help_text += f"    • {origin.value}\n"
+
+    help_text += f"""
+{Fore.YELLOW}🔄 {Style.Bright}VERSIONES DISPONIBLES:{Style.RESET_ALL}
+"""
+    for version in VersionType:
+        help_text += f"    • {version.value}\n"
+
+    help_text += f"""
+{Fore.CYAN}{'='*60}
+{'EJEMPLOS:'.center(60)}
+{'='*60}{Style.RESET_ALL}
+
+{Fore.WHITE}Ejemplo 1:{Style.RESET_ALL}
+    use_gridsat(
+        dataset='landsat',
+        scene='urban',
+        origins='nasa',
+        versions='v2.0'
+    )
+
+{Fore.WHITE}Ejemplo 2:{Style.RESET_ALL}
+    use_gridsat(
+        dataset='sentinel',
+        scene='coastal',
+        origins=['esa'],
+        versions=['v2.1', 'v3.0']
+    )
+
+{Fore.CYAN}{'='*60}{Style.RESET_ALL}
+"""
+
+    # Usar textwrap para mantener el formato limpio
+    print(textwrap.dedent(help_text))
+
+def use_gridsat(
+    *,  # Hacemos todos los parámetros keyword-only
+    dataset: Optional[str] = None,
+    scene: Optional[str] = None,
+    origins: Optional[Union[str, list[str]]] = None,
+    versions: Optional[Union[str, list[str]]] = None
+) -> Union[LandsatGridsat, SentinelGridsat]:
+    """
+    Función factoría para crear instancias de Gridsat.
+
+    Args:
+        dataset: Tipo de dataset ('landsat' o 'sentinel')
+        scene: Tipo de escena ('urban', 'rural', 'coastal', 'forest')
+        origins: Origen(es) de los datos (string o lista)
+        versions: Versión(es) de los datos (string o lista)
+
+    Returns:
+        Instancia de LandsatGridsat o SentinelGridsat
+
+    Raises:
+        ValueError: Si los parámetros no son válidos
+    """
+    # ========================================================================
+    # VALIDACIÓN DE PARÁMETROS REQUERIDOS
+    # ========================================================================
+    missing_params = []
+
+    if dataset is None:
+        missing_params.append("dataset")
+    if scene is None:
+        missing_params.append("scene")
+
+    if missing_params:
+        print_help(missing_param=", ".join(missing_params))
+        raise ValueError(f"Parámetros requeridos faltantes: {', '.join(missing_params)}")
+
+    # ========================================================================
+    # VALIDACIÓN Y CONVERSIÓN DE PARÁMETROS
+    # ========================================================================
+    try:
+        # Convertir string a Enum
+        dataset_enum = DatasetType(dataset.lower())
+        scene_enum = SceneType(scene.lower())
+    except ValueError as e:
+        print_help(dataset=dataset, scene=scene)
+        raise ValueError(f"Parámetro no válido: {e}")
+
+    # Procesar origins (convertir a lista si es string)
+    if origins is None:
+        origins_list = []
+    elif isinstance(origins, str):
+        origins_list = [origins.lower()]
+    else:
+        origins_list = [o.lower() for o in origins]
+
+    # Convertir origins a Enum
+    origins_enums = []
+    for origin in origins_list:
+        try:
+            origins_enums.append(OriginType(origin))
+        except ValueError:
+            print_help(dataset=dataset, scene=scene)
+            raise ValueError(f"Origen no válido: {origin}")
+
+    # Procesar versions (convertir a lista si es string)
+    if versions is None:
+        versions_list = []
+    elif isinstance(versions, str):
+        versions_list = [versions.lower()]
+    else:
+        versions_list = [v.lower() for v in versions]
+
+    # Convertir versions a Enum
+    versions_enums = []
+    for version in versions_list:
+        try:
+            versions_enums.append(VersionType(version))
+        except ValueError:
+            print_help(dataset=dataset, scene=scene)
+            raise ValueError(f"Versión no válida: {version}")
+
+    # ========================================================================
+    # CREACIÓN DE LA INSTANCIA APROPIADA
+    # ========================================================================
+    try:
+        if dataset_enum == DatasetType.LANDSAT:
+            return LandsatGridsat(
+                scene=scene_enum,
+                origins=origins_enums,
+                versions=versions_enums
+            )
+        elif dataset_enum == DatasetType.SENTINEL:
+            return SentinelGridsat(
+                scene=scene_enum,
+                origins=origins_enums,
+                versions=versions_enums
+            )
+        else:
+            raise ValueError(f"Dataset no soportado: {dataset}")
+
+    except ValueError as e:
+        print_help(dataset=dataset, scene=scene)
+        raise
+
+# ============================================================================
+# EJEMPLOS DE USO
+# ============================================================================
+
+if __name__ == "__main__":
+    # Ejemplo 1: Uso correcto
+    print("Ejemplo 1: Uso correcto")
+    print("-" * 40)
+    try:
+        landsat_instance = use_gridsat(
+            dataset="landsat",
+            scene="urban",
+            origins="nasa",
+            versions="v2.0"
+        )
+        print(f"✅ Instancia creada: {landsat_instance}")
+        print(f"   Procesamiento: {landsat_instance.process()}")
+    except ValueError as e:
+        print(f"❌ Error: {e}")
+
+    print("\n" + "="*60 + "\n")
+
+    # Ejemplo 2: Uso con lista de orígenes y versiones
+    print("Ejemplo 2: Uso con múltiples orígenes y versiones")
+    print("-" * 40)
+    try:
+        sentinel_instance = use_gridsat(
+            dataset="sentinel",
+            scene="coastal",
+            origins=["esa"],
+            versions=["v2.1", "v3.0"]
+        )
+        print(f"✅ Instancia creada: {sentinel_instance}")
+        print(f"   Procesamiento: {sentinel_instance.process()}")
+    except ValueError as e:
+        print(f"❌ Error: {e}")
+
+    print("\n" + "="*60 + "\n")
+
+    # Ejemplo 3: Falta parámetro requerido (se mostrará ayuda)
+    print("Ejemplo 3: Falta parámetro 'scene'")
+    print("-" * 40)
+    try:
+        instance = use_gridsat(
+            dataset="landsat",
+            origins="nasa",
+            versions="v2.0"
+        )
+    except ValueError as e:
+        print(f"❌ Error capturado: {e}")
+
+    print("\n" + "="*60 + "\n")
+
+    # Ejemplo 4: Parámetro inválido (se mostrará ayuda)
+    print("Ejemplo 4: Escena inválida para el dataset")
+    print("-" * 40)
+    try:
+        instance = use_gridsat(
+            dataset="landsat",
+            scene="coastal",  # coastal no está disponible para landsat
+            origins="nasa"
+        )
+    except ValueError as e:
+        print(f"❌ Error capturado: {e}")
+
+
