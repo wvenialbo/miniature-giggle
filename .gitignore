@@ -212,6 +212,7 @@ Automating-GIS-processes/
 code/
 cuadernos/
 Datasource-Specs/
+src/tfg/config/secrets.json
 src/tfg/experimental/
 src/tfg/experimental_a/
 src/tfg/experimental_b/
