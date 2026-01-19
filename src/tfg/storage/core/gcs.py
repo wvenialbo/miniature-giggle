@@ -1,13 +1,13 @@
 import pathlib as pl
 import typing as tp
 
-from google.auth.credentials import Credentials
-
 from ..backend import GCSBackend
 from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
 from ..mapper import GCSURIMapper
-from .gutils import get_gcs_client
+from .gcsauth import get_gcs_client
+
+Credentials = tp.Any
 
 
 def use_gcs_cloud(
