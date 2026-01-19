@@ -2,8 +2,8 @@ import os
 import pathlib as pl
 import typing as tp
 
-from google.auth.credentials import AnonymousCredentials
-from google.auth.exceptions import RefreshError
+import requests
+from google.auth.credentials import AnonymousCredentials, Credentials
 from google.cloud import storage  # type: ignore
 
 from ..backend import GCSBackend
@@ -14,13 +14,13 @@ from ..mapper import GCSURIMapper
 try:
     from google.colab import auth
 
-    def _authenticate_user(project_id: str | None = None) -> None:
+    def _authenticate_user(project_id: str | None) -> None:
         """
         Autentica el usuario en Google Colab para acceder a GCS.
 
         Parameters
         ----------
-        project_id : str, optional
+        project_id : str | None
             ID del proyecto de Google Cloud. No es obligatorio.
 
         Returns
@@ -34,7 +34,7 @@ try:
 
 except ImportError:
 
-    def _authenticate_user(project_id: str | None = None) -> None:
+    def _authenticate_user(project_id: str | None) -> None:
         # No-op function for environments outside Google Colab.
         pass
 
@@ -53,9 +53,12 @@ def _get_gcs_anonymous_client(
 
     Parameters
     ----------
-    project : str, optional
+    project : str | None
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo del entorno.
+    **client_kwargs : Any
+        Argumentos adicionales para `storage.Client` (credentials,
+        client_info, client_options, etc.).
 
     Returns
     -------
@@ -74,7 +77,9 @@ def _get_gcs_anonymous_client(
 
 
 def _get_gcs_default_client(
-    project: str | None, **client_kwargs: tp.Any
+    project: str | None,
+    credentials: Credentials | None,
+    **client_kwargs: tp.Any,
 ) -> storage.Client:
     """
     Crea un cliente de Google Cloud Storage usando credenciales por
@@ -82,9 +87,12 @@ def _get_gcs_default_client(
 
     Parameters
     ----------
-    project : str, optional
+    project : str | None
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
+    credentials: Credentials | None, optional
+        Credenciales explícitas para autenticación. Si se proporcionan,
+        se usan en lugar de las ADC.
     **client_kwargs : Any
         Argumentos adicionales para `storage.Client` (credentials,
         client_info, client_options, etc.).
@@ -95,13 +103,18 @@ def _get_gcs_default_client(
         Cliente de GCS autenticado.
     """
     print("intentando credenciales normales")
-    client = storage.Client(project=project, **client_kwargs)
+    client = storage.Client(
+        project=project, credentials=credentials, **client_kwargs
+    )
     _: list[tp.Any] = list(client.list_buckets())
     return client
 
 
 def _get_gcs_client(
-    project: str | None, **client_kwargs: tp.Any
+    bucket: str,
+    project: str | None,
+    credentials: Credentials | None,
+    **client_kwargs: tp.Any,
 ) -> storage.Client:
     """
     Crea un cliente de Google Cloud Storage.
@@ -113,9 +126,14 @@ def _get_gcs_client(
 
     Parameters
     ----------
-    project : str, optional
+    bucket : str
+        Nombre del bucket de GCS.
+    project : str | None
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
+    credentials: Credentials | None, optional
+        Credenciales explícitas para autenticación. Si se proporcionan,
+        se usan en lugar de las ADC.
     **client_kwargs : Any
         Argumentos adicionales para `storage.Client` (credentials,
         client_info, client_options, etc.).
@@ -125,26 +143,65 @@ def _get_gcs_client(
     storage.Client
         Cliente de GCS (autenticado o anónimo).
     """
-    # Si el usuario pasó credenciales explícitas, confiar en ellas; usar
-    # las credenciales provistas.
-    if "credentials" in client_kwargs:
-        return _get_gcs_default_client(project=project, **client_kwargs)
+    # Si se proveyeron, usamos las credenciales del usuario.
+    if credentials is not None:
+        return _get_gcs_default_client(
+            project=project, credentials=credentials, **client_kwargs
+        )
 
-    # Forzar autenticación de usuario (no anónimo), si el usuario se
-    # rehusa a autenticarse, caerá en un sesión anónima.
+    # Para buckets públicos, usamos un cliente anónimo.
+    if _is_public(bucket=bucket, project=project):
+        return _get_gcs_anonymous_client(project=project, **client_kwargs)
+
+    # Si se proveyeron credenciales explícitas y el bucket no es
+    # público, forzamos autenticación de usuario (no anónimo).
     _authenticate_user(project_id=project)
 
-    # Si no hay credenciales explícitas, se instancia el cliente nativo
-    # usando el `project` y argumentos extra.
+    # Intentamos instanciar el cliente con credenciales por defecto;
+    # busca las ADC del entorno.
+    return _get_gcs_default_client(
+        project=project, credentials=None, **client_kwargs
+    )
+
+
+def _is_public_alt(bucket: str, project: str | None) -> bool:
+    """
+    Verifica si un bucket de GCS es público sin instanciar un cliente
+    autenticado.
+
+    Parameters
+    ----------
+    bucket : str
+        Nombre del bucket de GCS.
+    project : str | None
+        ID del proyecto de Google Cloud. Si no se especifica, la
+        librería intentará inferirlo del entorno.
+
+    Returns
+    -------
+    bool
+        True si el bucket es público, False en caso contrario.
+    """
+    anon_client = _get_gcs_anonymous_client(project=project)
     try:
-        # Intentamos instanciar el cliente con credenciales por defecto;
-        # busca las ADC del entorno.
-        return _get_gcs_default_client(project=project, **client_kwargs)
+        _ = anon_client.get_bucket(bucket)
+        return True
+    except Exception:
+        return False
 
-    except RefreshError:
 
-        # Asumimos que el usuario quiere acceso público.
-        return _get_gcs_anonymous_client(project=project, **client_kwargs)
+def _is_public(bucket: str, project: str | None) -> bool:  # NOSONAR
+    # Endpoint de la API XML de GCS para el bucket
+    url = f"https://storage.googleapis.com/{bucket}"
+
+    try:
+        # Petición simple SIN cabeceras de autorización
+        response = requests.get(url, timeout=15)
+
+        return response.status_code == 200
+
+    except Exception:
+        return False
 
 
 def use_gcs_cloud(
@@ -152,6 +209,7 @@ def use_gcs_cloud(
     bucket: str,
     root_path: str | None = None,
     project: str | None = None,
+    credentials: Credentials | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
     **client_kwargs: tp.Any,
@@ -182,6 +240,9 @@ def use_gcs_cloud(
     project : str, optional
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
+    credentials: Credentials | None, optional
+        Credenciales explícitas para autenticación. Si se proporcionan,
+        se usan en lugar de las ADC.
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de las operaciones
         'scan'. Crucial para buckets con miles de objetos para evitar
@@ -190,18 +251,21 @@ def use_gcs_cloud(
         Tiempo en segundos tras el cual expira la caché de escaneo. Si
         es None, la caché no expira automáticamente.
     **client_kwargs : Any
-        Argumentos adicionales para `storage.Client` (credentials,
-        client_info, client_options, etc.).
+        Argumentos adicionales para `storage.Client` (client_info,
+        client_options, etc.).
 
     Returns
     -------
     DatasourceContract
         Objeto orquestador configurado para Google Cloud Storage.
     """
-    print(project)
-    print(client_kwargs)
     # 1. Configuración del cliente de GCS
-    client = _get_gcs_client(project=project, **client_kwargs)
+    client = _get_gcs_client(
+        bucket=bucket,
+        project=project,
+        credentials=credentials,
+        **client_kwargs,
+    )
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     #    GCS se beneficia de ScanCache para evitar listar buckets
