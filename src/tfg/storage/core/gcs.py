@@ -64,23 +64,35 @@ def use_gcs_cloud(
         Objeto orquestador configurado para Google Cloud Storage.
     """
     # 1. Configuración del cliente de GCS
-    #    Se instancia el cliente nativo usando el project_id y
-    #    argumentos extra como credenciales explícitas si se proveen.
-    try:
-        # Intentamos instanciar el cliente "normal" (busca credenciales)
-        client = storage.Client(project=project_id, **client_kwargs)
-    except (DefaultCredentialsError, RefreshError):
-        # Si falla porque no hay credenciales, verificamos si el usuario
-        # intentó pasar credenciales explícitas que fallaron.
-        if "credentials" in client_kwargs:
-            # Si el usuario pasó credenciales y fallaron, relanzamos el
-            # error.
-            raise
+    if project_id is not None:
+        #    Se instancia el cliente nativo usando el project_id y
+        #    argumentos extra como credenciales explícitas si se proveen.
+        try:
+            # Intentamos instanciar el cliente "normal" (busca credenciales)
+            client = storage.Client(project=project_id, **client_kwargs)
+        except (DefaultCredentialsError, RefreshError):
+            # Si falla porque no hay credenciales, verificamos si el usuario
+            # intentó pasar credenciales explícitas que fallaron.
+            if "credentials" in client_kwargs:
+                # Si el usuario pasó credenciales y fallaron, relanzamos el
+                # error.
+                raise
 
-        # Si no pasó credenciales explícitas, asumimos que quiere acceso
-        # público.
-        print("usando anonymous")
-        client = storage.Client.create_anonymous_client()
+            # Si no pasó credenciales explícitas, asumimos que quiere acceso
+            # público.
+            print("usando anonymous")
+            client = storage.Client.create_anonymous_client()
+
+    else:
+        #    Si no se especifica project_id, dejamos que la librería
+        #    maneje la detección automática.
+        try:
+            client = storage.Client(**client_kwargs)
+        except (DefaultCredentialsError, RefreshError):
+            if "credentials" in client_kwargs:
+                raise
+            print("usando anonymous")
+            client = storage.Client.create_anonymous_client()
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     #    GCS se beneficia de ScanCache para evitar listar buckets
