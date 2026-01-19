@@ -1,207 +1,13 @@
-import os
 import pathlib as pl
 import typing as tp
 
-import requests
-from google.auth.credentials import AnonymousCredentials, Credentials
-from google.cloud import storage  # type: ignore
+from google.auth.credentials import Credentials
 
 from ..backend import GCSBackend
 from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
 from ..mapper import GCSURIMapper
-
-try:
-    from google.colab import auth
-
-    def _authenticate_user(project_id: str | None) -> None:
-        """
-        Autentica el usuario en Google Colab para acceder a GCS.
-
-        Parameters
-        ----------
-        project_id : str | None
-            ID del proyecto de Google Cloud. No es obligatorio.
-
-        Returns
-        -------
-        None
-        """
-        auth.authenticate_user(project_id=project_id)
-
-    def running_on_colab() -> bool:
-        return bool(os.getenv("COLAB_RELEASE_TAG"))
-
-except ImportError:
-
-    def _authenticate_user(project_id: str | None) -> None:
-        # No-op function for environments outside Google Colab.
-        pass
-
-    def running_on_colab() -> bool:
-        return False
-
-
-POSIX_PREFIX = "/"
-
-
-def _get_gcs_anonymous_client(
-    project: str | None, **client_kwargs: tp.Any
-) -> storage.Client:
-    """
-    Crea un cliente anónimo de Google Cloud Storage.
-
-    Parameters
-    ----------
-    project : str | None
-        ID del proyecto de Google Cloud. Si no se especifica, la
-        librería intentará inferirlo del entorno.
-    **client_kwargs : Any
-        Argumentos adicionales para `storage.Client` (credentials,
-        client_info, client_options, etc.).
-
-    Returns
-    -------
-    storage.Client
-        Cliente anónimo de GCS.
-    """
-    if project is not None:
-        print("intentando credenciales anónimas")
-        return storage.Client(
-            project=project,
-            credentials=AnonymousCredentials(),
-            **client_kwargs,
-        )
-    print("usando credenciales anónimas")
-    return storage.Client.create_anonymous_client()
-
-
-def _get_gcs_default_client(
-    project: str | None,
-    credentials: Credentials | None,
-    **client_kwargs: tp.Any,
-) -> storage.Client:
-    """
-    Crea un cliente de Google Cloud Storage usando credenciales por
-    defecto o las pasadas en client_kwargs.
-
-    Parameters
-    ----------
-    project : str | None
-        ID del proyecto de Google Cloud. Si no se especifica, la
-        librería intentará inferirlo de las credenciales o del entorno.
-    credentials: Credentials | None, optional
-        Credenciales explícitas para autenticación. Si se proporcionan,
-        se usan en lugar de las ADC.
-    **client_kwargs : Any
-        Argumentos adicionales para `storage.Client` (credentials,
-        client_info, client_options, etc.).
-
-    Returns
-    -------
-    storage.Client
-        Cliente de GCS autenticado.
-    """
-    print("intentando credenciales normales")
-    client = storage.Client(
-        project=project, credentials=credentials, **client_kwargs
-    )
-    _: list[tp.Any] = list(client.list_buckets())
-    return client
-
-
-def _get_gcs_client(
-    bucket: str,
-    project: str | None,
-    credentials: Credentials | None,
-    **client_kwargs: tp.Any,
-) -> storage.Client:
-    """
-    Crea un cliente de Google Cloud Storage.
-
-    Intentando primero con credenciales por defecto y haciendo fallback
-    a un cliente anónimo si no se encuentran credenciales.
-
-    En Colab, para buckets públicos, fuerza credenciales anónimas.
-
-    Parameters
-    ----------
-    bucket : str
-        Nombre del bucket de GCS.
-    project : str | None
-        ID del proyecto de Google Cloud. Si no se especifica, la
-        librería intentará inferirlo de las credenciales o del entorno.
-    credentials: Credentials | None, optional
-        Credenciales explícitas para autenticación. Si se proporcionan,
-        se usan en lugar de las ADC.
-    **client_kwargs : Any
-        Argumentos adicionales para `storage.Client` (credentials,
-        client_info, client_options, etc.).
-
-    Returns
-    -------
-    storage.Client
-        Cliente de GCS (autenticado o anónimo).
-    """
-    # Si se proveyeron, usamos las credenciales del usuario.
-    if credentials is not None:
-        return _get_gcs_default_client(
-            project=project, credentials=credentials, **client_kwargs
-        )
-
-    # Para buckets públicos, usamos un cliente anónimo.
-    if _is_public(bucket=bucket, project=project):
-        return _get_gcs_anonymous_client(project=project, **client_kwargs)
-
-    # Si se proveyeron credenciales explícitas y el bucket no es
-    # público, forzamos autenticación de usuario (no anónimo).
-    _authenticate_user(project_id=project)
-
-    # Intentamos instanciar el cliente con credenciales por defecto;
-    # busca las ADC del entorno.
-    return _get_gcs_default_client(
-        project=project, credentials=None, **client_kwargs
-    )
-
-
-def _is_public_alt(bucket: str, project: str | None) -> bool:
-    """
-    Verifica si un bucket de GCS es público sin instanciar un cliente
-    autenticado.
-
-    Parameters
-    ----------
-    bucket : str
-        Nombre del bucket de GCS.
-    project : str | None
-        ID del proyecto de Google Cloud. Si no se especifica, la
-        librería intentará inferirlo del entorno.
-
-    Returns
-    -------
-    bool
-        True si el bucket es público, False en caso contrario.
-    """
-    anon_client = _get_gcs_anonymous_client(project=project)
-    try:
-        _ = anon_client.get_bucket(bucket)
-        return True
-    except Exception:
-        return False
-
-
-def _is_public(bucket: str, project: str | None) -> bool:  # NOSONAR
-    # Endpoint de la API XML de GCS para el bucket
-    url = f"https://storage.googleapis.com/{bucket}"
-
-    try:
-        # Petición simple SIN cabeceras de autorización
-        response = requests.get(url, timeout=15)
-
-        return response.status_code == 200
-
-    except Exception:
-        return False
+from .gutils import get_gcs_client
 
 
 def use_gcs_cloud(
@@ -260,7 +66,7 @@ def use_gcs_cloud(
         Objeto orquestador configurado para Google Cloud Storage.
     """
     # 1. Configuración del cliente de GCS
-    client = _get_gcs_client(
+    client = get_gcs_client(
         bucket=bucket,
         project=project,
         credentials=credentials,
@@ -281,7 +87,7 @@ def use_gcs_cloud(
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
 
-    local_root = pl.PurePosixPath(POSIX_PREFIX)
+    local_root = pl.PurePosixPath("/")
     mountpoint = local_root / base_path.as_posix()
 
     # 4. Instanciación de componentes
