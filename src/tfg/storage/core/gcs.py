@@ -1,14 +1,46 @@
+import os
 import pathlib as pl
 import typing as tp
 
 from google.auth.credentials import AnonymousCredentials
-from google.auth.exceptions import DefaultCredentialsError
-from google.cloud import storage
+from google.auth.exceptions import RefreshError
+from google.cloud import storage  # type: ignore
 
 from ..backend import GCSBackend
 from ..cache import TimedScanCache
 from ..datasource import Datasource, DatasourceContract
 from ..mapper import GCSURIMapper
+
+try:
+    from google.colab import auth
+
+    def _authenticate_user(project_id: str | None = None) -> None:
+        """
+        Autentica el usuario en Google Colab para acceder a GCS.
+
+        Parameters
+        ----------
+        project_id : str, optional
+            ID del proyecto de Google Cloud. No es obligatorio.
+
+        Returns
+        -------
+        None
+        """
+        auth.authenticate_user(project_id=project_id)
+
+    def running_on_colab() -> bool:
+        return bool(os.getenv("COLAB_RELEASE_TAG"))
+
+except ImportError:
+
+    def _authenticate_user(project_id: str | None = None) -> None:
+        # No-op function for environments outside Google Colab.
+        pass
+
+    def running_on_colab() -> bool:
+        return False
+
 
 POSIX_PREFIX = "/"
 
@@ -21,7 +53,7 @@ def _get_gcs_anonymous_client(
 
     Parameters
     ----------
-    project_id : str, optional
+    project : str, optional
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo del entorno.
 
@@ -50,7 +82,7 @@ def _get_gcs_default_client(
 
     Parameters
     ----------
-    project_id : str, optional
+    project : str, optional
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
     **client_kwargs : Any
@@ -63,20 +95,25 @@ def _get_gcs_default_client(
         Cliente de GCS autenticado.
     """
     print("intentando credenciales normales")
-    return storage.Client(project=project, **client_kwargs)
+    client = storage.Client(project=project, **client_kwargs)
+    _: list[tp.Any] = list(client.list_buckets())
+    return client
 
 
 def _get_gcs_client(
     project: str | None, **client_kwargs: tp.Any
 ) -> storage.Client:
     """
-    Crea un cliente de Google Cloud Storage, intentando primero con
-    credenciales por defecto y haciendo fallback a un cliente anónimo
-    si no se encuentran credenciales.
+    Crea un cliente de Google Cloud Storage.
+
+    Intentando primero con credenciales por defecto y haciendo fallback
+    a un cliente anónimo si no se encuentran credenciales.
+
+    En Colab, para buckets públicos, fuerza credenciales anónimas.
 
     Parameters
     ----------
-    project_id : str, optional
+    project : str, optional
         ID del proyecto de Google Cloud. Si no se especifica, la
         librería intentará inferirlo de las credenciales o del entorno.
     **client_kwargs : Any
@@ -88,28 +125,26 @@ def _get_gcs_client(
     storage.Client
         Cliente de GCS (autenticado o anónimo).
     """
-    # Se instancia el cliente nativo usando el project_id y
-    # argumentos extra como credenciales explícitas si se proveen.
+    # Si el usuario pasó credenciales explícitas, confiar en ellas; usar
+    # las credenciales provistas.
+    if "credentials" in client_kwargs:
+        return _get_gcs_default_client(project=project, **client_kwargs)
+
+    # Forzar autenticación de usuario (no anónimo), si el usuario se
+    # rehusa a autenticarse, caerá en un sesión anónima.
+    _authenticate_user(project_id=project)
+
+    # Si no hay credenciales explícitas, se instancia el cliente nativo
+    # usando el `project` y argumentos extra.
     try:
-        # Intentamos instanciar el cliente "normal" (usa las
-        # credenciales provistas o busca las ADC del entorno).
-        return _get_gcs_default_client(
-            project=project,
-            **client_kwargs,
-        )
-    except DefaultCredentialsError:
-        # Si falla porque no hay credenciales, verificamos si el usuario
-        # intentó pasar credenciales explícitas que fallaron.
-        if "credentials" in client_kwargs:
-            # Si el usuario pasó credenciales y fallaron, relanzamos el
-            # error.
-            raise
-        # Si no pasó credenciales explícitas, asumimos que quiere acceso
-        # público.
-        return _get_gcs_anonymous_client(
-            project=project,
-            **client_kwargs,
-        )
+        # Intentamos instanciar el cliente con credenciales por defecto;
+        # busca las ADC del entorno.
+        return _get_gcs_default_client(project=project, **client_kwargs)
+
+    except RefreshError:
+
+        # Asumimos que el usuario quiere acceso público.
+        return _get_gcs_anonymous_client(project=project, **client_kwargs)
 
 
 def use_gcs_cloud(
