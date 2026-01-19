@@ -11,10 +11,6 @@
     # "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Education",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
@@ -105,15 +101,14 @@
   [tool.setuptools]
     include-package-data = true
 
-    [tool.setuptools.dynamic]
-      version = { attr = "tfg.__version__" }
-
     [tool.setuptools.package-data]
       tfg          = ["py.typed"]
       "tfg.config" = ["secrets.json"]
 
     [tool.setuptools.packages.find]
       where = ["src"]
+
+  [tool.setuptools_scm]
 
   [tool.black]
     line-length = 79
@@ -804,6 +799,4 @@
 
 [build-system]
   build-backend = "setuptools.build_meta"
-
-  # Minimum requirements for the build system to execute.
-  requires = ["setuptools-scm", "setuptools"]
+  requires      = ["setuptools-scm", "setuptools"]
