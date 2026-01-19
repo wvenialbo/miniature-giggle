@@ -1,7 +1,7 @@
 import pathlib as pl
 import typing as tp
 
-from google.auth.exceptions import DefaultCredentialsError
+from google.auth.exceptions import DefaultCredentialsError, RefreshError
 from google.cloud import storage
 
 from ..backend import GCSBackend
@@ -69,7 +69,7 @@ def use_gcs_cloud(
     try:
         # Intentamos instanciar el cliente "normal" (busca credenciales)
         client = storage.Client(project=project_id, **client_kwargs)
-    except DefaultCredentialsError:
+    except (DefaultCredentialsError, RefreshError):
         # Si falla porque no hay credenciales, verificamos si el usuario
         # intentó pasar credenciales explícitas que fallaron.
         if "credentials" in client_kwargs:
@@ -79,6 +79,7 @@ def use_gcs_cloud(
 
         # Si no pasó credenciales explícitas, asumimos que quiere acceso
         # público.
+        print("usando anonymous")
         client = storage.Client.create_anonymous_client()
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
