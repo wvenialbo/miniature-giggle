@@ -4,17 +4,10 @@ import mimetypes
 import pathlib as pl
 import typing as tp
 
-from googleapiclient.discovery import Resource
-from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
-
 from ..cache import CacheBase
-
-if tp.TYPE_CHECKING:
-    # Importamos el tipo específico para Drive v3
-    from googleapiclient._apis.drive.v3.resources import DriveResource, File
-
 from .base import StorageBackend
+
+Resource = tp.Any
 
 DriveCache = CacheBase[str]
 
@@ -60,7 +53,9 @@ class GoogleDriveBackend(StorageBackend):
     """
 
     def __init__(self, service: Resource, cache: DriveCache) -> None:
-        self._service = tp.cast("DriveResource", service)
+        if tp.TYPE_CHECKING:
+            from googleapiclient._apis.drive.v3.resources import DriveResource
+        self._service: "DriveResource" = service
         self._cache = cache
 
     def __repr__(self) -> str:
@@ -130,6 +125,8 @@ class GoogleDriveBackend(StorageBackend):
           error.
         - No debe utilizarse para eliminar contenedores/directorios.
         """
+        from googleapiclient.errors import HttpError
+
         # Si recibimos un 'path://', significa que el Mapper determinó
         # que el objeto no existe. Por idempotencia, no hacemos nada.
         if uri.startswith(PATH_PREFIX):
@@ -186,6 +183,8 @@ class GoogleDriveBackend(StorageBackend):
         FileNotFoundError
             Si la URI no existe.
         """
+        from googleapiclient.http import MediaIoBaseDownload
+
         uri = self._check_uri(uri)
         file_id = self._strip_prefix(uri, ID_PREFIX)
         request = self._service.files().get_media(fileId=file_id)
@@ -222,12 +221,15 @@ class GoogleDriveBackend(StorageBackend):
         bytes
             Fragmentos del contenido binario del archivo.
         """
+        from googleapiclient.http import MediaIoBaseDownload
+
         uri = self._check_uri(uri)
         file_id = self._strip_prefix(uri, ID_PREFIX)
 
         request = self._service.files().get_media(
             fileId=file_id, supportsAllDrives=True
         )
+
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request, chunksize=chunk_size)
 
@@ -350,6 +352,11 @@ class GoogleDriveBackend(StorageBackend):
         - Al finalizar una operación exitosa, la URI debe apuntar a un
           archivo u objeto individual.
         """
+        from googleapiclient.http import MediaIoBaseUpload
+
+        if tp.TYPE_CHECKING:
+            from googleapiclient._apis.drive.v3.resources import File
+
         # Preparar el stream de datos
         media_body = MediaIoBaseUpload(
             io.BytesIO(data),
@@ -433,6 +440,9 @@ class GoogleDriveBackend(StorageBackend):
         Recorre y crea carpetas si no existen.
         Retorna el ID de la carpeta más profunda.
         """
+        if tp.TYPE_CHECKING:
+            from googleapiclient._apis.drive.v3.resources import File
+
         current_parent_id: str = root_id
         current_logical_path = pl.PurePosixPath(parent)
 
@@ -460,7 +470,7 @@ class GoogleDriveBackend(StorageBackend):
 
                 if created_id is None:
                     raise RuntimeError(
-                        f"No se pudo crear la carpeta "
+                        "No se pudo crear la carpeta "
                         f"'{current_logical_path / folder_name}'"
                     )
 

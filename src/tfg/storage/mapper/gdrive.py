@@ -4,10 +4,7 @@ import typing as tp
 from ..cache import CacheBase
 from .base import URIMapper
 
-if tp.TYPE_CHECKING:
-    # Importamos el tipo específico para Drive v3
-    from googleapiclient._apis.drive.v3.resources import DriveResource
-    from googleapiclient.discovery import Resource
+Resource = tp.Any
 
 DriveCache = CacheBase[str]
 
@@ -68,8 +65,11 @@ class GoogleDriveURIMapper(URIMapper):
       archivos de manera eficiente y portátil.
     """
 
-    def __init__(self, service: "Resource", cache: DriveCache) -> None:
-        self._service = tp.cast("DriveResource", service)
+    def __init__(self, service: Resource, cache: DriveCache) -> None:
+        if tp.TYPE_CHECKING:
+            from googleapiclient._apis.drive.v3.resources import DriveResource
+
+        self._service: "DriveResource" = service
         self._cache = cache
 
     def __repr__(self) -> str:
