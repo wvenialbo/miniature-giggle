@@ -6,13 +6,15 @@ from .base import URIMapper
 
 Resource = tp.Any
 
-DriveCache = CacheBase[str]
+DriveCache = CacheBase[tuple[str, str]]
 
+FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
 MAX_DEPTH = 50
 PATH_SEP = "/"
+ROOT_ID = "root"
 
 
 class GoogleDriveURIMapper(URIMapper):
@@ -65,17 +67,17 @@ class GoogleDriveURIMapper(URIMapper):
       archivos de manera eficiente y portátil.
     """
 
-    def __init__(self, service: Resource, cache: DriveCache) -> None:
+    def __init__(self, service: Resource, drive_cache: DriveCache) -> None:
         if tp.TYPE_CHECKING:
             from googleapiclient._apis.drive.v3.resources import DriveResource
 
         self._service: "DriveResource" = service
-        self._cache = cache
+        self._drive_cache = drive_cache
 
     def __repr__(self) -> str:
         return (
             "GoogleDriveURIMapper"
-            f"({repr(self._service)}, {repr(self._cache)})"
+            f"({repr(self._service)}, {repr(self._drive_cache)})"
         )
 
     def to_generic(self, uri: str) -> str:
@@ -99,49 +101,9 @@ class GoogleDriveURIMapper(URIMapper):
         Esta operación es costosa (camina hacia arriba) y puede ser
         ambigua (múltiples padres).
         """
-        file_id = self._strip_prefix(uri, ID_PREFIX)
-        path_parts: list[str] = []
-        current_id = file_id
+        _, logical_path, _ = self._split_id(uri)
 
-        # Loop de seguridad para evitar ciclos infinitos en estructuras
-        # corruptas
-        for _ in range(MAX_DEPTH):
-            if current_id == "root":
-                break
-
-            try:
-                file_meta = (
-                    self._service.files()
-                    .get(
-                        fileId=current_id,
-                        fields="name, parents",
-                        supportsAllDrives=True,
-                    )
-                    .execute()
-                )
-            except Exception:
-                # Si falla la lectura (permisos o no existe), retornamos
-                # el ID crudo
-                return uri
-
-            name = file_meta.get("name", "unknown")
-            path_parts.append(name)
-
-            if parents := file_meta.get("parents", []):
-                # Tomamos el primer padre arbitrariamente
-                current_id = parents[0]
-
-            else:
-                # Llegamos a la cima accesible o es huérfano
-                break
-
-        # Invertimos porque caminamos de hijo a padre
-        full_path = PATH_SEP + PATH_SEP.join(reversed(path_parts))
-
-        # Opcional: Actualizar caché con la ruta descubierta
-        self._cache.set(full_path, file_id)
-
-        return full_path
+        return logical_path
 
     def to_native(self, uri: str) -> str:
         """
@@ -175,35 +137,49 @@ class GoogleDriveURIMapper(URIMapper):
         - No valida la existencia del objeto; `StorageBackend.exists()`
           debe usarse para verificación explícita.
         """
-        # Normalización básica
         if uri == PATH_SEP:
-            return f"{ID_PREFIX}root"
+            return (
+                f"{ID_PREFIX}{ROOT_ID}"
+                f"{PATH_ID_SEPARATOR}{uri}"
+                f"{PATH_ID_SEPARATOR}{FOLDER_MIME_TYPE}"
+            )
 
-        if cached_id := self._cache.get(uri):
-            return f"{ID_PREFIX}{cached_id}"
+        if cached := self._drive_cache.get(uri):
+            cached_id, cached_mime = cached
+            return (
+                f"{ID_PREFIX}{cached_id}"
+                f"{PATH_ID_SEPARATOR}{uri}"
+                f"{PATH_ID_SEPARATOR}{cached_mime}"
+            )
 
         # 2. Caminata por la jerarquía
         parts = list(pl.PurePosixPath(uri).parts)
+
         # Filtramos la raiz '/' si path.parts la incluye
         parts = [p for p in parts if p != PATH_SEP]
 
-        parent_id = "root"
+        parent_id = ROOT_ID
+        parent_mime = FOLDER_MIME_TYPE
 
         current_logical_path = pl.PurePosixPath(PATH_SEP)
+
         for i, segment in enumerate(parts):
             # Construir ruta parcial actual para consultar/guardar caché
             current_logical_path = current_logical_path / segment
             parent_path = str(current_logical_path)
 
-            if cached_step := self._cache.get(parent_path):
-                parent_id = cached_step
+            if cached_step := self._drive_cache.get(parent_path):
+                parent_id, _ = cached_step
                 continue
 
-            if found_id := self._find_child_id(
+            found_id, found_mime = self._find_child_id(
                 parent_id=parent_id, name=segment
-            ):
+            )
+
+            if found_id:
                 parent_id = found_id
-                self._cache.set(parent_path, parent_id)
+                parent_mime = found_mime or ""
+                self._drive_cache.set(parent_path, (parent_id, parent_mime))
             else:
                 # No encontrado. Preparamos el retorno especial.
                 # Ruta existente, resto de la ruta que falta por crear,
@@ -215,9 +191,15 @@ class GoogleDriveURIMapper(URIMapper):
                     f"{PATH_ID_SEPARATOR}{parent_id}"
                 )
 
-        return f"{ID_PREFIX}{parent_id}"
+        return (
+            f"{ID_PREFIX}{parent_id}"
+            f"{PATH_ID_SEPARATOR}{uri}"
+            f"{PATH_ID_SEPARATOR}{parent_mime}"
+        )
 
-    def _find_child_id(self, parent_id: str, name: str) -> str | None:
+    def _find_child_id(
+        self, parent_id: str, name: str
+    ) -> tuple[str | None, str | None]:
         """
         Ayudante para buscar un archivo por nombre dentro de un padre.
         """
@@ -236,7 +218,7 @@ class GoogleDriveURIMapper(URIMapper):
             .list(
                 q=query,
                 spaces="drive",
-                fields="files(id)",
+                fields="files(id, mimeType)",
                 pageSize=1,  # Solo nos interesa el primero
                 includeItemsFromAllDrives=True,
                 supportsAllDrives=True,
@@ -245,13 +227,25 @@ class GoogleDriveURIMapper(URIMapper):
         )
 
         files = response.get("files", [])
-        return files[0].get("id") if files else None
+        return files[0].get("id"), files[0].get("mimeType")
+
+    def _split_id(self, uri: str) -> tuple[str, str, str]:
+        """Divide un URI de objeto en sus componentes."""
+        try:
+            clean_uri = self._strip_prefix(uri, ID_PREFIX)
+            object_id, object_path, object_mime = clean_uri.split(
+                PATH_ID_SEPARATOR, 2
+            )
+            return object_id, object_path, object_mime
+
+        except Exception as e:
+            raise ValueError(f"URI de objeto malformado: '{uri}'") from e
 
     @staticmethod
     def _strip_prefix(uri: str, prefix: str) -> str:
-        """Ayudante para remover un prefijo de una URI."""
+        """Ayudante para remover un prefijo de un URI."""
         if not uri.startswith(prefix):
             raise ValueError(
-                f"La URI no comienza con el prefijo esperado: {prefix}"
+                f"Se esperaba un URI '{prefix}', se recibió: '{uri}'"
             )
         return uri[len(prefix) :]

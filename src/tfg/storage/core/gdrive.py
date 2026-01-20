@@ -2,7 +2,8 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import GoogleDriveBackend
-from ..cache import TimedDriveCache
+from ..cache import TimedDriveCache, TimedScanCache
+from ..cache.gdrive import GoogleDriveCacheWrapper
 from ..datasource import Datasource, DatasourceContract
 from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
@@ -44,11 +45,28 @@ def use_google_drive(
     # 1. Construcción del Cliente de API (Service)
     service = get_gdrive_client(credentials)
 
+    # 2. Preparación de Rutas de Caché
+    def path_str(path: pl.Path, suffix: str) -> str | None:
+        return str(path.with_name(f"{path.stem}{suffix}{path.suffix}"))
+
+    drive_path: str | None = None
+    scan_path: str | None = None
+
+    if cache_file is not None:
+        cache_file = pl.Path(cache_file)
+        drive_path = path_str(cache_file, "-id")
+        scan_path = path_str(cache_file, "-index")
+
     # 3. Inicialización del Cache
-    # Si cache_file es None, NamesCache trabajará en memoria.
-    cache_path_str = str(cache_file) if cache_file else None
     drive_cache = TimedDriveCache(
-        cache_file=cache_path_str, expire_after=expire_after
+        cache_file=drive_path, expire_after=expire_after
+    )
+    scan_cache = TimedScanCache(
+        cache_file=scan_path, expire_after=expire_after
+    )
+    gdrive_cache = GoogleDriveCacheWrapper(
+        drive_cache=drive_cache,
+        scan_cache=scan_cache,
     )
 
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
@@ -59,14 +77,16 @@ def use_google_drive(
 
     # 4. Instanciación de Protocolos (Inyección de Dependencias)
     # Ambos componentes comparten la misma instancia de 'service'.
-    backend = GoogleDriveBackend(service=service, cache=drive_cache)
+    backend = GoogleDriveBackend(
+        service=service, drive_cache=drive_cache, scan_cache=scan_cache
+    )
 
-    mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
+    mapper = GoogleDriveURIMapper(service=service, drive_cache=drive_cache)
 
     # 6. Retorno del Datasource Orquestador
     return Datasource(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
-        cache=drive_cache,
+        cache=gdrive_cache,
     )
