@@ -59,7 +59,7 @@ def use_google_drive(
 
     # 4. Instanciación de Protocolos (Inyección de Dependencias)
     # Ambos componentes comparten la misma instancia de 'service'.
-    backend = GoogleDriveBackend(service=service)
+    backend = GoogleDriveBackend(service=service, cache=drive_cache)
 
     mapper = GoogleDriveURIMapper(service=service, cache=drive_cache)
 
