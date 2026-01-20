@@ -62,7 +62,7 @@ def _is_interactive() -> bool:
     try:
         from IPython.core.getipython import get_ipython
 
-        return get_ipython() is not None  # type: ignore
+        return get_ipython() is not None
 
     except ImportError:
         return False
@@ -100,7 +100,7 @@ def _run_interactive_auth(config: AuthConfig) -> Credentials:
                 "correctamente con los recursos incluidos."
             )
         flow = InstalledAppFlow.from_client_secrets_file(
-            client_secrets_file=str(creds_path), scopes=config.scopes
+            client_secrets_file=str(creds_path), scopes=list(config.scopes)
         )
 
     return flow.run_local_server(port=0)
@@ -141,7 +141,7 @@ def authenticate_user(
 
         try:
             # Intentamos ver si ya existen credenciales para no molestar al usuario
-            credentials, _ = default(scopes=config.scopes)  # type: ignore
+            credentials, _ = default(scopes=config.scopes)
 
             return credentials
 
