@@ -69,7 +69,7 @@ class GCSBackend(StorageBackend):
         client: Client,
         scan_cache: GCSCache | None = None,
     ) -> None:
-        from google.cloud import storage  # type: ignore
+        from google.cloud import storage
 
         self.bucket_name = bucket
         self.client: storage.Client = client
@@ -134,7 +134,7 @@ class GCSBackend(StorageBackend):
         bool
             True si el blob existe, False en caso contrario.
         """
-        from google.cloud import storage  # type: ignore
+        from google.cloud import storage
 
         blob: storage.Blob = self._get_blob(uri)
 
@@ -159,7 +159,7 @@ class GCSBackend(StorageBackend):
         FileNotFoundError
             Si el objeto no existe en GCS (captura `NotFound`).
         """
-        from google.cloud import storage  # type: ignore
+        from google.cloud import storage
 
         blob: storage.Blob = self._get_blob(uri)
 
@@ -187,7 +187,7 @@ class GCSBackend(StorageBackend):
         bytes
             Fragmentos del contenido binario del archivo.
         """
-        from google.cloud import storage  # type: ignore
+        from google.cloud import storage
 
         blob: storage.Blob = self._get_blob(uri)
         with blob.open("rb", chunk_size=chunk_size) as f:
@@ -211,7 +211,7 @@ class GCSBackend(StorageBackend):
         list[str]
             Lista de URIs nativas absolutas encontradas.
         """
-        from google.cloud import storage  # type: ignore
+        from google.cloud import storage
 
         # Intentar recuperar de caché
         cached = self.scan_cache.get(prefix)
