@@ -88,6 +88,34 @@
   # The minimum version of Python required to run your project
   requires-python = ">=3.10"
 
+  [project.optional-dependencies]
+    dev = [
+      "black",
+      "boto3-stubs",
+      "botocore-stubs",
+      "coverage[toml]",
+      "flake8",
+      "flake8-docstrings",
+      "google-api-python-client-stubs",
+      "darglint",
+      "darglint2",
+      "isort",
+      "mypy",
+      "pydoclint",
+      "pydocstyle",
+      "pylint",
+      "pytest",
+      "types-awscrt",
+      "types-boto3",
+      "types-botocore",
+      "types-httplib2",
+      "types-python-dateutil",
+      "types-requests",
+      "types-s3transfer",
+      "types-setuptools",
+      "types-tqdm",
+    ]
+
   [project.urls]
     # Homepage = "https://example.com"
     # Documentation = "https://readthedocs.org"
@@ -95,9 +123,13 @@
     Repository = "https://github.com/wvenialbo/tfg-wvv"
     # Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
-# Your development tools configuration
-[tool]
+    # Your development tools configuration
 
+[build-system]
+  build-backend = "setuptools.build_meta"
+  requires      = ["setuptools-scm", "setuptools"]
+
+[tool]
   [tool.setuptools]
     include-package-data = true
 
@@ -745,7 +777,8 @@
 
   [tool.mypy]
     # Introduce stricter options
-    strict = true
+    strict         = true
+    python_version = "3.13"
 
     # Start off with these
     warn_redundant_casts = true
@@ -786,9 +819,64 @@
 
     disable_error_code = ["import-untyped"]
 
+    exclude = [
+      '.*/\.venv',              # Equivalente a **/.venv
+      '.*/__pycache__',         # Equivalente a **/__pycache__
+      '.*/\.mypy_cache',        # Equivalente to **/.mypy_cache
+      '.*/\.ruff_cache',        # Equivalente to **/.ruff_cache
+      '.*/\.pytest_cache',      # Equivalente to **/.pytest_cache
+      '.*/\.ipynb_checkpoints', # Equivalente to **/.ipynb_checkpoints
+      '.*/experimental',        # Equivalente to **/experimental
+    ]
+
     [[tool.mypy.overrides]]
       module                 = [""]
       follow_untyped_imports = false
+
+  [tool.pyright]
+    pythonVersion    = "3.13"
+    typeCheckingMode = "strict"
+
+    indexing = true
+    stubPath = "./typings"
+
+    executionEnvironments = [{ root = "src" }, { root = "./src/tfg", pythonVersion = "3.13" }]
+
+    # Configuraciones de inferencia estricta
+    strictDictionaryInference = true
+    strictListInference       = true
+    strictSetInference        = true
+
+    # Otras configuraciones de evaluación de tipos
+    deprecateTypingAliases     = true
+    enableReachabilityAnalysis = true
+    useLibraryCodeForTypes     = true # follow_untyped_imports = false
+
+    # Ajustes de severidad de diagnósticos
+    reportMissingModuleSource          = "none"
+    reportMissingImports               = "error"   # ignore_missing_imports = false
+    reportMissingTypeStubs             = true
+    reportUnknownMemberType            = "none"
+    reportUnnecessaryIsInstance        = "none"
+    reportUnknownVariableType          = "none"
+    reportUnnecessaryCast              = "warning" # warn_redundant_casts = true
+    reportImplicitStringConcatenation  = "none"    # strict_concatenate
+    reportMissingParameterType         = "error"   # disallow_incomplete_defs
+    reportUntypedBaseClass             = "error"   # disallow_subclassing_any
+    reportUntypedFunctionDecorator     = "error"   # disallow_untyped_decorators
+    reportUnnecessaryTypeIgnoreComment = "warning" # warn_unused_ignores
+
+    exclude = [
+      "**/.venv",
+      "**/__pycache__",
+      "**/.mypy_cache",
+      "**/.ruff_cache",
+      "**/.pytest_cache",
+      "**/.ipynb_checkpoints",
+      "**/experimental",
+    ]
+
+    ignore = ["**/experimental"]
 
   [tool.pydoclint]
     style                = 'numpy'
@@ -796,7 +884,3 @@
 
   [tool.pydocstyle]
     convention = 'numpy'
-
-[build-system]
-  build-backend = "setuptools.build_meta"
-  requires      = ["setuptools-scm", "setuptools"]
