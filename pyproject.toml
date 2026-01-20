@@ -28,6 +28,7 @@
     "goes-dl",
     "google-api-python-client",
     "google-auth-oauthlib",
+    "google-cloud",
     "google-cloud-storage",
     "gudhi",
     "joblib",
