@@ -5,7 +5,7 @@ import pathlib as pl
 import typing as tp
 
 from ..cache import CacheBase
-from .base import StorageBackend
+from .base import ReadWriteBackend
 
 Resource = tp.Any
 
@@ -19,7 +19,7 @@ PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
 
 
-class GoogleDriveBackend(StorageBackend):
+class GoogleDriveBackend(ReadWriteBackend):
     """
     Backend de almacenamiento para Google Drive API v3.
 

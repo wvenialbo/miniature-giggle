@@ -18,6 +18,11 @@ class StorageBackend(tp.Protocol):
     `create_path()`, que acepta rutas genéricas para creación de
     contenedores.
 
+    Attributes
+    ----------
+    read_only : bool
+        Indica si el backend es de solo lectura.
+
     Methods
     -------
     create_path(uri: str) -> str
@@ -319,3 +324,90 @@ class StorageBackend(tp.Protocol):
           archivo u objeto individual.
         """
         ...
+
+    @property
+    def read_only(self) -> bool:
+        """
+        Indica si el backend es de solo lectura.
+
+        Returns
+        -------
+        bool
+            True si el backend no soporta operaciones de escritura o
+            eliminación, False en caso contrario.
+        """
+        ...
+
+
+class ReadOnlyBackend(StorageBackend):
+    """
+    Implementación base para backends de solo lectura.
+
+    Attributes
+    ----------
+    read_only : bool
+        Indica si el backend es de solo lectura. Siempre True.
+
+    Methods
+    -------
+    create_path(uri: str) -> str
+        No soportado. Lanza RuntimeError.
+    delete(uri: str) -> None
+        No soportado. Lanza RuntimeError.
+    write(uri: str, data: bytes) -> None
+        No soportado. Lanza RuntimeError.
+    """
+
+    _RO_MSG = "Este backend es de solo lectura."
+
+    def create_path(self, *, uri: str) -> str:
+        """
+        Crea una ruta o contenedor en el backend de almacenamiento.
+
+        Notes
+        -----
+        El backend no soporta operaciones de creación de rutas.
+        Lanza PermissionError.
+        """
+        raise PermissionError(self._RO_MSG)
+
+    def delete(self, *, uri: str) -> None:
+        """
+        Elimina los datos en la URI especificada.
+
+        Notes
+        -----
+        El backend no soporta operaciones de eliminación. Lanza
+        PermissionError.
+        """
+        raise PermissionError(self._RO_MSG)
+
+    def write(self, *, uri: str, data: bytes) -> None:
+        """
+        Escribe los datos en la URI especificada.
+
+        Notes
+        -----
+        El backend no soporta operaciones de escritura. Lanza
+        PermissionError.
+        """
+        raise PermissionError(self._RO_MSG)
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+
+class ReadWriteBackend(StorageBackend):
+    """
+    Implementación base para backends de lectura y escritura.
+
+    Attributes
+    ----------
+    read_only : bool
+        Indica si el backend es de solo lectura. Siempre False.
+    """
+
+    @property
+    def read_only(self) -> bool:
+        return False

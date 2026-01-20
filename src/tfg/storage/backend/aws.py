@@ -5,7 +5,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from ..cache import CacheBase, DummyCache
-from .base import StorageBackend
+from .base import ReadWriteBackend
 
 if tp.TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client
@@ -17,7 +17,7 @@ S3_PREFIX = "s3://"
 S3_SEPARATOR = "/"
 
 
-class AWSBackend(StorageBackend):
+class AWSBackend(ReadWriteBackend):
     """
     Backend de almacenamiento para Amazon Web Services S3.
 

@@ -4,14 +4,14 @@ import urllib.parse as url
 
 import requests
 
-from ..backend import StorageBackend
 from ..cache import CacheBase, DummyCache
+from .base import ReadOnlyBackend
 
 NCEICache = CacheBase[list[str]]
 NoopCache = DummyCache[list[str]]
 
 
-class NCEIBackend(StorageBackend):
+class NCEIBackend(ReadOnlyBackend):
     """
     Backend de solo lectura para repositorios HTTP de NCEI.
 
@@ -40,10 +40,6 @@ class NCEIBackend(StorageBackend):
 
     Methods
     -------
-    create_path(uri: str) -> str
-        No soportado. Lanza RuntimeError.
-    delete(uri: str) -> None
-        No soportado. Lanza RuntimeError.
     exists(uri: str) -> bool
         Verifica si un recurso existe en la URI dada.
     read(uri: str) -> bytes
@@ -54,8 +50,6 @@ class NCEIBackend(StorageBackend):
         Lista las URI que comienzan con el prefijo especificado.
     size(uri: str) -> int
         Obtiene el tamaño en bytes del objeto en la URI especificada.
-    write(uri: str, data: bytes) -> None
-        No soportado. Lanza RuntimeError.
     """
 
     def __init__(
@@ -66,62 +60,6 @@ class NCEIBackend(StorageBackend):
 
     def __repr__(self) -> str:
         return f"NCEIBackend(scan_cache={repr(self.scan_cache)})"
-
-    def create_path(self, *, uri: str) -> str:
-        """
-        Crea una ruta o contenedor en el backend de almacenamiento.
-
-        Parameters
-        ----------
-        uri : str
-            Puede ser un ID nativo del backend (si el recurso ya existe)
-            o una ruta genérica (POSIX). Ej:
-            'experimentos/2024/dataset1'.
-
-        Returns
-        -------
-        str
-            URI nativa absoluta del contenedor creado o existente en el
-            backend.  Ej: 's3://bucket/experimentos/2024/dataset1/' o la
-            clave equivalente.
-
-        Raises
-        ------
-        RuntimeError
-            Si el backend no soporta operaciones de creación de
-            contenedores.
-
-        Notes
-        -----
-        No soportado. Lanza RuntimeError.
-        """
-        raise RuntimeError("NCEIBackend no soporta creación de rutas.")
-
-    def delete(self, *, uri: str) -> None:
-        """
-        Elimina los datos en la URI especificada.
-
-        Elimina archivos u objetos individuales. No elimina contenedores
-        o directorios completos.
-
-        Parameters
-        ----------
-        uri : str
-            URI nativa absoluta completa válida para el backend.
-            Ejemplo: 's3://bucket/experimentos/data.csv'.
-
-        Raises
-        ------
-        RuntimeError
-            Si el backend no soporta operaciones de eliminación.
-
-        Notes
-        -----
-        No soportado. Lanza RuntimeError.
-        """
-        raise RuntimeError(
-            "NCEIBackend no soporta operaciones de eliminación."
-        )
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -296,27 +234,3 @@ class NCEIBackend(StorageBackend):
         # El header puede no existir si el servidor usa chunked encoding,
         # en ese caso devolvemos 0 o manejamos la incertidumbre.
         return int(response.headers.get("Content-Length", 0))
-
-    def write(self, *, uri: str, data: bytes) -> None:
-        """
-        Escribe los datos en la URI especificada.
-
-        Parameters
-        ----------
-        uri : str
-            URI nativa absoluta completa válida para el backend.
-        data : bytes
-            Contenido binario a escribir.
-
-        Raises
-        ------
-        RuntimeError
-            Si el backend no soporta operaciones de escritura.
-        PermissionError
-            Si no se tienen permisos de escritura.
-
-        Notes
-        -----
-        No soportado. Lanza RuntimeError.
-        """
-        raise RuntimeError("NCEIBackend no soporta operaciones de escritura.")

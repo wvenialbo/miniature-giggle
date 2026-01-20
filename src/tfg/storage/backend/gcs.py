@@ -3,7 +3,7 @@ import contextlib
 import typing as tp
 
 from ..cache import CacheBase, DummyCache
-from .base import StorageBackend
+from .base import ReadWriteBackend
 
 Client = tp.Any
 
@@ -16,7 +16,7 @@ ID_PREFIX = "gs://"
 SEPARATOR = "/"
 
 
-class GCSBackend(StorageBackend):
+class GCSBackend(ReadWriteBackend):
     """
     Backend de almacenamiento para Google Cloud Storage.
 

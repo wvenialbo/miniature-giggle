@@ -1,10 +1,10 @@
 import collections.abc as col
 import pathlib as pl
 
-from .base import StorageBackend
+from .base import ReadWriteBackend
 
 
-class FilesystemBackend(StorageBackend):
+class FilesystemBackend(ReadWriteBackend):
     """
     Backend de almacenamiento para el sistema de archivos local.
 
