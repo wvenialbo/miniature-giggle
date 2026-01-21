@@ -1,4 +1,4 @@
 from .base import Datasource
-from .datasource import DataService
+from .dataservice import DataService
 
 __all__ = ["Datasource", "DataService"]
