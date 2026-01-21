@@ -9,16 +9,16 @@ from .gutils import (
 _CONFIG = AuthConfig(
     (
         "https://www.googleapis.com/auth/drive",
-        "https://www.googleapis.com/auth/devstorage.full_control",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.readonly",
     )
 )
 _tokens = TokenManager(_CONFIG)
 
 
 def _get_gdrive_default_client(
-    credentials: Credentials | None, config: AuthConfig
+    credentials: Credentials, config: AuthConfig
 ) -> Client:
-    from google.auth import default as get_default_credentials
     from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient import discovery
     from httplib2 import Http
@@ -26,13 +26,7 @@ def _get_gdrive_default_client(
     # Crea un objeto httplib2.Http con el timeout global
     http_transport = Http(timeout=config.timeout)
 
-    http_creds = (
-        credentials
-        if credentials is not None
-        else get_default_credentials(list(config.scopes))[0]
-    )
-
-    authorized_http = AuthorizedHttp(http_creds, http=http_transport)
+    authorized_http = AuthorizedHttp(credentials, http=http_transport)
 
     # Construcción del cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
@@ -56,18 +50,8 @@ def _get_gdrive_default_client(
 
 
 def get_gdrive_client(credentials: Credentials | None) -> Client:
-    # Si se proveyeron, usamos las credenciales del usuario.
-    if credentials is not None:
-        return _get_gdrive_default_client(
-            credentials=credentials, config=_CONFIG
+    if not credentials:
+        credentials = authenticate_user(
+            project_id=None, config=_CONFIG, tokens=_tokens
         )
-
-    # Si se proveyeron credenciales explícitas y el bucket no es
-    # público, forzamos autenticación de usuario (no anónimo).
-    credentials = authenticate_user(
-        project_id=None, config=_CONFIG, tokens=_tokens
-    )
-
-    # Intentamos instanciar el cliente con credenciales por defecto;
-    # busca las ADC del entorno.
     return _get_gdrive_default_client(credentials=credentials, config=_CONFIG)
