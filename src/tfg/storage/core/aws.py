@@ -1,10 +1,6 @@
 import pathlib as pl
 import typing as tp
 
-import boto3
-from botocore import UNSIGNED
-from botocore.config import Config
-
 from ..backend import AWSBackend
 from ..cache import TimedScanCache
 from ..datasource import DataService, Datasource
@@ -12,6 +8,65 @@ from ..mapper import AWSURIMapper
 
 S3_PREFIX = "s3://"
 POSIX_PREFIX = "/"
+
+Client = tp.Any
+Config = tp.Any
+
+
+def _get_s3_client(
+    profile_name: str | None = None,
+    region_name: str | None = None,
+    **session_kwargs: tp.Any,
+) -> tuple[Client, Config]:
+    """
+    Crea un cliente de S3 con configuración adecuada para acceso
+    autenticado o anónimo.
+
+    Parameters
+    ----------
+    profile_name : str, optional
+        Nombre del perfil de AWS configurado en la máquina local.
+    region_name : str, optional
+        Región de AWS (ej: 'us-east-1').
+    **session_kwargs : Any
+        Argumentos adicionales para boto3.Session (aws_access_key_id,
+        etc.)
+
+    Returns
+    -------
+    boto3.client
+        Cliente de S3 configurado.
+    """
+    import boto3
+    from botocore import UNSIGNED
+    from botocore.config import Config
+
+    # 1. Intentar crear sesión con lo que haya
+    session = boto3.Session(
+        profile_name=profile_name, region_name=region_name, **session_kwargs
+    )
+    creds = session.get_credentials()
+
+    # 2. Determinar si debemos usar modo UNSIGNED
+    if creds is None:
+        # Si no hay credenciales en la sesión Y no se pasaron
+        # argumentos, es anónimo.
+        if profile_name or session_kwargs:
+            raise ValueError(
+                "No se pudieron obtener credenciales de AWS. "
+                "Por favor, revise la configuración de su perfil "
+                "o las credenciales proporcionadas."
+            )
+        # Configuración UNSIGNED para acceso público sin credenciales
+        config = Config(signature_version=UNSIGNED)
+        # Forzamos una sesión vacía para evitar que boto3 busque
+        # archivos config
+        session = boto3.Session(region_name=region_name)
+
+    else:
+        config = None
+
+    return session.client("s3", config=config), config
 
 
 def use_aws_cloud(
@@ -60,33 +115,11 @@ def use_aws_cloud(
     # 1. Configuración de la Sesión de AWS y del cliente S3
     # Acceso Anónimo vs Autenticado: Esto permite flexibilidad total,
     # desde perfiles hasta llaves directas
-
-    # 1.1. Intentar crear sesión con lo que haya
-    session = boto3.Session(
-        profile_name=profile_name, region_name=region_name, **session_kwargs
+    client, config = _get_s3_client(
+        profile_name=profile_name,
+        region_name=region_name,
+        **session_kwargs,
     )
-    creds = session.get_credentials()
-
-    # 1.2. Determinar si debemos usar modo UNSIGNED
-    if creds is None:
-        # Si no hay credenciales en la sesión Y no se pasaron
-        # argumentos, es anónimo.
-        if profile_name or session_kwargs:
-            raise ValueError(
-                "No se pudieron obtener credenciales de AWS. "
-                "Por favor, revise la configuración de su perfil o las "
-                "credenciales proporcionadas."
-            )
-        # Configuración UNSIGNED para acceso público sin credenciales
-        config = Config(signature_version=UNSIGNED)
-        # Forzamos una sesión vacía para evitar que boto3 busque
-        # archivos config
-        session = boto3.Session(region_name=region_name)
-
-    else:
-        config = None
-
-    s3_client = session.client("s3", config=config)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
@@ -110,7 +143,7 @@ def use_aws_cloud(
     # El Backend recibe la sesión y la caché de escaneo
     backend = AWSBackend(
         bucket=bucket,
-        client=s3_client,
+        client=client,
         scan_cache=scan_cache,
         config=config,
     )
