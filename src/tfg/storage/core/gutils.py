@@ -175,8 +175,6 @@ def _run_colab_interactive_auth(
 
     credentials, _ = default(scopes=list(config.scopes))
 
-    print(credentials)
-
     return tp.cast(Credentials, credentials)
 
 
@@ -245,13 +243,15 @@ def authenticate_user(
         config
     ) or _get_interactive_credentials(project_id, config)
 
+    if not credentials:
+        raise RuntimeError(
+            "No se pudieron obtener credenciales de autenticación. "
+            "Asegúrate de tener acceso a internet y de proveer "
+            "credenciales válidas"
+        )
+
     # Guarda las credenciales obtenidas si son válidas
     if _is_serializable(credentials):
         tokens.save(credentials)
-        return credentials
 
-    raise RuntimeError(
-        "No se pudieron obtener credenciales de autenticación. "
-        "Asegúrate de tener acceso a internet y de proveer "
-        "credenciales válidas"
-    )
+    return credentials
