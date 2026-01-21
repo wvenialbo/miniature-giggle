@@ -18,7 +18,7 @@ class AuthConfig:
     secrets_name: str = "secrets.json"
     secrets_package: str = "tfg.config"
     token_name: str = "token.json"
-    timeout: int = 15
+    timeout: int = 60
 
     @property
     def token_path(self) -> pl.Path:
