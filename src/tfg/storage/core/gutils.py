@@ -122,8 +122,8 @@ def _get_interactive_credentials(
     project_id: str | None, config: AuthConfig
 ) -> Credentials:
     """Intenta obtener credenciales mediante un flujo interactivo."""
-    if running_on_colab():
-        return _run_colab_interactive_auth(project_id, config)
+    # if running_on_colab():
+    #     return _run_colab_interactive_auth(project_id, config)
 
     # En entornos sin navegador (como algunos notebooks remotos o
     # scripts en servidores) el flujo interactivo suele imprimir un
