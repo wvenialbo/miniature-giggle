@@ -226,8 +226,10 @@ class GoogleDriveURIMapper(URIMapper):
             .execute()
         )
 
-        files = response.get("files", [])
-        return files[0].get("id"), files[0].get("mimeType")
+        if files := response.get("files", []):
+            return files[0].get("id"), files[0].get("mimeType")
+
+        return None, None
 
     def _split_id(self, uri: str) -> tuple[str, str, str]:
         """Divide un URI de objeto en sus componentes."""
