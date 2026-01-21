@@ -4,7 +4,7 @@ import typing as tp
 from ..backend import GoogleDriveBackend
 from ..cache import TimedDriveCache, TimedScanCache
 from ..cache.gdrive import GoogleDriveCacheWrapper
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
 
@@ -17,7 +17,7 @@ def use_google_drive(
     credentials: Credentials | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
-) -> DatasourceContract:
+) -> Datasource:
     """
     Crea un contexto de Datasource conectado a Google Drive vía API.
 
@@ -84,7 +84,7 @@ def use_google_drive(
     mapper = GoogleDriveURIMapper(service=service, drive_cache=drive_cache)
 
     # 6. Retorno del Datasource Orquestador
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,

@@ -7,7 +7,7 @@ from botocore.config import Config
 
 from ..backend import AWSBackend
 from ..cache import TimedScanCache
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import AWSURIMapper
 
 S3_PREFIX = "s3://"
@@ -23,7 +23,7 @@ def use_aws_cloud(
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
     **session_kwargs: tp.Any,
-) -> DatasourceContract:
+) -> Datasource:
     """
     Crea un contexto de Datasource conectado a AWS S3.
 
@@ -117,7 +117,7 @@ def use_aws_cloud(
 
     # 5. Retorno del Orquestador
     # Pasamos scan_cache como la caché principal del Datasource
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,

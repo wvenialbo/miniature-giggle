@@ -5,7 +5,7 @@ import typing as tp
 from ..backend import StorageBackend
 from ..cache import AbstractCache, DummyCache
 from ..mapper import GenericURIMapper, URIMapper
-from .base import DatasourceContract
+from .base import Datasource
 from .utils import ProgressTracker, StreamAdapter
 
 NoopCache = DummyCache[tp.Any]
@@ -13,7 +13,7 @@ NoopCache = DummyCache[tp.Any]
 GENERIC_SUFFIX = ".*"
 
 
-class Datasource(DatasourceContract):
+class DataService(Datasource):
     """
     Contexto de datos que orquesta el acceso al almacenamiento.
 
@@ -104,7 +104,7 @@ class Datasource(DatasourceContract):
 
     def __repr__(self) -> str:
         return (
-            "DataSourceContext("
+            "DataService("
             f"mountpoint='{self.mountpoint}', "
             f"backend={repr(self.backend)}, "
             f"mapper={repr(self.mapper)}, "

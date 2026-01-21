@@ -3,7 +3,7 @@ import typing as tp
 
 from ..backend import GCSBackend
 from ..cache import TimedScanCache
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import GCSURIMapper
 from .gcsauth import get_gcs_client
 
@@ -19,7 +19,7 @@ def use_gcs_cloud(
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
     **client_kwargs: tp.Any,
-) -> DatasourceContract:
+) -> Datasource:
     """
     Crea un contexto de Datasource conectado a Google Cloud Storage.
 
@@ -103,7 +103,7 @@ def use_gcs_cloud(
 
     # 6. Retorno del Orquestador
     #    Pasamos scan_cache como la caché principal del Datasource
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,

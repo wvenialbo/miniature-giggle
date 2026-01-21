@@ -1,4 +1,4 @@
-from .base import DatasourceContract
-from .datasource import Datasource
+from .base import Datasource
+from .datasource import DataService
 
-__all__ = ["DatasourceContract", "Datasource"]
+__all__ = ["Datasource", "DataService"]

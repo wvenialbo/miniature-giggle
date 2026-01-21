@@ -4,7 +4,7 @@ import requests
 
 from ..backend import NCEIBackend
 from ..cache import TimedScanCache
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import NCEIURIMapper
 
 
@@ -14,7 +14,7 @@ def use_ncei_archive(
     root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
-) -> DatasourceContract:
+) -> Datasource:
     """
     Crea un contexto de Datasource para el archivo HTTP de NCEI.
 
@@ -47,7 +47,7 @@ def use_ncei_archive(
 
     # 3. Retornar orquestador
     # El mountpoint es "/" porque el Mapper ya gestiona la base_url
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,

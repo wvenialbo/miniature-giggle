@@ -1,11 +1,11 @@
 import pathlib as pl
 
 from ..backend import FilesystemBackend
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
 
 
-def use_local_drive(*, root_path: str | None = None) -> DatasourceContract:
+def use_local_drive(*, root_path: str | None = None) -> Datasource:
     """
     Crea el contexto para el sistema de archivos local.
 
@@ -31,7 +31,7 @@ def use_local_drive(*, root_path: str | None = None) -> DatasourceContract:
 
     mapper = PathURIMapper()
 
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,

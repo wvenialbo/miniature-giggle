@@ -5,7 +5,7 @@ import typing as tp
 from .utils import ProgressTracker
 
 
-class DatasourceContract(tp.Protocol):
+class Datasource(tp.Protocol):
     """
     Protocolo para operaciones sobre fuentes de datos.
 

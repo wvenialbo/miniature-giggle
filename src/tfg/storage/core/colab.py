@@ -3,7 +3,7 @@ import pathlib as pl
 import warnings
 
 from ..backend import FilesystemBackend
-from ..datasource import Datasource, DatasourceContract
+from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
 
 try:
@@ -130,7 +130,7 @@ def _unmount_drive(fail: bool = False) -> None:
         _report_failure("Google Drive no se pudo desmontar", fail)
 
 
-def use_colab_drive(*, root_path: str | None = None) -> DatasourceContract:
+def use_colab_drive(*, root_path: str | None = None) -> Datasource:
     """
     Crea el contexto para el acceso a Google Drive en Google Colab.
 
@@ -157,7 +157,7 @@ def use_colab_drive(*, root_path: str | None = None) -> DatasourceContract:
 
     mapper = PathURIMapper()
 
-    return Datasource(
+    return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
         mapper=mapper,
