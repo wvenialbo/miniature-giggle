@@ -175,6 +175,8 @@ def _run_colab_interactive_auth(
 
     credentials, _ = default(scopes=list(config.scopes))
 
+    print(credentials)
+
     return tp.cast(Credentials, credentials)
 
 
