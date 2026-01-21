@@ -30,6 +30,8 @@ def use_google_drive(
     root_path : str, optional
         Ruta raíz dentro de Google Drive para el contexto. Si es None,
         se utiliza la raíz del Drive.
+    credentials: Credentials | None, optional
+        Credenciales para autenticación. Si es None, se usan las
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de IDs. Si es None,
         el caché será volátil (en memoria).
