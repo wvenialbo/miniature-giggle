@@ -4,7 +4,7 @@ import typing as tp
 from dataclasses import dataclass
 
 from ... import __package_id__, __package_root__
-from ...utils import running_on_colab
+from ...utils import running_on_colab, running_on_notebook
 
 Client = tp.Any
 Credentials = tp.Any
@@ -122,13 +122,21 @@ def _get_interactive_credentials(
     project_id: str | None, config: AuthConfig
 ) -> Credentials:
     """Intenta obtener credenciales mediante un flujo interactivo."""
-    # if running_on_colab():
-    #     return _run_colab_interactive_auth(project_id, config)
+    if running_on_colab():
+        return _run_colab_interactive_auth(project_id, config)
+
+    if running_on_notebook():
+        return _run_local_interactive_auth(config=config)
 
     # En entornos sin navegador (como algunos notebooks remotos o
-    # scripts en servidores) el flujo interactivo suele imprimir un
-    # enlace para que el usuario proceda con la autenticación.
-    return _run_local_interactive_auth(config=config)
+    # scripts en servidores).
+
+    raise RuntimeError(
+        "No se pudo iniciar el flujo de autenticación interactivo. "
+        "Asegúrate de estar ejecutando el código en un entorno "
+        "compatible con flujos interactivos (como Jupyter Notebooks "
+        "locales)."
+    )
 
 
 def _run_colab_interactive_auth(
