@@ -91,7 +91,6 @@ def _get_user_credentials(tokens: TokenManager) -> Credentials | None:
     from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials as OAuthCredentials
-    from requests import Session
 
     credentials: OAuthCredentials | None = None
 
@@ -105,7 +104,7 @@ def _get_user_credentials(tokens: TokenManager) -> Credentials | None:
             return credentials
 
         if _is_refreshable(credentials):
-            credentials.refresh(Request(session=Session()))
+            credentials.refresh(Request())
             return credentials
 
         credentials = None
@@ -119,7 +118,6 @@ def _get_default_credentials(config: AuthConfig) -> Credentials | None:
     from google.auth.exceptions import DefaultCredentialsError, RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials as OAuthCredentials
-    from requests import Session
 
     credentials: OAuthCredentials | None = None
 
@@ -137,7 +135,7 @@ def _get_default_credentials(config: AuthConfig) -> Credentials | None:
             return credentials
 
         if _is_refreshable(credentials):
-            credentials.refresh(Request(session=Session()))
+            credentials.refresh(Request())
             return credentials
 
         credentials = None

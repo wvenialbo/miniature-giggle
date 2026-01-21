@@ -17,17 +17,8 @@ _CONFIG = AuthConfig(
 _tokens = TokenManager(_CONFIG)
 
 
-def _get_gdrive_default_client(
-    credentials: Credentials, config: AuthConfig
-) -> Client:
-    from google_auth_httplib2 import AuthorizedHttp
+def _get_gdrive_default_client(credentials: Credentials) -> Client:
     from googleapiclient import discovery
-    from httplib2 import Http
-
-    # Crea un objeto httplib2.Http con el timeout global
-    http_transport = Http(timeout=config.timeout)
-
-    authorized_http = AuthorizedHttp(credentials, http=http_transport)
 
     # Construcción del cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
@@ -35,9 +26,8 @@ def _get_gdrive_default_client(
     service = discovery.build(
         "drive",
         "v3",
-        # credentials=credentials,
+        credentials=credentials,
         cache_discovery=False,
-        http=authorized_http,
     )
 
     # Validar credenciales haciendo una llamada simple. Esto es
@@ -55,4 +45,4 @@ def get_gdrive_client(credentials: Credentials | None) -> Client:
         credentials = authenticate_user(
             project_id=None, config=_CONFIG, tokens=_tokens
         )
-    return _get_gdrive_default_client(credentials=credentials, config=_CONFIG)
+    return _get_gdrive_default_client(credentials=credentials)
