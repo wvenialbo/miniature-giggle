@@ -188,6 +188,18 @@ class Datasource(DatasourceContract):
         """
         return self.backend.size(uri=self._to_native_uri(uri))
 
+    def is_read_only(self) -> bool:
+        """
+        Indica si la fuente de datos es de solo lectura.
+
+        Returns
+        -------
+        bool
+            True si la fuente de datos es de solo lectura, False en
+            caso contrario.
+        """
+        return self.backend.read_only
+
     def list(self, *, prefix: str = "") -> list[str]:
         """
         Enumera objetos cuya URI comienza con el prefijo especificado.
