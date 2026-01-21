@@ -12,7 +12,7 @@ NCEI_BASE_URL = "https://www.ncei.noaa.gov/data/"
 
 def use_ncei_archive(
     *,
-    base_url: str,
+    dataset_path: str,
     root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
@@ -22,9 +22,12 @@ def use_ncei_archive(
 
     Parameters
     ----------
-    base_url : str
-        URL base del dataset en NCEI. Una ruta relativa a
+    dataset_path : str
+        Ruta del dataset en el servidor de NCEI Archive, relativa a
         'https://www.ncei.noaa.gov/data/'.
+    root_path : str, optional
+        Prefijo raíz dentro del dataset para este Datasource.  Por
+        defecto None (raíz del dataset).
     cache_file : str | Path, optional
         Ruta para persistir el listado de archivos.
     expire_after : float, optional
@@ -36,15 +39,18 @@ def use_ncei_archive(
         cache_file=cache_path_str, expire_after=expire_after
     )
 
+    root_url = NCEI_BASE_URL.rstrip("/")
+    dataset_path = dataset_path.lstrip("/")
+    base_url = f"{root_url}/{dataset_path}"
+
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
 
-    root_url = NCEI_BASE_URL.rstrip("/")
-    mountpoint = f"{root_url}/{base_path.as_posix()}"
+    local_root = pl.PurePosixPath("/")
+    mountpoint = local_root / base_path.as_posix()
 
     # 2. Instanciar componentes
     session = requests.Session()
-
     mapper = NCEIURIMapper(base_url=base_url)
     backend = NCEIBackend(session=session, scan_cache=scan_cache)
 
