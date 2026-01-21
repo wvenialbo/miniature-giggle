@@ -11,7 +11,8 @@ _CONFIG = AuthConfig(
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/drive.file",
         "https://www.googleapis.com/auth/drive.readonly",
-    )
+    ),
+    "gdrive.json",
 )
 _tokens = TokenManager(_CONFIG)
 
@@ -34,7 +35,7 @@ def _get_gdrive_default_client(
     service = discovery.build(
         "drive",
         "v3",
-        credentials=credentials,
+        # credentials=credentials,
         cache_discovery=False,
         http=authorized_http,
     )

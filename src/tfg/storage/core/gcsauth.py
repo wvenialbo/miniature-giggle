@@ -14,7 +14,8 @@ _CONFIG = AuthConfig(
         "https://www.googleapis.com/auth/devstorage.read_write",
         "https://www.googleapis.com/auth/devstorage.read_only",
         "https://www.googleapis.com/auth/cloud-platform",
-    )
+    ),
+    "gcloud.json",
 )
 _tokens = TokenManager(_CONFIG)
 

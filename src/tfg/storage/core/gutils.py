@@ -19,11 +19,11 @@ class SecretsNotFoundError(Exception):
 @dataclass(frozen=True)
 class AuthConfig:
     scopes: tuple[str, ...]
+    token_name: str
     app_name: str = __package_root__
     app_author: str = __package_id__
     secrets_name: str = "secrets.json"
     secrets_package: str = "tfg.config"
-    token_name: str = "token.json"
     timeout: int = 60
 
     @property
@@ -45,20 +45,45 @@ class TokenManager:
 
         path = self.config.token_path
         if path.exists():
-            return OAuthCredentials.from_authorized_user_file(
+            credentials = OAuthCredentials.from_authorized_user_file(
                 str(path), self.config.scopes
             )
+            return self._validate(credentials)
 
         return None
 
-    def save(self, credentials: tp.Any) -> None:
+    def save(self, credentials_: Credentials) -> None:
         from google.oauth2.credentials import Credentials as OAuthCredentials
 
-        oauth2_credentials: OAuthCredentials = credentials
-
+        credentials: OAuthCredentials = credentials_
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(oauth2_credentials.to_json())
+        path.write_text(credentials.to_json())
+
+    def _validate(
+        self, credentials_: Credentials | None
+    ) -> Credentials | None:
+        from google.oauth2.credentials import Credentials as OAuthCredentials
+
+        if not credentials_:
+            return None
+
+        credentials: OAuthCredentials = credentials_
+
+        try:
+            # Verificamos si el token guardado NO tiene todos
+            # los scopes requeridos
+            if not credentials.has_scopes(self.config.scopes):
+                self.config.token_path.unlink()
+                return None
+
+            return credentials
+
+        except OSError:
+            # Si el archivo está corrupto o no se puede leer,
+            # lo borramos por seguridad
+            self.config.token_path.unlink(missing_ok=True)
+            return None
 
 
 def _get_user_credentials(tokens: TokenManager) -> Credentials | None:
