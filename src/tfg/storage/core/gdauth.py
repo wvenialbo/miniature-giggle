@@ -20,7 +20,7 @@ def _get_gdrive_default_client(credentials: Credentials | None) -> Client:
     from googleapiclient import discovery
 
     # Crea un objeto httplib2.Http con el timeout global
-    # http_transport = httplib2.Http(timeout=_CONFIG.timeout)
+    http_transport = httplib2.Http(timeout=_CONFIG.timeout)
 
     # Construcción del cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
@@ -30,7 +30,7 @@ def _get_gdrive_default_client(credentials: Credentials | None) -> Client:
         "v3",
         credentials=credentials,
         cache_discovery=False,
-        # http=http_transport,
+        http=http_transport,
     )
 
     # Validar credenciales haciendo una llamada simple. Esto es
