@@ -524,7 +524,11 @@ class GoogleDriveBackend(ReadWriteBackend):
             parent_path, folders, parent_id
         )
 
-        return f"{PATH_PREFIX}{filename}{PATH_ID_SEPARATOR}{target_folder_id}"
+        return (
+            f"{PATH_PREFIX}{parent_path}"
+            f"{PATH_ID_SEPARATOR}{filename}"
+            f"{PATH_ID_SEPARATOR}{target_folder_id}"
+        )
 
     def _find_folder_id(self, parent_id: str, name: str) -> str | None:
         """Busca una carpeta específica dentro de un padre."""
