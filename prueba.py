@@ -8,6 +8,27 @@ import numpy as np
 import numpy.typing as npt
 import scipy as sp
 
+
+# ----------------------------------------------------------------------
+
+import goesdl.gridsat
+
+filter = goesdl.gridsat.GridSatProductLocatorGC(scene="F", origins="G12", versions="v01")
+
+print(filter)
+print(filter.get_base_url("HTTP"))
+# filter.get_datetime("HTTP")
+# filter.get_paths("HTTP")
+filter.match("HTTP")
+help(filter)
+
+# ----------------------------------------------------------------------
+
+filter = goesdl.gridsat.GridSatProductLocatorB1(versions="v02r01")
+# filter.get_base_url("")
+
+# ----------------------------------------------------------------------
+
 LangType = tp.Literal["en", "es"]
 
 SUPPORTED_LANG = set(tp.get_args(LangType))
