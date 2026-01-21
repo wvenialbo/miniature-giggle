@@ -7,6 +7,8 @@ from ..cache import TimedScanCache
 from ..datasource import DataService, Datasource
 from ..mapper import NCEIURIMapper
 
+NCEI_BASE_URL = "https://www.ncei.noaa.gov/data/"
+
 
 def use_ncei_archive(
     *,
@@ -21,7 +23,8 @@ def use_ncei_archive(
     Parameters
     ----------
     base_url : str
-        URL base del dataset en NCEI (ej. https://www.ncei.noaa.gov/data/...)
+        URL base del dataset en NCEI. Una ruta relativa a
+        'https://www.ncei.noaa.gov/data/'.
     cache_file : str | Path, optional
         Ruta para persistir el listado de archivos.
     expire_after : float, optional
@@ -36,8 +39,8 @@ def use_ncei_archive(
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
 
-    local_root = pl.PurePosixPath("/")
-    mountpoint = local_root / base_path.as_posix()
+    root_url = NCEI_BASE_URL.rstrip("/")
+    mountpoint = f"{root_url}/{base_path.as_posix()}"
 
     # 2. Instanciar componentes
     session = requests.Session()
