@@ -16,13 +16,21 @@ _tokens = TokenManager(_CONFIG)
 
 
 def _get_gdrive_default_client(credentials: Credentials | None) -> Client:
+    import httplib2
     from googleapiclient import discovery
+
+    # Crea un objeto httplib2.Http con el timeout global
+    http_transport = httplib2.Http(timeout=_CONFIG.timeout)
 
     # Construcción del cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
     # mejora el tiempo de inicio en implementaciones stateless.
     service = discovery.build(
-        "drive", "v3", credentials=credentials, cache_discovery=False
+        "drive",
+        "v3",
+        credentials=credentials,
+        cache_discovery=False,
+        http=http_transport,
     )
 
     # Validar credenciales haciendo una llamada simple. Esto es
