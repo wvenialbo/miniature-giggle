@@ -15,17 +15,21 @@ _CONFIG = AuthConfig(
 _tokens = TokenManager(_CONFIG)
 
 
-def _get_gdrive_default_client(credentials: Credentials | None) -> Client:
+def _get_gdrive_default_client(
+    credentials: Credentials | None, config: AuthConfig
+) -> Client:
     from google.auth import default as get_default_credentials
     from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient import discovery
     from httplib2 import Http
 
     # Crea un objeto httplib2.Http con el timeout global
-    http_transport = Http(timeout=_CONFIG.timeout)
+    http_transport = Http(timeout=config.timeout)
 
     http_creds = (
-        credentials if credentials is not None else get_default_credentials()
+        credentials
+        if credentials is not None
+        else get_default_credentials(list(config.scopes))[0]
     )
 
     authorized_http = AuthorizedHttp(http_creds, http=http_transport)
@@ -54,7 +58,9 @@ def _get_gdrive_default_client(credentials: Credentials | None) -> Client:
 def get_gdrive_client(credentials: Credentials | None) -> Client:
     # Si se proveyeron, usamos las credenciales del usuario.
     if credentials is not None:
-        return _get_gdrive_default_client(credentials=credentials)
+        return _get_gdrive_default_client(
+            credentials=credentials, config=_CONFIG
+        )
 
     # Si se proveyeron credenciales explícitas y el bucket no es
     # público, forzamos autenticación de usuario (no anónimo).
@@ -64,4 +70,4 @@ def get_gdrive_client(credentials: Credentials | None) -> Client:
 
     # Intentamos instanciar el cliente con credenciales por defecto;
     # busca las ADC del entorno.
-    return _get_gdrive_default_client(credentials=credentials)
+    return _get_gdrive_default_client(credentials=credentials, config=_CONFIG)
