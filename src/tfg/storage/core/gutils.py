@@ -1,10 +1,10 @@
 import contextlib
-import os
 import pathlib as pl
 import typing as tp
 from dataclasses import dataclass
 
 from ... import __package_id__, __package_root__
+from ...utils import running_on_colab, running_on_notebook
 
 Client = tp.Any
 Credentials = tp.Any
@@ -53,23 +53,6 @@ class TokenManager:
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(oauth2_credentials.to_json())
-
-
-def _is_interactive() -> bool:
-    """
-    Detecta si el código se está ejecutando en una notebook.
-    """
-    try:
-        from IPython.core.getipython import get_ipython
-
-        return get_ipython() is not None
-
-    except ImportError:
-        return False
-
-
-def _running_on_colab() -> bool:
-    return bool(os.getenv("COLAB_RELEASE_TAG"))
 
 
 def _get_user_credentials(tokens: TokenManager) -> Credentials:
@@ -129,13 +112,13 @@ def _authenticate_interactive(
 def authenticate_user(
     project_id: str | None, config: AuthConfig, tokens: TokenManager
 ) -> Credentials | None:
-    if _running_on_colab():
+    if running_on_colab():
         from google.colab.auth import authenticate_user
 
         authenticate_user(project_id=project_id)
         return None
 
-    if _is_interactive():
+    if running_on_notebook():
         from google.auth import default
         from google.auth.exceptions import DefaultCredentialsError
 

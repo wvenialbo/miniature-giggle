@@ -1,7 +1,32 @@
+import os
 import typing as tp
 
 import numpy as np
 import numpy.typing as npt
+
+
+def running_on_colab() -> bool:
+    return bool(os.getenv("COLAB_RELEASE_TAG"))
+
+
+def running_on_kaggle() -> bool:
+    return (
+        os.path.exists("/kaggle/working")
+        or os.environ.get("KAGGLE_KERNEL_RUN_TYPE") is not None
+    )
+
+
+def running_on_notebook() -> bool:
+    """
+    Detecta si el código se está ejecutando en una notebook.
+    """
+    try:
+        from IPython.core.getipython import get_ipython
+
+        return get_ipython() is not None
+
+    except ImportError:
+        return False
 
 
 def to_indices(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.intp]:
