@@ -95,7 +95,8 @@ class Datasource(tp.Protocol):
         """
         ...
 
-    def get_buffer(self) -> io.BytesIO:
+    @staticmethod
+    def get_buffer() -> io.BytesIO:
         """
         Obtiene un buffer de bytes vacío.
 
@@ -263,3 +264,19 @@ class Datasource(tp.Protocol):
             Fragmentos de datos leídos desde la URI dada.
         """
         ...
+
+
+class DatasourceBasic(Datasource):
+    """Implementación base de Datasource con métodos comunes."""
+
+    @staticmethod
+    def get_buffer() -> io.BytesIO:
+        """
+        Obtiene un buffer de bytes vacío.
+
+        Returns
+        -------
+        io.BytesIO
+            Un buffer de bytes vacío para operaciones de E/S en memoria.
+        """
+        return io.BytesIO()

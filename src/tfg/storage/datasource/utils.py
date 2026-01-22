@@ -2,6 +2,7 @@ import collections.abc as col
 import io
 import typing as tp
 
+
 if tp.TYPE_CHECKING:
     from _typeshed import WriteableBuffer
 
@@ -42,7 +43,15 @@ class StreamAdapter(io.RawIOBase):
         self._closed = False
 
     def readable(self) -> bool:
-        """Indica que el stream es legible."""
+        """
+        Indica que el stream es legible.
+
+        Returns
+        -------
+        bool
+            True si el stream está abierto y legible, False si está
+            cerrado.
+        """
         return not self._closed
 
     def close(self) -> None:
@@ -55,8 +64,25 @@ class StreamAdapter(io.RawIOBase):
 
     def readinto(self, buffer: "WriteableBuffer") -> int:
         """
+        Lee bytes y los escribe en un buffer.
+
         Lee bytes directamente hacia un buffer pre-asignado.
         Esta es la base de la eficiencia en io.BufferedReader.
+
+        Parameters
+        ----------
+        buffer : WriteableBuffer
+            Un buffer pre-asignado donde se escribirán los bytes leídos.
+
+        Returns
+        -------
+        int
+            El número de bytes leídos y escritos en el buffer.
+
+        Raises
+        ------
+        ValueError
+            Si el stream está cerrado.
         """
         if self._closed:
             raise ValueError("I/O operation on closed file.")
@@ -64,7 +90,7 @@ class StreamAdapter(io.RawIOBase):
         # Realiza la lectura en el buffer proporcionado
         return self._do_read(buffer)
 
-    def _do_read(self, buffer: tp.Any) -> int:
+    def _do_read(self, buffer: col.Buffer) -> int:
         view = memoryview(buffer).cast("B")
         bytes_read = 0
 
@@ -106,6 +132,8 @@ class ProgressTracker(tp.Protocol):
         description: str,
     ) -> col.Iterable[bytes]:
         """
+        Tipo de protocolo para rastreadores de progreso.
+
         Una función factoría que recibe un iterable de bytes, el tamaño
         total en bytes, una descripción, y devuelve un iterable de bytes
         que envuelve el original para mostrar el progreso de una

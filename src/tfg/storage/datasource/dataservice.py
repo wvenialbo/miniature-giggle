@@ -5,15 +5,16 @@ import typing as tp
 from ..backend import StorageBackend
 from ..cache import AbstractCache, DummyCache
 from ..mapper import GenericURIMapper, URIMapper
-from .base import Datasource
+from .base import DatasourceBasic
 from .utils import ProgressTracker, StreamAdapter
+
 
 NoopCache = DummyCache[tp.Any]
 
 GENERIC_SUFFIX = ".*"
 
 
-class DataService(Datasource):
+class DataService(DatasourceBasic):
     """
     Contexto de datos que orquesta el acceso al almacenamiento.
 
@@ -106,9 +107,9 @@ class DataService(Datasource):
         return (
             "DataService("
             f"mountpoint='{self.mountpoint}', "
-            f"backend={repr(self.backend)}, "
-            f"mapper={repr(self.mapper)}, "
-            f"cache={repr(self.cache)})"
+            f"backend={self.backend!r}, "
+            f"mapper={self.mapper!r}, "
+            f"cache={self.cache!r})"
         )
 
     def clear_cache(self) -> None:
@@ -160,17 +161,6 @@ class DataService(Datasource):
             contrario.
         """
         return self.backend.exists(uri=self._to_native_uri(uri))
-
-    def get_buffer(self) -> io.BytesIO:
-        """
-        Obtiene un buffer de bytes vacío.
-
-        Returns
-        -------
-        io.BytesIO
-            Un buffer de bytes vacío para operaciones de E/S en memoria.
-        """
-        return io.BytesIO()
 
     def get_size(self, *, uri: str) -> int:
         """
@@ -286,7 +276,7 @@ class DataService(Datasource):
 
         if tracker is not None:
             total_size = self.get_size(uri=uri)
-            description = uri.split("/")[-1]
+            description = uri.rsplit("/", maxsplit=1)[-1]
             iterator = tracker(
                 iterable=iterator,
                 total_size=total_size,
@@ -355,11 +345,9 @@ class DataService(Datasource):
         )
 
     def _to_generic_uri(self, uri: str) -> str:
-        """Convierte una URI nativa a genérica respecto el punto de montaje."""
         absolute_uri = self.mapper.to_generic(uri)
         return self.local_mapper.to_relative(absolute_uri)
 
     def _to_native_uri(self, uri: str) -> str:
-        """Convierte una URI genérica a nativa respecto el punto de montaje."""
         absolute_uri = self.local_mapper.to_absolute(uri)
         return self.mapper.to_native(absolute_uri)
