@@ -4,6 +4,9 @@ import pathlib as pl
 from .base import ReadWriteBackend
 
 
+# ruff: noqa: PLR6301
+
+
 class FilesystemBackend(ReadWriteBackend):
     """
     Backend de almacenamiento para el sistema de archivos local.
@@ -66,7 +69,7 @@ class FilesystemBackend(ReadWriteBackend):
 
         Parameters
         ----------
-        path : str
+        uri : str
             Puede ser un ID nativo del backend (si el recurso ya existe)
             o una ruta genérica (POSIX). Ej:
             'experimentos/2024/dataset1'.
@@ -272,7 +275,6 @@ class FilesystemBackend(ReadWriteBackend):
 
 
 def _check_uri(uri: str) -> pl.Path:
-    """Verifica que la URI sea una ruta absoluta válida."""
     path = pl.Path(uri)
     if not path.is_absolute():
         raise ValueError(

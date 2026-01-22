@@ -5,7 +5,10 @@ import typing as tp
 from ..cache import CacheBase, DummyCache
 from .base import ReadWriteBackend
 
-Client = tp.Any
+
+if tp.TYPE_CHECKING:
+    from google.cloud.storage import Blob
+    from google.cloud.storage.client import Client
 
 # Definición de tipos para el caché
 GCSCache = CacheBase[list[str]]
@@ -66,23 +69,21 @@ class GCSBackend(ReadWriteBackend):
     def __init__(
         self,
         bucket: str,
-        client: Client,
+        client: "Client",
         scan_cache: GCSCache | None = None,
     ) -> None:
-        from google.cloud import storage
-
         self.bucket_name = bucket
-        self.client: storage.Client = client
+        self.client = client
         self.scan_cache: GCSCache = scan_cache or NoopCache()
 
     def __repr__(self) -> str:
         return (
             f"GCSBackend(bucket='{self.bucket_name}', "
-            f"client={repr(self.client)}, "
-            f"scan_cache={repr(self.scan_cache)})"
+            f"client={self.client!r}, "
+            f"scan_cache={self.scan_cache!r})"
         )
 
-    def create_path(self, *, uri: str) -> str:
+    def create_path(self, *, uri: str) -> str:  # noqa: PLR6301
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
 
@@ -96,7 +97,7 @@ class GCSBackend(ReadWriteBackend):
             URI nativa o ruta genérica.
 
         Returns
-        ----------
+        -------
         str
             La misma URI proporcionada.
         """
@@ -153,11 +154,6 @@ class GCSBackend(ReadWriteBackend):
         -------
         bytes
             Contenido binario del objeto.
-
-        Raises
-        ------
-        FileNotFoundError
-            Si el objeto no existe en GCS (captura `NotFound`).
         """
         from google.cloud import storage
 
@@ -277,12 +273,13 @@ class GCSBackend(ReadWriteBackend):
         # upload_from_string acepta bytes si se pasan como tal
         blob.upload_from_string(data)
 
-    def _get_blob(self, uri: str) -> tp.Any:
+    def _get_blob(self, uri: str) -> "Blob":
         bucket_name, blob_name = self._split_uri(uri)
         bucket = self.client.bucket(bucket_name)
         return bucket.blob(blob_name)
 
-    def _split_uri(self, uri: str) -> tuple[str, str]:
+    @staticmethod
+    def _split_uri(uri: str) -> tuple[str, str]:
         """
         Separa la URI nativa en nombre del bucket y nombre del blob.
 
@@ -309,7 +306,8 @@ class GCSBackend(ReadWriteBackend):
         parts = uri[len(ID_PREFIX) :].split(SEPARATOR, 1)
 
         bucket_name = parts[0]
-        # Si no hay parte después del bucket, el blob_name es cadena vacía
+        # Si no hay parte después del bucket, el blob_name es cadena
+        # vacía
         blob_name = parts[1] if len(parts) > 1 else ""
 
         return bucket_name, blob_name

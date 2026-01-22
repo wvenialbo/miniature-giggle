@@ -7,8 +7,11 @@ import requests
 from ..cache import CacheBase, DummyCache
 from .base import ReadOnlyBackend
 
+
 NCEICache = CacheBase[list[str]]
 NoopCache = DummyCache[list[str]]
+
+HTTP_200_OK = 200
 
 
 class NCEIBackend(ReadOnlyBackend):
@@ -59,7 +62,7 @@ class NCEIBackend(ReadOnlyBackend):
         self.session = session
 
     def __repr__(self) -> str:
-        return f"NCEIBackend(scan_cache={repr(self.scan_cache)})"
+        return f"NCEIBackend(scan_cache={self.scan_cache!r})"
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -81,7 +84,7 @@ class NCEIBackend(ReadOnlyBackend):
             no existe).
         """
         response = self.session.head(uri, timeout=10)
-        return response.status_code == 200
+        return response.status_code == HTTP_200_OK
 
     def read(self, *, uri: str) -> bytes:
         """
@@ -96,13 +99,6 @@ class NCEIBackend(ReadOnlyBackend):
         -------
         bytes
             Contenido binario del archivo u objeto.
-
-        Raises
-        ------
-        FileNotFoundError
-            Si la URI no existe.
-        RuntimeError
-            Si el backend no soporta operaciones de lectura.
         """
         response = self.session.get(uri, timeout=15)
         response.raise_for_status()
@@ -129,11 +125,17 @@ class NCEIBackend(ReadOnlyBackend):
         ------
         bytes
             Fragmentos del contenido binario del archivo.
+
+        Raises
+        ------
+        ValueError
+            Si `chunk_size` es menor a 1MiB.
         """
         if chunk_size < 1024 * 1024:
             raise ValueError("chunk_size debe ser al menos 1MB.")
 
-        # Es vital usar stream=True para no descargar el archivo al hacer el get
+        # Es vital usar stream=True para no descargar el archivo al
+        # hacer el get
         response = self.session.get(uri, timeout=15, stream=True)
         response.raise_for_status()
 
@@ -165,11 +167,6 @@ class NCEIBackend(ReadOnlyBackend):
             prefijo.  Solo incluye archivos/objetos, no contenedores
             vacíos.
 
-        Raises
-        ------
-        RuntimeError
-            Si el backend no soporta operaciones de listado.
-
         Notes
         -----
         - Solo devuelve URIs de archivos u objetos individuales; no
@@ -189,7 +186,7 @@ class NCEIBackend(ReadOnlyBackend):
                 return cached
 
         response = self.session.get(folder_url, timeout=15)
-        if response.status_code != 200:
+        if response.status_code != HTTP_200_OK:
             return []
 
         # Extraer enlaces href del HTML (lógica heredada de
@@ -231,6 +228,7 @@ class NCEIBackend(ReadOnlyBackend):
         response = self.session.head(uri, timeout=10)
         response.raise_for_status()
 
-        # El header puede no existir si el servidor usa chunked encoding,
-        # en ese caso devolvemos 0 o manejamos la incertidumbre.
+        # El header puede no existir si el servidor usa chunked
+        # encoding, en ese caso devolvemos 0 o manejamos la
+        # incertidumbre.
         return int(response.headers.get("Content-Length", 0))

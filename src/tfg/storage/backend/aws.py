@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from ..cache import CacheBase, DummyCache
 from .base import ReadWriteBackend
 
+
 if tp.TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client
 
@@ -78,11 +79,11 @@ class AWSBackend(ReadWriteBackend):
     def __repr__(self) -> str:
         return (
             f"AWSBackend(bucket='{self.bucket_name}', "
-            f"client={repr(self.s3)}, "
-            f"scan_cache={repr(self.scan_cache)})"
+            f"client={self.s3!r}, "
+            f"scan_cache={self.scan_cache!r})"
         )
 
-    def create_path(self, *, uri: str) -> str:
+    def create_path(self, *, uri: str) -> str:  # noqa: PLR6301
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
 
@@ -96,7 +97,7 @@ class AWSBackend(ReadWriteBackend):
             URI nativa o ruta genérica.
 
         Returns
-        ----------
+        -------
         str
             La misma URI proporcionada.
         """
@@ -149,6 +150,11 @@ class AWSBackend(ReadWriteBackend):
         -------
         bytes
             Contenido del objeto leído.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el objeto no existe en la ubicación especificada.
         """
         bucket, key = self._split_uri(uri)
         try:
@@ -181,6 +187,13 @@ class AWSBackend(ReadWriteBackend):
         ------
         bytes
             Fragmentos del contenido binario del archivo.
+
+        Raises
+        ------
+        ValueError
+            Si `chunk_size` es menor a 1MiB.
+        FileNotFoundError
+            Si el objeto no existe en la ubicación especificada.
         """
         if chunk_size < 1024 * 1024:
             raise ValueError("chunk_size debe ser al menos 1MB.")
@@ -243,6 +256,11 @@ class AWSBackend(ReadWriteBackend):
         -------
         int
             Tamaño en bytes.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el objeto no existe en la ubicación especificada.
         """
         bucket, key = self._split_uri(uri)
         try:
@@ -265,12 +283,15 @@ class AWSBackend(ReadWriteBackend):
             Contenido del objeto a escribir.
         """
         bucket, key = self._split_uri(uri)
-        # Inferencia simple de ContentType podría ir aquí o en el handler
+        # Inferencia simple de ContentType podría ir aquí o en el
+        # handler
         self.s3.put_object(Bucket=bucket, Key=key, Body=data)
-        # Importante: Invalidar el cache de scan ya que la estructura cambió
+        # Importante: Invalidar el cache de scan ya que la estructura
+        # cambió
         self.scan_cache.clear()
 
-    def _split_uri(self, uri: str) -> tuple[str, str]:
+    @staticmethod
+    def _split_uri(uri: str) -> tuple[str, str]:
         if not uri.startswith(S3_PREFIX):
             raise ValueError(f"URI inválida para AWS: '{uri}'")
         parts = uri[len(S3_PREFIX) :].split(S3_SEPARATOR, 1)

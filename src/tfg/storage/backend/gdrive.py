@@ -7,6 +7,7 @@ import typing as tp
 from ..cache import CacheBase
 from .base import ReadWriteBackend
 
+
 Resource = tp.Any
 
 DriveCache = CacheBase[tuple[str, str]]
@@ -17,6 +18,8 @@ FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
 ID_PREFIX = "id://"
 PATH_PREFIX = "path://"
 PATH_ID_SEPARATOR = "|"
+
+HTTP_404_NOT_FOUND = 404
 
 
 class GoogleDriveBackend(ReadWriteBackend):
@@ -68,12 +71,12 @@ class GoogleDriveBackend(ReadWriteBackend):
     ) -> None:
         if tp.TYPE_CHECKING:
             from googleapiclient._apis.drive.v3.resources import DriveResource
-        self._service: "DriveResource" = service
+        self._service: DriveResource = service
         self._drive_cache = drive_cache
         self._scan_cache = scan_cache
 
     def __repr__(self) -> str:
-        return f"GoogleDriveBackend({repr(self._service)})"
+        return f"GoogleDriveBackend({self._service!r})"
 
     def create_path(self, *, uri: str) -> str:
         """
@@ -133,6 +136,11 @@ class GoogleDriveBackend(ReadWriteBackend):
             URI nativa absoluta completa válida para el backend.
             Ejemplo: 's3://bucket/experimentos/data.csv'.
 
+        Raises
+        ------
+        googleapiclient.errors.HttpError
+            Si el URI no existe.
+
         Notes
         -----
         - Operación idempotente: si el URI no existe, no se genera
@@ -151,9 +159,10 @@ class GoogleDriveBackend(ReadWriteBackend):
             self._service.files().delete(
                 fileId=file_id, supportsAllDrives=True
             ).execute()
+
         except HttpError as e:
             # 404 Not Found se considera éxito (idempotencia)
-            if e.resp.status == 404:
+            if e.resp.status == HTTP_404_NOT_FOUND:
                 return
             raise
 
@@ -256,6 +265,11 @@ class GoogleDriveBackend(ReadWriteBackend):
         ------
         bytes
             Fragmentos del contenido binario del archivo.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el URI no existe.
         """
         from googleapiclient.http import MediaIoBaseDownload
 
@@ -302,6 +316,11 @@ class GoogleDriveBackend(ReadWriteBackend):
             prefijo.  Solo incluye archivos/objetos, no contenedores
             vacíos.
 
+        Raises
+        ------
+        FileNotFoundError
+            Si el URI no corresponde a una carpeta válida.
+
         Notes
         -----
         - Solo devuelve los URI de archivos u objetos individuales; no
@@ -322,7 +341,8 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         root_logical_path = pl.PurePosixPath(root_logical_path_str)
 
-        # 2. Consultar Scan Cache (aceleración de consulta de contenedor)
+        # 2. Consultar Scan Cache (aceleración de consulta de
+        #    contenedor)
         if cached_results := self._scan_cache.get(root_folder_id):
             return cached_results
 
@@ -335,6 +355,11 @@ class GoogleDriveBackend(ReadWriteBackend):
         # Estrategia: Búsqueda por BFS (Breadth-First Search) para
         # mantener consistencia con el modelo de carpetas de Drive.
 
+        return self._get_folder_content(root_folder_id, root_logical_path)
+
+    def _get_folder_content(
+        self, root_folder_id: str, root_logical_path: pl.PurePosixPath
+    ) -> list[str]:
         all_file_uris: list[str] = []
         folders_to_scan: list[tuple[str, pl.PurePosixPath]] = [
             (root_folder_id, root_logical_path)
@@ -342,15 +367,17 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         while folders_to_scan:
             current_id, current_path = folders_to_scan.pop(0)
-            current_container_files: list[str] = []
             page_token = EMPTY_VALUE
+
+            current_container_files: list[str] = []
 
             # Query que trae tanto archivos como carpetas
             query = f"'{current_id}' in parents and trashed = false"
 
             while True:
                 response = (
-                    self._service.files()
+                    self._service
+                    .files()
                     .list(
                         q=query,
                         spaces="drive",
@@ -369,7 +396,8 @@ class GoogleDriveBackend(ReadWriteBackend):
                     if f_id is None or f_name is None:
                         continue
 
-                    # Evitamos que el Mapper tenga que buscar esto en el futuro
+                    # Evitamos que el Mapper tenga que buscar esto en el
+                    # futuro
                     f_logical_path = current_path / f_name
                     f_logical_str = str(f_logical_path)
                     f_mime = f.get("mimeType") or ""
@@ -414,6 +442,11 @@ class GoogleDriveBackend(ReadWriteBackend):
         -------
         int
             Tamaño en bytes.
+
+        Raises
+        ------
+        FileNotFoundError
+            Si el URI no existe.
         """
         object_id, _, object_mime = self._split_id(uri)
 
@@ -423,7 +456,8 @@ class GoogleDriveBackend(ReadWriteBackend):
             )
 
         file = (
-            self._service.files()
+            self._service
+            .files()
             .get(fileId=object_id, fields="size", supportsAllDrives=True)
             .execute()
         )
@@ -442,6 +476,8 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         Raises
         ------
+        FileNotFoundError
+            Si el URI no existe.
         ValueError
             Si el URI no tiene un esquema soportado.
 
@@ -485,14 +521,15 @@ class GoogleDriveBackend(ReadWriteBackend):
         # CASO 2: Creación de archivo nuevo
         if uri.startswith(PATH_PREFIX):
             # Formato esperado:
-            # "path://root/path/to/parent|filename.txt|parent_id"
+            #   path://root/path/to/parent|filename.txt|parent_id
             parent_path, filename, parent_id = self._split_path(uri)
 
             # Crear el archivo final
-            file_metadata: "File" = {"name": filename, "parents": [parent_id]}
+            file_metadata: File = {"name": filename, "parents": [parent_id]}
 
             response = (
-                self._service.files()
+                self._service
+                .files()
                 .create(
                     body=file_metadata,
                     media_body=media_body,
@@ -531,7 +568,6 @@ class GoogleDriveBackend(ReadWriteBackend):
         )
 
     def _find_folder_id(self, parent_id: str, name: str) -> str | None:
-        """Busca una carpeta específica dentro de un padre."""
         safe_name = name.replace("'", "\\'")
         query = (
             f"name = '{safe_name}' and "
@@ -540,7 +576,8 @@ class GoogleDriveBackend(ReadWriteBackend):
             f"trashed = false"
         )
         response = (
-            self._service.files()
+            self._service
+            .files()
             .list(
                 q=query,
                 spaces="drive",
@@ -555,12 +592,12 @@ class GoogleDriveBackend(ReadWriteBackend):
         files = response.get("files", [])
         return files[0].get("id") if files else None
 
-    def _guess_mime_type(self, uri: str) -> str | None:
-        """Intenta adivinar el mimetype basado en la extensión."""
+    @staticmethod
+    def _guess_mime_type(uri: str) -> str | None:
         # Limpiamos el URI para quedarnos solo con el nombre/ruta final
         if PATH_ID_SEPARATOR in uri:
             # Caso path://ruta/archivo|id -> ruta/archivo
-            clean_path = uri.split(PATH_ID_SEPARATOR)[0].replace(
+            clean_path = uri.split(PATH_ID_SEPARATOR, maxsplit=1)[0].replace(
                 PATH_PREFIX, ""
             )
         else:
@@ -579,7 +616,25 @@ class GoogleDriveBackend(ReadWriteBackend):
     ) -> str:
         """
         Recorre y crea carpetas si no existen.
-        Retorna el ID de la carpeta más profunda.
+
+        Parameters
+        ----------
+        parent : str
+            Ruta lógica POSIX del contenedor raíz.
+        folders : tuple[str, ...]
+            Nombres de las carpetas a crear en orden.
+        root_id : str
+            ID nativo del contenedor raíz.
+
+        Returns
+        -------
+        str
+            ID nativo de la carpeta más profunda creada o existente.
+
+        Raises
+        ------
+        RuntimeError
+            Si no se pudo crear alguna carpeta intermedia.
         """
         if tp.TYPE_CHECKING:
             from googleapiclient._apis.drive.v3.resources import File
@@ -594,13 +649,14 @@ class GoogleDriveBackend(ReadWriteBackend):
                 current_parent_id = found_id
             else:
                 # Crear carpeta
-                file_metadata: "File" = {
+                file_metadata: File = {
                     "name": folder_name,
                     "mimeType": "application/vnd.google-apps.folder",
                     "parents": [current_parent_id],
                 }
                 folder = (
-                    self._service.files()
+                    self._service
+                    .files()
                     .create(
                         body=file_metadata, fields="id", supportsAllDrives=True
                     )
@@ -617,7 +673,7 @@ class GoogleDriveBackend(ReadWriteBackend):
 
                 current_parent_id = created_id
 
-            current_logical_path = current_logical_path / folder_name
+            current_logical_path /= folder_name
             self._drive_cache.set(
                 str(current_logical_path),
                 (current_parent_id, FOLDER_MIME_TYPE),
@@ -626,7 +682,6 @@ class GoogleDriveBackend(ReadWriteBackend):
         return current_parent_id
 
     def _split_id(self, uri: str) -> tuple[str, str, str]:
-        """Divide un URI de objeto en sus componentes."""
         try:
             clean_uri = self._strip_prefix(uri, ID_PREFIX)
             object_id, object_path, object_mime = clean_uri.split(
@@ -638,7 +693,6 @@ class GoogleDriveBackend(ReadWriteBackend):
             raise ValueError(f"URI de objeto malformado: '{uri}'") from e
 
     def _split_path(self, uri: str) -> tuple[str, str, str]:
-        """Divide un URI de creación en sus componentes."""
         try:
             clean_uri = self._strip_prefix(uri, PATH_PREFIX)
             parent_path, child_path, parent_id = clean_uri.split(
@@ -651,7 +705,6 @@ class GoogleDriveBackend(ReadWriteBackend):
 
     @staticmethod
     def _strip_prefix(uri: str, prefix: str) -> str:
-        """Ayudante para remover un prefijo de un URI."""
         if not uri.startswith(prefix):
             raise ValueError(
                 f"Se esperaba un URI '{prefix}', se recibió: '{uri}'"

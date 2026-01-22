@@ -46,13 +46,13 @@ class StorageBackend(tp.Protocol):
     -----
     Dependencias:
         Los recursos necesarios (clientes SDK, sesiones, credenciales)
-        deben inyectarse en el constructor de la implementación concreta,
-        típicamente mediante una función factoría que cree el objeto
-        orquestador.
+        deben inyectarse en el constructor de la implementación
+        concreta, típicamente mediante una función factoría que cree el
+        objeto orquestador.
 
     Thread-safety:
-        Las implementaciones deben ser thread-safe en la medida en que el
-        backend subyacente lo permita. Si el SDK del backend no es
+        Las implementaciones deben ser thread-safe en la medida en que
+        el backend subyacente lo permita. Si el SDK del backend no es
         thread-safe por defecto, la implementación debe garantizar
         seguridad mediante mecanismos de sincronización apropiados.  El
         acceso concurrente a diferentes objetos debe ser soportado
@@ -368,6 +368,11 @@ class ReadOnlyBackend(StorageBackend):
         -----
         El backend no soporta operaciones de creación de rutas.
         Lanza PermissionError.
+
+        Raises
+        ------
+        PermissionError
+            Siempre, ya que el backend es de solo lectura.
         """
         raise PermissionError(self._RO_MSG)
 
@@ -379,6 +384,11 @@ class ReadOnlyBackend(StorageBackend):
         -----
         El backend no soporta operaciones de eliminación. Lanza
         PermissionError.
+
+        Raises
+        ------
+        PermissionError
+            Siempre, ya que el backend es de solo lectura.
         """
         raise PermissionError(self._RO_MSG)
 
@@ -390,6 +400,11 @@ class ReadOnlyBackend(StorageBackend):
         -----
         El backend no soporta operaciones de escritura. Lanza
         PermissionError.
+
+        Raises
+        ------
+        PermissionError
+            Siempre, ya que el backend es de solo lectura.
         """
         raise PermissionError(self._RO_MSG)
 
