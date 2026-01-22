@@ -2,6 +2,7 @@ import typing as tp
 
 from .base import CacheBase
 
+
 T = tp.TypeVar("T")
 
 
@@ -31,55 +32,23 @@ class DummyCache(CacheBase[T]):
         return "DummyCache()"
 
     def clear(self) -> None:
-        """
-        No realiza ninguna operación.
-        """
+        """Caché dummy: no realiza ninguna operación."""
         pass
 
     def invalidate(self, path: str) -> None:
-        """
-        No realiza ninguna operación.
-
-        Parameters
-        ----------
-        path : str
-            La ruta del objeto a eliminar.
-        """
+        """Caché dummy: no realiza ninguna operación."""
         pass
 
     def purge(self) -> None:
-        """
-        No realiza ninguna operación.
-        """
+        """Caché dummy: no realiza ninguna operación."""
         pass
 
     def get(self, path: str) -> T | None:
-        """
-        Siempre devuelve None, ya que no almacena datos.
-
-        Parameters
-        ----------
-        path : str
-            La ruta del objeto a recuperar.
-
-        Returns
-        -------
-        None
-            Siempre devuelve None.
-        """
-        return None
+        """Caché dummy: no realiza ninguna operación."""
+        pass
 
     def set(self, path: str, data: T) -> None:
-        """
-        No realiza ninguna operación.
-
-        Parameters
-        ----------
-        path : str
-            La ruta bajo la cual almacenar el objeto.
-        data : Any
-            El objeto a almacenar en la caché.
-        """
+        """Caché dummy: no realiza ninguna operación."""
         pass
 
 

@@ -6,6 +6,7 @@ import typing as tp
 
 from .base import CacheBase
 
+
 T = tp.TypeVar("T")
 
 
@@ -131,7 +132,7 @@ class SimpleCache(CacheBase[T]):
         try:
             content = self.cache_file.read_text(encoding="utf-8")
             self.cache = json.loads(content)
-        except (IOError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError):
             # Si falla la carga, iniciamos con caché vacío por seguridad
             self.cache = {}
 

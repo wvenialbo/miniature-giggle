@@ -8,6 +8,7 @@ import typing as tp
 
 from .base import CacheBase
 
+
 T = tp.TypeVar("T")
 
 
@@ -19,8 +20,7 @@ class CacheItem(tp.Generic[T]):
 
 class TimedCache(CacheBase[T]):
     """
-    Caché con tiempo de vida que almacena datos en memoria y
-    opcionalmente en disco.
+    Caché con tiempo de vida.
 
     Esta implementación de caché mantiene los datos en un diccionario en
     memoria para acceso rápido. Además, puede opcionalmente persistir
@@ -188,7 +188,7 @@ class TimedCache(CacheBase[T]):
                 )
                 for key, value in raw_cache.items()
             }
-        except (IOError, json.JSONDecodeError, KeyError):
+        except (OSError, json.JSONDecodeError, KeyError):
             # Si falla la carga, iniciamos con caché vacío por seguridad
             self.cache = {}
 

@@ -2,6 +2,7 @@ import pathlib as pl
 
 from .base import AbstractCache, CacheBase
 
+
 DriveCache = CacheBase[tuple[str, str]]
 ScanCache = CacheBase[list[str]]
 
@@ -10,11 +11,13 @@ ID_PREFIX = "id://"
 
 class GoogleDriveCacheWrapper(AbstractCache):
     """
+    Adapta una instancia de DriveCache y ScanCache.
+
     Coordina la invalidación de la caché de rutas -> IDs (DriveCache)
     y la caché de rutas -> listados (ScanCache).
     """
 
-    def __init__(self, drive_cache: DriveCache, scan_cache: ScanCache):
+    def __init__(self, drive_cache: DriveCache, scan_cache: ScanCache) -> None:
         self._drive_cache = drive_cache
         self._scan_cache = scan_cache
 
@@ -38,7 +41,7 @@ class GoogleDriveCacheWrapper(AbstractCache):
             return
 
         def get_id(uri: str) -> str:
-            return uri.split("|")[0].replace(ID_PREFIX, "")
+            return uri.split("|", maxsplit=1)[0].replace(ID_PREFIX, "")
 
         if indices_to_remove := [
             i for i, uri in enumerate(cached_content) if get_id(uri) == file_id
