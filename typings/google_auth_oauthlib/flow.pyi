@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from google.auth.external_account_authorized_user import (
@@ -5,13 +6,23 @@ from google.auth.external_account_authorized_user import (
 )
 from google.oauth2.credentials import Credentials as OAuthCredentials
 
-class Flow(object): ...
+class Flow: ...
 
 class InstalledAppFlow(Flow):
     @classmethod
+    def from_client_config(
+        cls,
+        client_config: Mapping[str, Any],
+        scopes: Sequence[str],
+        **kwargs: Any,
+    ) -> InstalledAppFlow: ...
+    @classmethod
     def from_client_secrets_file(
-        cls, client_secrets_file: str, scopes: list[str], **kwargs: Any
-    ) -> "InstalledAppFlow": ...
+        cls,
+        client_secrets_file: str,
+        scopes: list[str],
+        **kwargs: Any,
+    ) -> InstalledAppFlow: ...
     def run_local_server(
         self,
         host: str = "localhost",
@@ -23,6 +34,6 @@ class InstalledAppFlow(Flow):
         redirect_uri_trailing_slash: bool = True,
         timeout_seconds: int | None = None,
         token_audience: str | None = None,
-        browser: Any | None = None,
+        browser: str | None = None,
         **kwargs: Any,
     ) -> AuthCredentials | OAuthCredentials: ...
