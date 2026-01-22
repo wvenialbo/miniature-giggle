@@ -7,6 +7,7 @@ from ..cache import TimedScanCache
 from ..datasource import DataService, Datasource
 from ..mapper import NCEIURIMapper
 
+
 NCEI_BASE_URL = "https://www.ncei.noaa.gov/data/"
 
 
@@ -32,6 +33,11 @@ def use_ncei_archive(
         Ruta para persistir el listado de archivos.
     expire_after : float, optional
         Tiempo de expiración de la caché en segundos.
+
+    Returns
+    -------
+    Datasource
+        Objeto orquestador configurado para NCEI Archive.
     """
     # 1. Configurar caché
     cache_path_str = str(cache_file) if cache_file else None

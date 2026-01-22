@@ -6,7 +6,7 @@ from ..mapper import PathURIMapper
 
 
 def use_local_drive(*, root_path: str | None = None) -> Datasource:
-    """
+    r"""
     Crea el contexto para el sistema de archivos local.
 
     Parameters

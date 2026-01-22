@@ -8,6 +8,7 @@ from ..datasource import DataService, Datasource
 from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
 
+
 Credentials = tp.Any
 
 
@@ -21,9 +22,9 @@ def use_google_drive(
     """
     Crea un contexto de Datasource conectado a Google Drive vía API.
 
-    Utiliza una cuenta de servicio (Service Account) para la autenticación
-    y configura un mapeo de rutas POSIX sobre la estructura de archivos
-    de Drive.
+    Utiliza una cuenta de servicio (Service Account) para la
+    autenticación y configura un mapeo de rutas POSIX sobre la
+    estructura de archivos de Drive.
 
     Parameters
     ----------
@@ -33,8 +34,8 @@ def use_google_drive(
     credentials: Credentials | None, optional
         Credenciales para autenticación. Si es None, se usan las
     cache_file : str | Path, optional
-        Ruta al archivo para persistir el caché de IDs. Si es None,
-        el caché será volátil (en memoria).
+        Ruta al archivo para persistir el caché de IDs. Si es None, el
+        caché será volátil (en memoria).
     expire_after : float, optional
         Tiempo en segundos tras el cual las entradas del caché expiran.
         Si es None, el caché no expira.

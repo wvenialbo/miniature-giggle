@@ -1,10 +1,14 @@
-from .gutils import (
-    AuthConfig,
-    Client,
-    Credentials,
-    TokenManager,
-    authenticate_user,
-)
+import typing as tp
+
+from .gutils import AuthConfig, TokenManager, authenticate_user
+
+
+if tp.TYPE_CHECKING:
+    from google.auth.credentials import Credentials
+    from googleapiclient._apis.drive.v3.resources import (
+        DriveResource as Client,
+    )
+
 
 _CONFIG = AuthConfig(
     (
@@ -17,17 +21,14 @@ _CONFIG = AuthConfig(
 _tokens = TokenManager(_CONFIG)
 
 
-def _get_gdrive_default_client(credentials: Credentials) -> Client:
+def _get_gdrive_default_client(credentials: Credentials) -> "Client":
     from googleapiclient import discovery
 
     # Construcción del cliente de API (Service)
     # cache_discovery=False evita advertencias en ciertos entornos y
     # mejora el tiempo de inicio en implementaciones stateless.
     service = discovery.build(
-        "drive",
-        "v3",
-        credentials=credentials,
-        cache_discovery=False,
+        "drive", "v3", credentials=credentials, cache_discovery=False
     )
 
     # Validar credenciales haciendo una llamada simple. Esto es
@@ -40,7 +41,7 @@ def _get_gdrive_default_client(credentials: Credentials) -> Client:
     return service
 
 
-def get_gdrive_client(credentials: Credentials | None) -> Client:
+def get_gdrive_client(credentials: Credentials | None) -> "Client":
     if not credentials:
         credentials = authenticate_user(
             project_id=None, config=_CONFIG, tokens=_tokens

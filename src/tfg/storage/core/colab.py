@@ -6,14 +6,15 @@ from ..backend import FilesystemBackend
 from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
 
+
 try:
-    from google import colab
+    from google.colab import drive
 
     def colab_drive_flush_and_unmount() -> None:
-        colab.drive.flush_and_unmount()
+        drive.flush_and_unmount()
 
     def colab_drive_mount(mountpoint: str) -> None:
-        colab.drive.mount(mountpoint)
+        drive.mount(mountpoint)
 
     def running_on_colab() -> bool:
         return bool(os.getenv("COLAB_RELEASE_TAG"))
@@ -85,8 +86,7 @@ def _mount_drive(fail: bool = False) -> None:
 
 def _report_failure(error_message: str, fail: bool) -> None:
     """
-    Informa de un fallo lanzando una excepción o emitiendo una
-    advertencia.
+    Informa de un fallo lanzando una excepción o una advertencia.
 
     Parameters
     ----------
@@ -96,11 +96,16 @@ def _report_failure(error_message: str, fail: bool) -> None:
         Si es True, lanza una excepción RuntimeError con el mensaje
         de error.  Si es False, emite una advertencia RuntimeWarning
         con el mensaje de error.
+
+    Raises
+    ------
+    RuntimeError
+        Si `fail` es True.
     """
     if fail:
         raise RuntimeError(error_message)
 
-    warnings.warn(error_message, RuntimeWarning)
+    warnings.warn(error_message, RuntimeWarning, stacklevel=3)
 
 
 def _unmount_drive(fail: bool = False) -> None:
@@ -173,11 +178,5 @@ def release_colab_drive(fail: bool = False) -> None:
     fail : bool, optional
         Si es True, lanza una excepción si no se puede cerrar la
         conexión con Google Drive.  Por defecto es False.
-
-    Returns
-    -------
-    bool
-        True si la conexión con Google Drive está cerrada después de
-        la llamada, False en caso contrario.
     """
     _unmount_drive(fail=fail)

@@ -6,8 +6,30 @@ from dataclasses import dataclass
 from ... import __package_id__, __package_root__
 from ...utils import running_on_colab, running_on_notebook
 
-Client = tp.Any
-Credentials = tp.Any
+
+if tp.TYPE_CHECKING:
+    from google.auth.credentials import Credentials
+    from google.oauth2.credentials import Credentials as Credentials2
+
+
+CLIENT_ID = (
+    "794699822558-9h359ba9l0cagh0avgk3ph86ptn92sce.apps.googleusercontent.com"
+)
+CLIENT_KEY = "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"
+
+CLIENT_CONFIG = {
+    "installed": {
+        "client_id": CLIENT_ID,
+        "project_id": "goes-dl",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": (
+            "https://www.googleapis.com/oauth2/v1/certs"
+        ),
+        "client_secret": CLIENT_KEY,
+        "redirect_uris": ["http://localhost"],
+    }
+}
 
 
 class SecretsNotFoundError(Exception):
@@ -40,35 +62,28 @@ class TokenManager:
     def __init__(self, config: AuthConfig) -> None:
         self.config = config
 
-    def load(self) -> Credentials | None:
-        from google.oauth2.credentials import Credentials as OAuthCredentials
+    def load(self) -> "Credentials2 | None":
+        from google.oauth2.credentials import Credentials as Credentials2
 
         path = self.config.token_path
         if path.exists():
-            credentials = OAuthCredentials.from_authorized_user_file(
+            credentials = Credentials2.from_authorized_user_file(
                 str(path), self.config.scopes
             )
             return self._validate(credentials)
 
         return None
 
-    def save(self, credentials_: Credentials) -> None:
-        from google.oauth2.credentials import Credentials as OAuthCredentials
-
-        credentials: OAuthCredentials = credentials_
+    def save(self, credentials: "Credentials2") -> None:
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(credentials.to_json())
 
     def _validate(
-        self, credentials_: Credentials | None
-    ) -> Credentials | None:
-        from google.oauth2.credentials import Credentials as OAuthCredentials
-
-        if not credentials_:
+        self, credentials: "Credentials2 | None"
+    ) -> "Credentials2 | None":
+        if not credentials:
             return None
-
-        credentials: OAuthCredentials = credentials_
 
         try:
             # Verificamos si el token guardado NO tiene todos
@@ -86,13 +101,18 @@ class TokenManager:
             return None
 
 
-def _get_user_credentials(tokens: TokenManager) -> Credentials | None:
-    """Intenta cargar las credenciales del usuario."""
+def _get_user_credentials(tokens: TokenManager) -> "Credentials | None":
+    """
+    Intenta cargar las credenciales del usuario.
+
+    Returns
+    -------
+    Credentials | None
+        Credenciales del usuario si existen y son válidas,
+        None en caso contrario.
+    """
     from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials as OAuthCredentials
-
-    credentials: OAuthCredentials | None = None
 
     with contextlib.suppress(RefreshError, ValueError, OSError):
         credentials = tokens.load()
@@ -107,26 +127,29 @@ def _get_user_credentials(tokens: TokenManager) -> Credentials | None:
             credentials.refresh(Request())
             return credentials
 
-        credentials = None
-
-    return credentials
+    return None
 
 
-def _get_default_credentials(config: AuthConfig) -> Credentials | None:
-    """Intenta obtener credenciales por defecto del entorno."""
+def _get_default_credentials(config: AuthConfig) -> "Credentials | None":
+    """
+    Intenta obtener credenciales por defecto del entorno.
+
+    Returns
+    -------
+    Credentials | None
+        Credenciales por defecto si existen y son válidas,
+        None en caso contrario.
+    """
     from google.auth import default
     from google.auth.exceptions import DefaultCredentialsError, RefreshError
     from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials as OAuthCredentials
-
-    credentials: OAuthCredentials | None = None
 
     with contextlib.suppress(
         DefaultCredentialsError, RefreshError, ValueError
     ):
         default_credentials = default(scopes=list(config.scopes))
 
-        credentials = tp.cast(OAuthCredentials | None, default_credentials[0])
+        credentials = default_credentials[0]
 
         if not credentials:
             return None
@@ -138,15 +161,26 @@ def _get_default_credentials(config: AuthConfig) -> Credentials | None:
             credentials.refresh(Request())
             return credentials
 
-        credentials = None
-
-    return credentials
+    return None
 
 
 def _get_interactive_credentials(
     project_id: str | None, config: AuthConfig
-) -> Credentials:
-    """Intenta obtener credenciales mediante un flujo interactivo."""
+) -> "Credentials":
+    """
+    Intenta obtener credenciales mediante un flujo interactivo.
+
+    Returns
+    -------
+    Credentials
+        Credenciales obtenidas mediante el flujo interactivo.
+
+    Raises
+    ------
+    RuntimeError
+        Si no se puede iniciar el flujo interactivo en el entorno
+        actual.
+    """
     if running_on_colab():
         return _run_colab_interactive_auth(project_id, config)
 
@@ -166,8 +200,15 @@ def _get_interactive_credentials(
 
 def _run_colab_interactive_auth(
     project_id: str | None, config: AuthConfig
-) -> Credentials:
-    """Flujo interactivo específico para Google Colab."""
+) -> "Credentials":
+    """
+    Flujo interactivo específico para Google Colab.
+
+    Returns
+    -------
+    Credentials
+        Credenciales obtenidas mediante el flujo interactivo en Colab.
+    """
     from google.auth import default
     from google.colab.auth import authenticate_user as colab_auth
 
@@ -175,42 +216,28 @@ def _run_colab_interactive_auth(
 
     credentials, _ = default(scopes=list(config.scopes))
 
-    return tp.cast(Credentials, credentials)
+    return credentials
 
 
-def _run_local_interactive_auth(config: AuthConfig) -> Credentials:
-    """Flujo interactivo para entornos locales/notebooks."""
+def _run_local_interactive_auth(config: AuthConfig) -> "Credentials":
+    """
+    Flujo interactivo para entornos locales/notebooks.
+
+    Returns
+    -------
+    Credentials
+        Credenciales obtenidas mediante el flujo interactivo local.
+    """
     from google_auth_oauthlib.flow import InstalledAppFlow
 
-    secrets_path = _get_secrets_path(config)
-
-    flow = InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file=str(secrets_path), scopes=list(config.scopes)
+    flow = InstalledAppFlow.from_client_config(
+        client_config=CLIENT_CONFIG, scopes=list(config.scopes)
     )
 
     return flow.run_local_server(port=0)
 
 
-def _get_secrets_path(
-    config: AuthConfig,
-) -> pl.Path:
-    from importlib import resources
-
-    secrets_file = resources.files(config.secrets_package).joinpath(
-        config.secrets_name
-    )
-    with resources.as_file(secrets_file) as secrets_path:
-        if not secrets_path.exists():
-            raise SecretsNotFoundError(
-                "No se encontró el archivo de configuración de cliente "
-                f"en '{secrets_file}'. Asegúrate de que la librería se "
-                "instaló correctamente con los recursos incluidos."
-            )
-
-    return secrets_path
-
-
-def _is_refreshable(credentials: tp.Any) -> bool:
+def _is_refreshable(credentials: "Credentials") -> bool:
     return bool(
         hasattr(credentials, "refresh")
         and getattr(credentials, "expired", False)
@@ -218,13 +245,29 @@ def _is_refreshable(credentials: tp.Any) -> bool:
     )
 
 
-def _is_serializable(credentials: tp.Any) -> bool:
+def _is_serializable(
+    credentials: "Credentials",
+) -> tp.TypeGuard["Credentials2"]:
     return hasattr(credentials, "to_json")
 
 
 def authenticate_user(
     project_id: str | None, config: AuthConfig, tokens: TokenManager
-) -> Credentials:
+) -> "Credentials":
+    """
+    Autentica al usuario y obtiene credenciales válidas.
+
+    Returns
+    -------
+    Credentials
+        Credenciales válidas para acceder a los servicios de Google.
+
+    Raises
+    ------
+    RuntimeError
+        Si no se pueden obtener credenciales válidas mediante ninguno
+        de los métodos disponibles.
+    """
     # Flujo de autenticación unificado:
     #
     # 1. Token persistente (si existe y es válido): Intenta obtener

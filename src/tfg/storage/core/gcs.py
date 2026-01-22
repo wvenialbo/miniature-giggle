@@ -7,18 +7,14 @@ from ..datasource import DataService, Datasource
 from ..mapper import GCSURIMapper
 from .gcsauth import get_gcs_client
 
-Credentials = tp.Any
-
 
 def use_gcs_cloud(
     *,
     bucket: str,
     root_path: str | None = None,
-    project: str | None = None,
-    credentials: Credentials | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
-    **client_kwargs: tp.Any,
+    **kwargs: object | str | bool | None,
 ) -> Datasource:
     """
     Crea un contexto de Datasource conectado a Google Cloud Storage.
@@ -43,12 +39,6 @@ def use_gcs_cloud(
     root_path : str, optional
         Prefijo raíz dentro del bucket para este Datasource. Por defecto
         None (raíz del bucket).
-    project : str, optional
-        ID del proyecto de Google Cloud. Si no se especifica, la
-        librería intentará inferirlo de las credenciales o del entorno.
-    credentials: Credentials | None, optional
-        Credenciales explícitas para autenticación. Si se proporcionan,
-        se usan en lugar de las ADC.
     cache_file : str | Path, optional
         Ruta al archivo para persistir el caché de las operaciones
         'scan'. Crucial para buckets con miles de objetos para evitar
@@ -56,9 +46,9 @@ def use_gcs_cloud(
     expire_after : float, optional
         Tiempo en segundos tras el cual expira la caché de escaneo. Si
         es None, la caché no expira automáticamente.
-    **client_kwargs : Any
-        Argumentos adicionales para `storage.Client` (client_info,
-        client_options, etc.).
+    **kwargs : object | str | bool | None
+        Argumentos adicionales para `storage.Client` (project,
+        credentials, client_info, client_options, etc.).
 
     Returns
     -------
@@ -66,12 +56,8 @@ def use_gcs_cloud(
         Objeto orquestador configurado para Google Cloud Storage.
     """
     # 1. Configuración del cliente de GCS
-    client = get_gcs_client(
-        bucket=bucket,
-        project=project,
-        credentials=credentials,
-        **client_kwargs,
-    )
+    client_kwargs: dict[str, tp.Any] = kwargs
+    client = get_gcs_client(bucket=bucket, **client_kwargs)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     #    GCS se beneficia de ScanCache para evitar listar buckets
