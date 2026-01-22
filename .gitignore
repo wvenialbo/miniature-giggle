@@ -208,10 +208,8 @@ __marimo__/
 
 
 # Local reference folder and files
-Automating-GIS-processes/
 code/
 cuadernos/
-Datasource-Specs/
 src/tfg/config/secrets.json
 src/tfg/experimental/
 src/tfg/experimental_a/
@@ -221,7 +219,6 @@ src/tfg/experimental_d/
 src/tfg/experimental_e/
 geopanda/
 HURDAT2/
-Remote-Sensing/
 root/
 satellite/
 scripts/
@@ -230,4 +227,3 @@ temp/
 tmp/
 tfg_wvv/
 v3.4b/
-Veranillo/
