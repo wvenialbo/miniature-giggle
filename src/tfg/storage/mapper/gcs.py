@@ -1,5 +1,6 @@
 from .base import URIMapper
 
+
 # Constantes de protocolo para GCS
 GCS_PREFIX = "gs://"
 GCS_SEPARATOR = "/"
@@ -56,7 +57,8 @@ class GCSURIMapper(URIMapper):
         Returns
         -------
         str
-            URI genérica absoluta en formato POSIX (ej: '/datos/file.csv').
+            URI genérica absoluta en formato POSIX (ej:
+            '/datos/file.csv').
 
         Raises
         ------
@@ -68,7 +70,8 @@ class GCSURIMapper(URIMapper):
 
         if not uri.startswith(prefix):
             raise ValueError(
-                f"La URI '{uri}' no es válida para el bucket de GCS: '{self.bucket}'"
+                f"La URI '{uri}' no es válida para "
+                f"el bucket de GCS: '{self.bucket}'"
             )
 
         # Extraemos la ruta eliminando el prefijo del bucket
@@ -94,7 +97,8 @@ class GCSURIMapper(URIMapper):
         str
             URI nativa absoluta de GCS.
         """
-        # Limpiamos el separador inicial para evitar doble slash tras el bucket
+        # Limpiamos el separador inicial para evitar doble slash tras el
+        # bucket
         clean_path = uri.lstrip(POSIX_SEPARATOR)
 
         return f"{GCS_PREFIX}{self.bucket}{GCS_SEPARATOR}{clean_path}"

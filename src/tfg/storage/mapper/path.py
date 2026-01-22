@@ -81,4 +81,4 @@ class PathURIMapper(URIMapper):
         str
             La URI nativa absoluta transformada para el backend.
         """
-        return str(pl.Path(f"/{uri.lstrip('/')}").resolve(strict=False))
+        return str(self.native_root / uri)

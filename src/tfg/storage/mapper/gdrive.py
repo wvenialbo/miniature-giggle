@@ -4,6 +4,7 @@ import typing as tp
 from ..cache import CacheBase
 from .base import URIMapper
 
+
 Resource = tp.Any
 
 DriveCache = CacheBase[tuple[str, str]]
@@ -71,13 +72,12 @@ class GoogleDriveURIMapper(URIMapper):
         if tp.TYPE_CHECKING:
             from googleapiclient._apis.drive.v3.resources import DriveResource
 
-        self._service: "DriveResource" = service
+        self._service: DriveResource = service
         self._drive_cache = drive_cache
 
     def __repr__(self) -> str:
         return (
-            "GoogleDriveURIMapper"
-            f"({repr(self._service)}, {repr(self._drive_cache)})"
+            f"GoogleDriveURIMapper({self._service!r}, {self._drive_cache!r})"
         )
 
     def to_generic(self, uri: str) -> str:
@@ -165,7 +165,7 @@ class GoogleDriveURIMapper(URIMapper):
 
         for i, segment in enumerate(parts):
             # Construir ruta parcial actual para consultar/guardar caché
-            current_logical_path = current_logical_path / segment
+            current_logical_path /= segment
             parent_path = str(current_logical_path)
 
             if cached_step := self._drive_cache.get(parent_path):
@@ -201,7 +201,20 @@ class GoogleDriveURIMapper(URIMapper):
         self, parent_id: str, name: str
     ) -> tuple[str | None, str | None]:
         """
-        Ayudante para buscar un archivo por nombre dentro de un padre.
+        Busca un archivo por nombre dentro de un padre.
+
+        Parameters
+        ----------
+        parent_id : str
+            ID del directorio padre donde buscar.
+        name : str
+            Nombre del archivo o carpeta a buscar.
+
+        Returns
+        -------
+        tuple[str | None, str | None]
+            Una tupla con el ID del archivo encontrado (o None si no se
+            encontró) y su tipo MIME (o None si no se encontró).
         """
         # Escapar comillas simples en el nombre por seguridad en el
         # query
@@ -214,7 +227,8 @@ class GoogleDriveURIMapper(URIMapper):
         )
 
         response = (
-            self._service.files()
+            self._service
+            .files()
             .list(
                 q=query,
                 spaces="drive",
@@ -232,7 +246,6 @@ class GoogleDriveURIMapper(URIMapper):
         return None, None
 
     def _split_id(self, uri: str) -> tuple[str, str, str]:
-        """Divide un URI de objeto en sus componentes."""
         try:
             clean_uri = self._strip_prefix(uri, ID_PREFIX)
             object_id, object_path, object_mime = clean_uri.split(
@@ -245,7 +258,6 @@ class GoogleDriveURIMapper(URIMapper):
 
     @staticmethod
     def _strip_prefix(uri: str, prefix: str) -> str:
-        """Ayudante para remover un prefijo de un URI."""
         if not uri.startswith(prefix):
             raise ValueError(
                 f"Se esperaba un URI '{prefix}', se recibió: '{uri}'"

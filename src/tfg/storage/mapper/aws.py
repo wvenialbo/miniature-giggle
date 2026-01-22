@@ -1,5 +1,6 @@
 from .base import URIMapper
 
+
 S3_PREFIX = "s3://"
 S3_SEPARATOR = "/"
 POSIX_SEPARATOR = "/"
@@ -46,6 +47,12 @@ class AWSURIMapper(URIMapper):
         -------
         str
             URI genérica absoluta en formato POSIX.
+
+        Raises
+        ------
+        ValueError
+            Si la URI nativa no puede mapearse a una ruta genérica
+            (ejemplo: está fuera del alcance configurado).
         """
         # uri: s3://my-bucket/base/data/file.csv -> /data/file.csv
         prefix = f"{S3_PREFIX}{self.bucket}{S3_SEPARATOR}"

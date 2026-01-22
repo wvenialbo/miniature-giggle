@@ -79,4 +79,4 @@ class GenericURIMapper:
         """
         native_root = pl.PurePosixPath(self.base_path)
         generic_path = pl.PurePosixPath(uri).relative_to(native_root)
-        return f"/{str(generic_path)}"
+        return f"/{generic_path!s}"

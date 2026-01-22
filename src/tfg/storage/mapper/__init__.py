@@ -6,6 +6,7 @@ from .generic import GenericURIMapper
 from .ncei import NCEIURIMapper
 from .path import PathURIMapper
 
+
 __all__ = [
     "AWSURIMapper",
     "GCSURIMapper",
