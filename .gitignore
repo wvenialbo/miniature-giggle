@@ -208,6 +208,7 @@ __marimo__/
 
 
 # Local reference folder and files
+secrets.json
 code/
 cuadernos/
 src/tfg/config/secrets.json
