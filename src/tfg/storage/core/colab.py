@@ -1,7 +1,7 @@
-import os
 import pathlib as pl
 import warnings
 
+from ...utils import running_on_colab
 from ..backend import FilesystemBackend
 from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
@@ -10,32 +10,26 @@ from ..mapper import PathURIMapper
 try:
     from google.colab import drive
 
-    def colab_drive_flush_and_unmount() -> None:
+    def _colab_drive_flush_and_unmount() -> None:
         drive.flush_and_unmount()
 
-    def colab_drive_mount(mountpoint: str) -> None:
+    def _colab_drive_mount(mountpoint: str) -> None:
         drive.mount(mountpoint)
-
-    def running_on_colab() -> bool:
-        return bool(os.getenv("COLAB_RELEASE_TAG"))
 
 except ImportError:
 
-    def colab_drive_flush_and_unmount() -> None:
-        colab_not_found_error(_MOUNT_POINT)
+    def _colab_drive_flush_and_unmount() -> None:
+        _colab_not_found_error(_MOUNT_POINT)
 
-    def colab_drive_mount(mountpoint: str) -> None:
-        colab_not_found_error(mountpoint)
+    def _colab_drive_mount(mountpoint: str) -> None:
+        _colab_not_found_error(mountpoint)
 
-    def colab_not_found_error(mountpoint: str) -> None:
+    def _colab_not_found_error(mountpoint: str) -> None:
         raise RuntimeError(
             "El módulo 'colab' de Google no está disponible. "
             "Asegúrate de estar ejecutando este código en "
             "Google Colab"
         )
-
-    def running_on_colab() -> bool:
-        return False
 
 
 _MOUNT_POINT = "/content/drive"
@@ -76,7 +70,7 @@ def _mount_drive(fail: bool = False) -> None:
     if _is_mounted():
         return
 
-    colab_drive_mount(_MOUNT_POINT)
+    _colab_drive_mount(_MOUNT_POINT)
 
     if not _is_mounted():
         _report_failure(
@@ -129,7 +123,7 @@ def _unmount_drive(fail: bool = False) -> None:
     if not _is_mounted():
         return
 
-    colab_drive_flush_and_unmount()
+    _colab_drive_flush_and_unmount()
 
     if _is_mounted():
         _report_failure("Google Drive no se pudo desmontar", fail)
