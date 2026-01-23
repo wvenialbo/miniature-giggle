@@ -13,7 +13,7 @@ T = tp.TypeVar("T")
 
 
 @dc.dataclass(frozen=True)
-class CacheItem(tp.Generic[T]):
+class CacheItem[T]:
     data: T
     created_at: float
 

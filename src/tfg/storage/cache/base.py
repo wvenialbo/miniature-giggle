@@ -53,7 +53,7 @@ class AbstractCache(tp.Protocol):
         ...
 
 
-class CacheBase(AbstractCache, tp.Generic[T]):
+class CacheBase[T](AbstractCache):
     """
     Protocolo para cachés de almacenamiento de datos.
 
