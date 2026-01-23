@@ -4,12 +4,11 @@ import urllib.parse as url
 
 import requests
 
-from ..cache import CacheBase, DummyCache
+from ..cache import CacheBase
 from .base import ReadOnlyBackend
 
 
 NCEICache = CacheBase[list[str]]
-NoopCache = DummyCache[list[str]]
 
 HTTP_200_OK = 200
 
@@ -58,7 +57,7 @@ class NCEIBackend(ReadOnlyBackend):
     def __init__(
         self, session: requests.Session, scan_cache: NCEICache | None = None
     ) -> None:
-        self.scan_cache = scan_cache or NoopCache()
+        self.scan_cache = scan_cache
         self.session = session
 
     def __repr__(self) -> str:
