@@ -42,6 +42,9 @@ class StreamAdapter(io.RawIOBase):
         self.buffer = b""
         self._closed = False
 
+    def __repr__(self) -> str:
+        return f"StreamAdapter ({self.iterator!r})>"
+
     def readable(self) -> bool:
         """
         Indica que el stream es legible.
