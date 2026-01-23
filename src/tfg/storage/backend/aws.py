@@ -4,7 +4,7 @@ import typing as tp
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from ..cache import CacheBase, DummyCache
+from ..cache import CacheBase
 from .base import ReadWriteBackend
 
 
@@ -12,7 +12,7 @@ if tp.TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client
 
 AWSCache = CacheBase[list[str]]
-NoopCache = DummyCache[list[str]]
+
 
 S3_PREFIX = "s3://"
 S3_SEPARATOR = "/"
@@ -74,7 +74,7 @@ class AWSBackend(ReadWriteBackend):
     ) -> None:
         self.bucket_name = bucket
         self.s3 = client
-        self.scan_cache = scan_cache or NoopCache()
+        self.scan_cache = scan_cache
 
     def __repr__(self) -> str:
         return (
@@ -114,7 +114,6 @@ class AWSBackend(ReadWriteBackend):
         """
         bucket, key = self._split_uri(uri)
         self.s3.delete_object(Bucket=bucket, Key=key)
-        self.scan_cache.clear()
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -225,10 +224,11 @@ class AWSBackend(ReadWriteBackend):
         list[str]
             Lista de URIs de los objetos que coinciden con el prefijo.
         """
-        # Intentar recuperar de caché
-        cached = self.scan_cache.get(prefix)
-        if cached is not None:
-            return cached
+        # Intentar recuperar de caché si existe
+        if self.scan_cache:
+            cached = self.scan_cache.get(prefix)
+            if cached is not None:
+                return cached
 
         bucket, key_prefix = self._split_uri(prefix)
         paginator = self.s3.get_paginator("list_objects_v2")
@@ -240,7 +240,10 @@ class AWSBackend(ReadWriteBackend):
                     f"{S3_PREFIX}{bucket}/{obj.get('Key')}"
                     for obj in page["Contents"]
                 )
-        self.scan_cache.set(prefix, results)
+
+        if self.scan_cache:
+            self.scan_cache.set(prefix, results)
+
         return results
 
     def size(self, *, uri: str) -> int:
@@ -286,9 +289,6 @@ class AWSBackend(ReadWriteBackend):
         # Inferencia simple de ContentType podría ir aquí o en el
         # handler
         self.s3.put_object(Bucket=bucket, Key=key, Body=data)
-        # Importante: Invalidar el cache de scan ya que la estructura
-        # cambió
-        self.scan_cache.clear()
 
     @staticmethod
     def _split_uri(uri: str) -> tuple[str, str]:
