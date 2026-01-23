@@ -123,35 +123,4 @@ class StreamAdapter(io.RawIOBase):
         return bytes_read
 
 
-class ProgressTracker(tp.Protocol):
-    def __call__(
-        self,
-        *,
-        iterable: col.Iterable[bytes],
-        total_size: int,
-        description: str,
-    ) -> col.Iterable[bytes]:
-        """
-        Tipo de protocolo para rastreadores de progreso.
-
-        Una función factoría que recibe un iterable de bytes, el tamaño
-        total en bytes, una descripción, y devuelve un iterable de bytes
-        que envuelve el original para mostrar el progreso de una
-        operación.
-
-        Parameters
-        ----------
-        iterable : col.Iterable[bytes]
-            Un iterable que produce fragmentos de bytes.
-        total_size : int
-            El tamaño total en bytes del objeto a leer.
-        description : str
-            Una descripción para mostrar en la barra de progreso.
-
-        Returns
-        -------
-        col.Iterable[bytes]
-            Un iterable de bytes que envuelve el original para mostrar
-            progreso.
-        """
-        ...
+__all__ = ["StreamAdapter"]

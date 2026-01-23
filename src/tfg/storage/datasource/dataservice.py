@@ -1,11 +1,12 @@
 import collections.abc as col
 import io
 
+from ...utils import ProgressTracker
 from ..backend import StorageBackend
 from ..cache import AbstractCache
 from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceBasic
-from .utils import ProgressTracker, StreamAdapter
+from .utils import StreamAdapter
 
 
 GENERIC_SUFFIX = ".*"
@@ -350,3 +351,6 @@ class DataService(DatasourceBasic):
     def _to_native_uri(self, uri: str) -> str:
         absolute_uri = self.local_mapper.to_absolute(uri)
         return self.mapper.to_native(absolute_uri)
+
+
+__all__ = ["DataService"]
