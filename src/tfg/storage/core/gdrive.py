@@ -9,13 +9,14 @@ from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
 
 
-Credentials = tp.Any
+if tp.TYPE_CHECKING:
+    from google.auth.credentials import Credentials
 
 
 def use_google_drive(
     *,
     root_path: str | None = None,
-    credentials: Credentials | None = None,
+    credentials: "Credentials | None" = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
 ) -> Datasource:
