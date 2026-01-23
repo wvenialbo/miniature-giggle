@@ -5,7 +5,16 @@ from ..backend import GCSBackend
 from ..cache import TimedScanCache
 from ..datasource import DataService, Datasource
 from ..mapper import GCSURIMapper
-from .gcsauth import get_gcs_client
+from .gcsauth import GCSAuthArgs, get_gcs_client
+
+
+if tp.TYPE_CHECKING:
+    from google.auth.credentials import Credentials
+
+
+class GCSClientArgs(GCSAuthArgs):
+    project: str | None
+    credentials: "Credentials | None"
 
 
 def use_gcs_cloud(
@@ -14,7 +23,7 @@ def use_gcs_cloud(
     root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
-    **kwargs: object | str | bool | None,
+    **kwargs: tp.Unpack[GCSClientArgs],
 ) -> Datasource:
     """
     Crea un contexto de Datasource conectado a Google Cloud Storage.
@@ -56,8 +65,7 @@ def use_gcs_cloud(
         Objeto orquestador configurado para Google Cloud Storage.
     """
     # 1. Configuración del cliente de GCS
-    client_kwargs: dict[str, tp.Any] = kwargs
-    client = get_gcs_client(bucket=bucket, **client_kwargs)
+    client = get_gcs_client(bucket=bucket, **kwargs)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     #    GCS se beneficia de ScanCache para evitar listar buckets

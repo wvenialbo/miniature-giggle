@@ -5,8 +5,11 @@ from .gutils import AuthConfig, TokenManager, authenticate_user
 
 
 if tp.TYPE_CHECKING:
+    from google.api_core.client_info import ClientInfo
+    from google.api_core.client_options import ClientOptions
     from google.auth.credentials import Credentials
     from google.cloud.storage.client import Client
+    from requests import Session
 
 
 _CONFIG = AuthConfig(
@@ -21,6 +24,15 @@ _CONFIG = AuthConfig(
 _tokens = TokenManager(_CONFIG)
 
 HTTP_200_OK = 200
+
+
+class GCSAuthArgs(tp.TypedDict, total=False):
+    _http: "Session | None"
+    client_info: "ClientInfo | None"
+    client_options: "ClientOptions | None"
+    use_auth_w_custom_endpoint: bool
+    extra_headers: dict[str, str]
+    api_key: str | None
 
 
 def _is_public(bucket: str, config: AuthConfig) -> bool:
@@ -38,7 +50,7 @@ def _is_public(bucket: str, config: AuthConfig) -> bool:
 
 
 def _get_gcs_anonymous_client(
-    project: str | None, **kwargs: object | str | bool | None
+    project: str | None, **kwargs: tp.Unpack[GCSAuthArgs]
 ) -> "Client":
     """
     Crea un cliente anónimo de Google Cloud Storage.
@@ -60,20 +72,18 @@ def _get_gcs_anonymous_client(
     from google.auth.credentials import AnonymousCredentials
     from google.cloud import storage
 
-    client_kwargs: dict[str, tp.Any] = kwargs
     if project is not None:
         return storage.Client(
-            project=project,
-            credentials=AnonymousCredentials(),
-            **client_kwargs,
+            project=project, credentials=AnonymousCredentials(), **kwargs
         )
+
     return storage.Client.create_anonymous_client()
 
 
 def _get_gcs_default_client(
     project: str | None,
     credentials: "Credentials | None",
-    **kwargs: object | str | bool | None,
+    **kwargs: tp.Unpack[GCSAuthArgs],
 ) -> "Client":
     """
     Crea un cliente de Google Cloud Storage.
@@ -97,10 +107,7 @@ def _get_gcs_default_client(
     """
     from google.cloud import storage
 
-    client_kwargs: dict[str, tp.Any] = kwargs
-    client = storage.Client(
-        project=project, credentials=credentials, **client_kwargs
-    )
+    client = storage.Client(project=project, credentials=credentials, **kwargs)
 
     # Validar credenciales haciendo una llamada simple. Esto es
     # necesario porque storage.Client es "lazy" y no falla hasta
@@ -114,7 +121,7 @@ def get_gcs_client(
     bucket: str,
     project: str | None,
     credentials: "Credentials | None",
-    **kwargs: object | str | bool | None,
+    **kwargs: tp.Unpack[GCSAuthArgs],
 ) -> "Client":
     """
     Crea un cliente de Google Cloud Storage.
