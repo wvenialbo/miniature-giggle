@@ -22,6 +22,12 @@ class GoogleDriveCacheWrapper(AbstractCache):
         self._drive_cache = drive_cache
         self._scan_cache = scan_cache
 
+    def __repr__(self) -> str:
+        return (
+            f"GoogleDriveCacheWrapper({self._drive_cache!r}, "
+            f"{self._scan_cache!r})"
+        )
+
     def invalidate(self, path: str) -> None:
         # 1. Obtiene el ítem en caché (si existe)
         cached_item = self._drive_cache.get(path)
