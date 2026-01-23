@@ -1,7 +1,6 @@
 import collections.abc as col
 import pathlib as pl
-
-import typing_extensions
+from typing import override
 
 from .base import ReadWriteBackend
 
@@ -59,7 +58,7 @@ class FilesystemBackend(ReadWriteBackend):
     def __repr__(self) -> str:
         return "FilesystemBackend()"
 
-    @typing_extensions.override
+    @override
     def create_path(self, *, uri: str) -> str:
         """
         Crea una ruta o contenedor en el backend de almacenamiento.
@@ -103,7 +102,7 @@ class FilesystemBackend(ReadWriteBackend):
         target.parent.mkdir(parents=True, exist_ok=True)
         return str(target)
 
-    @typing_extensions.override
+    @override
     def delete(self, *, uri: str) -> None:
         """
         Elimina los datos en la URI especificada.
@@ -127,7 +126,7 @@ class FilesystemBackend(ReadWriteBackend):
         if path.is_file():
             path.unlink(missing_ok=True)
 
-    @typing_extensions.override
+    @override
     def exists(self, *, uri: str) -> bool:
         """
         Verifica si los datos existen en la URI especificada.
@@ -150,7 +149,7 @@ class FilesystemBackend(ReadWriteBackend):
         path = _check_uri(uri)
         return path.exists()
 
-    @typing_extensions.override
+    @override
     def read(self, *, uri: str) -> bytes:
         """
         Lee los datos desde la URI especificada.
@@ -168,7 +167,7 @@ class FilesystemBackend(ReadWriteBackend):
         path = _check_uri(uri)
         return path.read_bytes()
 
-    @typing_extensions.override
+    @override
     def read_chunks(
         self, *, uri: str, chunk_size: int = 1024 * 1024
     ) -> col.Iterable[bytes]:
@@ -195,7 +194,7 @@ class FilesystemBackend(ReadWriteBackend):
             while chunk := f.read(chunk_size):
                 yield chunk
 
-    @typing_extensions.override
+    @override
     def scan(self, *, prefix: str) -> list[str]:
         """
         Lista las URI que comienzan con el prefijo especificado.
@@ -247,7 +246,7 @@ class FilesystemBackend(ReadWriteBackend):
             if entry.is_file()
         ]
 
-    @typing_extensions.override
+    @override
     def size(self, *, uri: str) -> int:
         """
         Obtiene el tamaño en bytes del objeto en la URI especificada.
@@ -265,7 +264,7 @@ class FilesystemBackend(ReadWriteBackend):
         path = _check_uri(uri)
         return path.stat().st_size
 
-    @typing_extensions.override
+    @override
     def write(self, *, uri: str, data: bytes) -> None:
         """
         Escribe los datos en la URI especificada.
