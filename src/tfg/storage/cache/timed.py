@@ -183,7 +183,7 @@ class TimedCache(CacheBase[T]):
             raw_cache: dict[str, dict[str, tp.Any]] = json.loads(content)
             self.cache = {
                 key: CacheItem[T](
-                    data=tp.cast(T, value["data"]),
+                    data=tp.cast("T", value["data"]),
                     created_at=value["created_at"],
                 )
                 for key, value in raw_cache.items()

@@ -186,7 +186,7 @@ class GCSBackend(ReadWriteBackend):
 
         blob: storage.Blob = self._get_blob(uri)
         with blob.open("rb", chunk_size=chunk_size) as f:
-            while chunk := tp.cast(bytes, f.read(chunk_size)):
+            while chunk := tp.cast("bytes", f.read(chunk_size)):
                 yield chunk
 
     def scan(self, *, prefix: str) -> list[str]:
@@ -220,7 +220,7 @@ class GCSBackend(ReadWriteBackend):
 
         # list_blobs maneja la paginación automáticamente
         blobs = tp.cast(
-            col.Iterator[storage.Blob],
+            "col.Iterator[storage.Blob]",
             self.client.list_blobs(
                 bucket, prefix=blob_prefix, fields="items(name),nextPageToken"
             ),
