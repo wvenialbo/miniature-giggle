@@ -11,7 +11,8 @@ from .base import ReadWriteBackend
 if tp.TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client
 
-AWSCache = CacheBase[list[str]]
+
+type AWSCache = CacheBase[list[str]]
 
 
 S3_PREFIX = "s3://"

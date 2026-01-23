@@ -13,8 +13,8 @@ if tp.TYPE_CHECKING:
     from googleapiclient._apis.drive.v3.resources import DriveResource
 
 
-DriveCache = CacheBase[tuple[str, str]]
-ScanCache = CacheBase[list[str]]
+type DriveCache = CacheBase[tuple[str, str]]
+type ScanCache = CacheBase[list[str]]
 
 
 EMPTY_VALUE = ""

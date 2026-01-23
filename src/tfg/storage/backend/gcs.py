@@ -11,7 +11,7 @@ if tp.TYPE_CHECKING:
     from google.cloud.storage.client import Client
 
 
-GCSCache = CacheBase[list[str]]
+type GCSCache = CacheBase[list[str]]
 
 
 ID_PREFIX = "gs://"
