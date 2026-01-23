@@ -8,8 +8,8 @@ from ..mapper import AWSURIMapper
 
 
 if tp.TYPE_CHECKING:
-    from boto3 import Session
     from botocore.config import Config
+    from botocore.session import Session
     from mypy_boto3_s3.client import S3Client as Client
 
 
@@ -17,10 +17,23 @@ S3_PREFIX = "s3://"
 POSIX_PREFIX = "/"
 
 
+class S3SessionArgs(tp.TypedDict, total=False):
+    aws_access_key_id: str | None
+    aws_secret_access_key: str | None
+    aws_session_token: str | None
+    botocore_session: "Session | None"
+    aws_account_id: str | None
+
+
+class AWSCloudArgs(S3SessionArgs):
+    region_name: str | None
+    profile_name: str | None
+
+
 def _get_s3_client(
     profile_name: str | None = None,
     region_name: str | None = None,
-    **kwargs: "Session | str | None",
+    **kwargs: tp.Unpack[S3SessionArgs],
 ) -> "tuple[Client, Config | None]":
     """
     Crea un cliente de S3 para acceso autenticado o anónimo.
@@ -50,11 +63,9 @@ def _get_s3_client(
     from botocore import UNSIGNED
     from botocore.config import Config
 
-    session_kwargs: dict[str, tp.Any] = kwargs
-
     # 1. Intentar crear sesión con lo que haya
     session = boto3.Session(
-        profile_name=profile_name, region_name=region_name, **session_kwargs
+        profile_name=profile_name, region_name=region_name, **kwargs
     )
     creds = session.get_credentials()
 
@@ -62,7 +73,7 @@ def _get_s3_client(
     if creds is None:
         # Si no hay credenciales en la sesión Y no se pasaron
         # argumentos, es anónimo.
-        if profile_name or session_kwargs:
+        if profile_name or kwargs:
             raise ValueError(
                 "No se pudieron obtener credenciales de AWS. "
                 "Por favor, revise la configuración de su perfil "
@@ -86,7 +97,7 @@ def use_aws_cloud(
     root_path: str | None = None,
     cache_file: str | pl.Path | None = None,
     expire_after: float | None = None,
-    **kwargs: "Session | str | None",
+    **kwargs: tp.Unpack[AWSCloudArgs],
 ) -> Datasource:
     """
     Crea un contexto de Datasource conectado a AWS S3.
@@ -120,10 +131,7 @@ def use_aws_cloud(
     # 1. Configuración de la Sesión de AWS y del cliente S3
     # Acceso Anónimo vs Autenticado: Esto permite flexibilidad total,
     # desde perfiles hasta llaves directas
-    session_kwargs: dict[str, tp.Any] = kwargs
-    client, config = _get_s3_client(
-        **session_kwargs,
-    )
+    client, config = _get_s3_client(**kwargs)
 
     # 2. Inicialización de la Caché de Listado (ScanCache)
     # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
