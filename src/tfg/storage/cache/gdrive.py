@@ -3,8 +3,9 @@ import pathlib as pl
 from .base import AbstractCache, CacheBase
 
 
-DriveCache = CacheBase[tuple[str, str]]
-ScanCache = CacheBase[list[str]]
+type DriveCache = CacheBase[tuple[str, str]]
+type ScanCache = CacheBase[list[str]]
+
 
 ID_PREFIX = "id://"
 
