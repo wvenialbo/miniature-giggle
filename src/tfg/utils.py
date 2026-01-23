@@ -1,4 +1,6 @@
+import collections.abc as col
 import os
+import pathlib
 import typing as tp
 
 import numpy as np
@@ -11,7 +13,7 @@ def running_on_colab() -> bool:
 
 def running_on_kaggle() -> bool:
     return (
-        os.path.exists("/kaggle/working")
+        pathlib.Path("/kaggle/working").exists()
         or os.environ.get("KAGGLE_KERNEL_RUN_TYPE") is not None
     )
 
@@ -323,3 +325,37 @@ def get_columns_size(
     value_length = max(len(value) for _, value, _ in data_lines) + spacing
 
     return label_length, value_length
+
+
+class ProgressTracker(tp.Protocol):
+    def __call__(
+        self,
+        *,
+        iterable: col.Iterable[bytes],
+        total_size: int,
+        description: str,
+    ) -> col.Iterable[bytes]:
+        """
+        Tipo de protocolo para rastreadores de progreso.
+
+        Una función factoría que recibe un iterable de bytes, el tamaño
+        total en bytes, una descripción, y devuelve un iterable de bytes
+        que envuelve el original para mostrar el progreso de una
+        operación.
+
+        Parameters
+        ----------
+        iterable : col.Iterable[bytes]
+            Un iterable que produce fragmentos de bytes.
+        total_size : int
+            El tamaño total en bytes del objeto a leer.
+        description : str
+            Una descripción para mostrar en la barra de progreso.
+
+        Returns
+        -------
+        col.Iterable[bytes]
+            Un iterable de bytes que envuelve el original para mostrar
+            progreso.
+        """
+        ...
