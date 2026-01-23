@@ -58,11 +58,14 @@ class NCEIBackend(ReadOnlyBackend):
     def __init__(
         self, session: requests.Session, scan_cache: NCEICache | None = None
     ) -> None:
-        self.scan_cache = scan_cache
         self.session = session
+        self.scan_cache = scan_cache
 
     def __repr__(self) -> str:
-        return f"NCEIBackend(scan_cache={self.scan_cache!r})"
+        return (
+            f"NCEIBackend(session={self.session!r}, "
+            f"scan_cache={self.scan_cache!r})"
+        )
 
     def exists(self, *, uri: str) -> bool:
         """

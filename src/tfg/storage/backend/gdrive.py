@@ -81,7 +81,11 @@ class GoogleDriveBackend(ReadWriteBackend):
         self._scan_cache = scan_cache
 
     def __repr__(self) -> str:
-        return f"GoogleDriveBackend({self._service!r})"
+        return (
+            f"GoogleDriveBackend(service={self._service!r}, "
+            f"drive_cache={self._drive_cache!r}, "
+            f"scan_cache={self._scan_cache!r})"
+        )
 
     def create_path(self, *, uri: str) -> str:
         """
