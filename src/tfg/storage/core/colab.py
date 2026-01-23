@@ -49,7 +49,7 @@ def _is_mounted() -> bool:
     return running_on_colab() and pl.Path(_MOUNT_POINT).is_mount()
 
 
-def _mount_drive(fail: bool = False) -> None:
+def _mount_drive(*, fail: bool = False) -> None:
     """
     Abre la conexión con el sistema de almacenamiento.
 
@@ -74,11 +74,11 @@ def _mount_drive(fail: bool = False) -> None:
 
     if not _is_mounted():
         _report_failure(
-            f"Google Drive no se pudo montar en '{_MOUNT_POINT}'", fail
+            f"Google Drive no se pudo montar en '{_MOUNT_POINT}'", fail=fail
         )
 
 
-def _report_failure(error_message: str, fail: bool) -> None:
+def _report_failure(error_message: str, *, fail: bool) -> None:
     """
     Informa de un fallo lanzando una excepción o una advertencia.
 
@@ -102,7 +102,7 @@ def _report_failure(error_message: str, fail: bool) -> None:
     warnings.warn(error_message, RuntimeWarning, stacklevel=3)
 
 
-def _unmount_drive(fail: bool = False) -> None:
+def _unmount_drive(*, fail: bool = False) -> None:
     """
     Cierra la conexión con el sistema de almacenamiento.
 
@@ -126,7 +126,7 @@ def _unmount_drive(fail: bool = False) -> None:
     _colab_drive_flush_and_unmount()
 
     if _is_mounted():
-        _report_failure("Google Drive no se pudo desmontar", fail)
+        _report_failure("Google Drive no se pudo desmontar", fail=fail)
 
 
 def use_colab_drive(*, root_path: str | None = None) -> Datasource:
@@ -163,7 +163,7 @@ def use_colab_drive(*, root_path: str | None = None) -> Datasource:
     )
 
 
-def release_colab_drive(fail: bool = False) -> None:
+def release_colab_drive(*, fail: bool = False) -> None:
     """
     Cierra la conexión con Google Drive usada en Colab.
 
