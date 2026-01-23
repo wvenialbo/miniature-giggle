@@ -10,9 +10,11 @@ if tp.TYPE_CHECKING:
     from google.cloud.storage import Blob
     from google.cloud.storage.client import Client
 
+
 # Definición de tipos para el caché
 GCSCache = CacheBase[list[str]]
 NoopCache = DummyCache[list[str]]
+
 
 # Constantes de contexto
 ID_PREFIX = "gs://"

@@ -8,10 +8,13 @@ from ..cache import CacheBase
 from .base import ReadWriteBackend
 
 
-Resource = tp.Any
+if tp.TYPE_CHECKING:
+    from googleapiclient._apis.drive.v3.resources import DriveResource
+
 
 DriveCache = CacheBase[tuple[str, str]]
 ScanCache = CacheBase[list[str]]
+
 
 EMPTY_VALUE = ""
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
@@ -67,11 +70,12 @@ class GoogleDriveBackend(ReadWriteBackend):
     """
 
     def __init__(
-        self, service: Resource, drive_cache: DriveCache, scan_cache: ScanCache
+        self,
+        service: "DriveResource",
+        drive_cache: DriveCache,
+        scan_cache: ScanCache,
     ) -> None:
-        if tp.TYPE_CHECKING:
-            from googleapiclient._apis.drive.v3.resources import DriveResource
-        self._service: DriveResource = service
+        self._service = service
         self._drive_cache = drive_cache
         self._scan_cache = scan_cache
 
