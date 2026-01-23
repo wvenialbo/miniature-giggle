@@ -85,3 +85,6 @@ class NCEIURIMapper(URIMapper):
             if relative_path
             else self.base_url
         )
+
+
+__all__ = ["NCEIURIMapper"]

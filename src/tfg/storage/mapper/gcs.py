@@ -2,9 +2,9 @@ from .base import URIMapper
 
 
 # Constantes de protocolo para GCS
-GCS_PREFIX = "gs://"
-GCS_SEPARATOR = "/"
-POSIX_SEPARATOR = "/"
+_GCS_PREFIX = "gs://"
+_GCS_SEPARATOR = "/"
+_POSIX_SEPARATOR = "/"
 
 
 class GCSURIMapper(URIMapper):
@@ -66,7 +66,7 @@ class GCSURIMapper(URIMapper):
             Si la URI no pertenece al bucket configurado o no comienza
             con el prefijo 'gs://'.
         """
-        prefix = f"{GCS_PREFIX}{self.bucket}{GCS_SEPARATOR}"
+        prefix = f"{_GCS_PREFIX}{self.bucket}{_GCS_SEPARATOR}"
 
         if not uri.startswith(prefix):
             raise ValueError(
@@ -78,7 +78,7 @@ class GCSURIMapper(URIMapper):
         path = uri[len(prefix) :]
 
         # Aseguramos que comience con el separador POSIX
-        return f"{POSIX_SEPARATOR}{path.lstrip(POSIX_SEPARATOR)}"
+        return f"{_POSIX_SEPARATOR}{path.lstrip(_POSIX_SEPARATOR)}"
 
     def to_native(self, uri: str) -> str:
         """
@@ -99,6 +99,9 @@ class GCSURIMapper(URIMapper):
         """
         # Limpiamos el separador inicial para evitar doble slash tras el
         # bucket
-        clean_path = uri.lstrip(POSIX_SEPARATOR)
+        clean_path = uri.lstrip(_POSIX_SEPARATOR)
 
-        return f"{GCS_PREFIX}{self.bucket}{GCS_SEPARATOR}{clean_path}"
+        return f"{_GCS_PREFIX}{self.bucket}{_GCS_SEPARATOR}{clean_path}"
+
+
+__all__ = ["GCSURIMapper"]

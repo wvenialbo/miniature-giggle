@@ -1,9 +1,9 @@
 from .base import URIMapper
 
 
-S3_PREFIX = "s3://"
-S3_SEPARATOR = "/"
-POSIX_SEPARATOR = "/"
+_S3_PREFIX = "s3://"
+_S3_SEPARATOR = "/"
+_POSIX_SEPARATOR = "/"
 
 
 class AWSURIMapper(URIMapper):
@@ -55,7 +55,7 @@ class AWSURIMapper(URIMapper):
             (ejemplo: está fuera del alcance configurado).
         """
         # uri: s3://my-bucket/base/data/file.csv -> /data/file.csv
-        prefix = f"{S3_PREFIX}{self.bucket}{S3_SEPARATOR}"
+        prefix = f"{_S3_PREFIX}{self.bucket}{_S3_SEPARATOR}"
         if not uri.startswith(prefix):
             raise ValueError(
                 f"La URI '{uri}' no pertenece al bucket '{self.bucket}'"
@@ -63,7 +63,7 @@ class AWSURIMapper(URIMapper):
 
         path = uri[len(prefix) :]
 
-        return f"{POSIX_SEPARATOR}{path.lstrip(POSIX_SEPARATOR)}"
+        return f"{_POSIX_SEPARATOR}{path.lstrip(_POSIX_SEPARATOR)}"
 
     def to_native(self, uri: str) -> str:
         """
@@ -81,5 +81,8 @@ class AWSURIMapper(URIMapper):
             La URI nativa absoluta transformada para el backend.
         """
         # uri: /data/file.csv -> s3://my-bucket/base/data/file.csv
-        clean_path = uri.lstrip(POSIX_SEPARATOR)
-        return f"{S3_PREFIX}{self.bucket}{S3_SEPARATOR}{clean_path}"
+        clean_path = uri.lstrip(_POSIX_SEPARATOR)
+        return f"{_S3_PREFIX}{self.bucket}{_S3_SEPARATOR}{clean_path}"
+
+
+__all__ = ["AWSURIMapper"]

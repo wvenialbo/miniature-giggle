@@ -12,13 +12,12 @@ if tp.TYPE_CHECKING:
 type DriveCache = CacheBase[tuple[str, str]]
 
 
-FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
-ID_PREFIX = "id://"
-PATH_PREFIX = "path://"
-PATH_ID_SEPARATOR = "|"
-MAX_DEPTH = 50
-PATH_SEP = "/"
-ROOT_ID = "root"
+_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+_ID_PREFIX = "id://"
+_PATH_PREFIX = "path://"
+_PATH_ID_SEPARATOR = "|"
+_PATH_SEP = "/"
+_ROOT_ID = "root"
 
 
 class GoogleDriveURIMapper(URIMapper):
@@ -139,31 +138,31 @@ class GoogleDriveURIMapper(URIMapper):
         - No valida la existencia del objeto; `StorageBackend.exists()`
           debe usarse para verificación explícita.
         """
-        if uri == PATH_SEP:
+        if uri == _PATH_SEP:
             return (
-                f"{ID_PREFIX}{ROOT_ID}"
-                f"{PATH_ID_SEPARATOR}{uri}"
-                f"{PATH_ID_SEPARATOR}{FOLDER_MIME_TYPE}"
+                f"{_ID_PREFIX}{_ROOT_ID}"
+                f"{_PATH_ID_SEPARATOR}{uri}"
+                f"{_PATH_ID_SEPARATOR}{_FOLDER_MIME_TYPE}"
             )
 
         if cached := self._drive_cache.get(uri):
             cached_id, cached_mime = cached
             return (
-                f"{ID_PREFIX}{cached_id}"
-                f"{PATH_ID_SEPARATOR}{uri}"
-                f"{PATH_ID_SEPARATOR}{cached_mime}"
+                f"{_ID_PREFIX}{cached_id}"
+                f"{_PATH_ID_SEPARATOR}{uri}"
+                f"{_PATH_ID_SEPARATOR}{cached_mime}"
             )
 
         # 2. Caminata por la jerarquía
         parts = list(pl.PurePosixPath(uri).parts)
 
         # Filtramos la raiz '/' si path.parts la incluye
-        parts = [p for p in parts if p != PATH_SEP]
+        parts = [p for p in parts if p != _PATH_SEP]
 
-        parent_id = ROOT_ID
-        parent_mime = FOLDER_MIME_TYPE
+        parent_id = _ROOT_ID
+        parent_mime = _FOLDER_MIME_TYPE
 
-        current_logical_path = pl.PurePosixPath(PATH_SEP)
+        current_logical_path = pl.PurePosixPath(_PATH_SEP)
 
         for i, segment in enumerate(parts):
             # Construir ruta parcial actual para consultar/guardar caché
@@ -186,17 +185,17 @@ class GoogleDriveURIMapper(URIMapper):
                 # No encontrado. Preparamos el retorno especial.
                 # Ruta existente, resto de la ruta que falta por crear,
                 # e ID de la ruta existente.
-                child_path = PATH_SEP.join(parts[i:])
+                child_path = _PATH_SEP.join(parts[i:])
                 return (
-                    f"{PATH_PREFIX}{parent_path}"
-                    f"{PATH_ID_SEPARATOR}{child_path}"
-                    f"{PATH_ID_SEPARATOR}{parent_id}"
+                    f"{_PATH_PREFIX}{parent_path}"
+                    f"{_PATH_ID_SEPARATOR}{child_path}"
+                    f"{_PATH_ID_SEPARATOR}{parent_id}"
                 )
 
         return (
-            f"{ID_PREFIX}{parent_id}"
-            f"{PATH_ID_SEPARATOR}{uri}"
-            f"{PATH_ID_SEPARATOR}{parent_mime}"
+            f"{_ID_PREFIX}{parent_id}"
+            f"{_PATH_ID_SEPARATOR}{uri}"
+            f"{_PATH_ID_SEPARATOR}{parent_mime}"
         )
 
     def _find_child_id(
@@ -220,7 +219,7 @@ class GoogleDriveURIMapper(URIMapper):
         """
         # Escapar comillas simples en el nombre por seguridad en el
         # query
-        safe_name = name.replace("'", "\\'")
+        safe_name = name.replace("'", r"\'")
 
         query = (
             f"name = '{safe_name}' and "
@@ -249,9 +248,9 @@ class GoogleDriveURIMapper(URIMapper):
 
     def _split_id(self, uri: str) -> tuple[str, str, str]:
         try:
-            clean_uri = self._strip_prefix(uri, ID_PREFIX)
+            clean_uri = self._strip_prefix(uri, _ID_PREFIX)
             object_id, object_path, object_mime = clean_uri.split(
-                PATH_ID_SEPARATOR, 2
+                _PATH_ID_SEPARATOR, 2
             )
             return object_id, object_path, object_mime
 
@@ -265,3 +264,6 @@ class GoogleDriveURIMapper(URIMapper):
                 f"Se esperaba un URI '{prefix}', se recibió: '{uri}'"
             )
         return uri[len(prefix) :]
+
+
+__all__ = ["GoogleDriveURIMapper"]

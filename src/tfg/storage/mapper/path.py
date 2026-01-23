@@ -82,3 +82,6 @@ class PathURIMapper(URIMapper):
             La URI nativa absoluta transformada para el backend.
         """
         return str(self.native_root / uri)
+
+
+__all__ = ["PathURIMapper"]

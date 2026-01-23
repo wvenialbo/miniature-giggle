@@ -179,3 +179,6 @@ class URIMapper(tp.Protocol):
           debe usarse para verificación explícita.
         """
         ...
+
+
+__all__ = ["URIMapper"]
