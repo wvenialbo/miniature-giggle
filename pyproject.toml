@@ -92,20 +92,30 @@
       "ruff",
 
       # Docstrings QC tools
-      "pydoclint", # remove when ruff declares support for DOC rules
-      "pydoctest",
+      "pydoclint", # remove when ruff declares full support for DOC rules
 
       # Testing
       "coverage[toml]",
       "pytest",
+      "pytest-doctestplus",
+      "xdoctest",
+
+      # Notebooks
+      "jupyterlab",
 
       # Stubs
       "boto3-stubs[s3]",
       "google-api-python-client-stubs",
-      "google-auth-stubs",
-      "types-python-dateutil",
       "types-requests",
       "types-tqdm",
+
+      # Build tools
+      "setuptools",
+      "setuptools-scm",
+      "build",
+      "wheel",
+      "twine",
+      "findpydeps",
     ]
 
   [project.urls]
@@ -265,21 +275,73 @@
     ignore = ["**/experimental"]
 
   [tool.pydoclint]
-    style                = 'numpy'
-    allow-init-docstring = true
+    style          = 'numpy'
+    max-doc-length = 72
+
+    exclude = "\\.git*|\\.ipynb_.*|\\.mypy_.*|\\.ruff_.*|\\.pytest_.*|\\.venv|\\.vscode|experimental/.*|scripts/.*|temp/*|tests/.*|typings/.*|.+\\.ipynb|.+\\.pyi"
+
+    baseline                 = "pydoclint-baseline.txt"
+    generate-baseline        = false
+    auto-regenerate-baseline = true
+
+    check-style-mismatch = true
+
+    allow-init-docstring = false
+
+    arg-type-hints-in-docstring = true
+    arg-type-hints-in-signature = true
+
+    check-arg-order    = true
+    check-arg-defaults = true
+
+    check-return-types = true
+    check-yield-types  = true
+
+    check-class-attributes = true
+
+    skip-checking-raises = false
+
+    skip-checking-short-docstrings = false
+
+    native-mode-noqa-location = "definition"
+
+    ignore-underscore-args = true
+    ignore-private-args    = true
+
+    should-document-star-arguments      = true
+    omit-stars-when-documenting-varargs = false
+
+    require-return-section-when-returning-nothing = false
+    require-yield-section-when-yielding-nothing   = true
+
+    should-document-private-class-attributes            = false
+    treat-property-methods-as-class-attributes          = false
+    only-attrs-with-ClassVar-are-treated-as-class-attrs = false
+
+    show-filenames-in-every-violation-message = false
 
   [tool.ruff]
     preview     = true
     line-length = 79
 
     exclude = [
-      ".venv",
       "__pycache__",
+      ".git",
+      ".github",
+      ".ipynb_checkpoints",
       ".mypy_cache",
       ".ruff_cache",
       ".pytest_cache",
-      ".ipynb_checkpoints",
+      ".venv",
+      ".vscode",
+      "*.egg-info",
+      "build",
+      "dist",
       "experimental",
+      "htmlcov",
+      "scripts",
+      "temp",
+      "typings",
     ]
 
     extend-include = ["*.ipynb"]
