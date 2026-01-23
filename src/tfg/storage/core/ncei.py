@@ -39,29 +39,30 @@ def use_ncei_archive(
     Datasource
         Objeto orquestador configurado para NCEI Archive.
     """
-    # 1. Configurar caché
+    # 1. Configurar la URL base y el mountpoint
+    root_url = NCEI_BASE_URL.rstrip("/")
+    dataset_path = dataset_path.lstrip("/")
+    base_url = f"{root_url}/{dataset_path}"
+
+    local_root = pl.PurePosixPath("/")
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+    mountpoint = local_root / base_path.as_posix()
+
+    # 2. Configurar e instanciar la caché
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    root_url = NCEI_BASE_URL.rstrip("/")
-    dataset_path = dataset_path.lstrip("/")
-    base_url = f"{root_url}/{dataset_path}"
-
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-
-    local_root = pl.PurePosixPath("/")
-    mountpoint = local_root / base_path.as_posix()
-
-    # 2. Instanciar componentes
+    # 3. Instanciar los servicios
     session = requests.Session()
+
+    # 4. Instanciar los componentes
     mapper = NCEIURIMapper(base_url=base_url)
     backend = NCEIBackend(session=session, scan_cache=scan_cache)
 
-    # 3. Retornar orquestador
-    # El mountpoint es "/" porque el Mapper ya gestiona la base_url
+    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,

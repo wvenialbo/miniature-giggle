@@ -144,18 +144,20 @@ def use_colab_drive(*, root_path: str | None = None) -> Datasource:
     Datasource
         Contexto configurado listo para usar.
     """
-    _mount_drive(fail=True)
-
+    # 1. Configurar el mountpoint
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
-
     gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
     mountpoint = gdrive_root / base_path.as_posix()
 
+    # 2. Instanciar los servicios
+    _mount_drive(fail=True)
+
+    # 3. Instanciar los componentes
+    mapper = PathURIMapper()
     backend = FilesystemBackend()
 
-    mapper = PathURIMapper()
-
+    # 4. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,

@@ -64,39 +64,26 @@ def use_gcs_cloud(
     DatasourceContract
         Objeto orquestador configurado para Google Cloud Storage.
     """
-    # 1. Configuración del cliente de GCS
-    client = get_gcs_client(bucket=bucket, **kwargs)
+    # 1. Configurar el mountpoint
+    local_root = pl.PurePosixPath("/")
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+    mountpoint = local_root / base_path.as_posix()
 
-    # 2. Inicialización de la Caché de Listado (ScanCache)
-    #    GCS se beneficia de ScanCache para evitar listar buckets
-    #    grandes repetidamente.
+    # 2. Configurar e instanciar la caché
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    # 3. Resolución de Rutas (Lógica Simétrica a AWS)
-    #    Resolvemos el base_path relativo a la raíz lógica para calcular
-    #    el punto de montaje exacto.
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
+    # 3. Instanciar los servicios
+    client = get_gcs_client(bucket=bucket, **kwargs)
 
-    local_root = pl.PurePosixPath("/")
-    mountpoint = local_root / base_path.as_posix()
-
-    # 4. Instanciación de componentes
-    #    El Mapper es determinista: solo necesita saber el bucket
+    # 4. Instanciar los componentes
     mapper = GCSURIMapper(bucket=bucket)
+    backend = GCSBackend(bucket=bucket, client=client, scan_cache=scan_cache)
 
-    #    El Backend recibe el cliente instanciado y la caché de escaneo
-    backend = GCSBackend(
-        bucket=bucket,
-        client=client,
-        scan_cache=scan_cache,
-    )
-
-    # 6. Retorno del Orquestador
-    #    Pasamos scan_cache como la caché principal del Datasource
+    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,

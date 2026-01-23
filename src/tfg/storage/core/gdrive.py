@@ -45,10 +45,14 @@ def use_google_drive(
     Datasource
         Objeto orquestador configurado con el backend de Drive API.
     """
-    # 1. Construcción del Cliente de API (Service)
-    service = get_gdrive_client(credentials)
+    # 1. Configurar el mountpoint
+    local_root = pl.PurePosixPath("/")
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+    mountpoint = local_root / base_path.as_posix()
 
-    # 2. Preparación de Rutas de Caché
+    # 2. Configurar e instanciar las cachés
+    # 2.1 Preparar las rutas de las cachés
     def path_str(path: pl.Path, suffix: str) -> str | None:
         return str(path.with_name(f"{path.stem}{suffix}{path.suffix}"))
 
@@ -60,7 +64,7 @@ def use_google_drive(
         drive_path = path_str(cache_file, "-id")
         scan_path = path_str(cache_file, "-index")
 
-    # 3. Inicialización del Cache
+    # 2.2 Instanciar las cachés
     drive_cache = TimedCache[tuple[str, str]](
         cache_file=drive_path, expire_after=expire_after
     )
@@ -68,25 +72,19 @@ def use_google_drive(
         cache_file=scan_path, expire_after=expire_after
     )
     gdrive_cache = GoogleDriveCacheWrapper(
-        drive_cache=drive_cache,
-        scan_cache=scan_cache,
+        drive_cache=drive_cache, scan_cache=scan_cache
     )
 
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
+    # 3. Instanciar los servicios
+    service = get_gdrive_client(credentials)
 
-    local_root = pl.PurePosixPath("/")
-    mountpoint = local_root / base_path.as_posix()
-
-    # 4. Instanciación de Protocolos (Inyección de Dependencias)
-    # Ambos componentes comparten la misma instancia de 'service'.
+    # 4. Instanciar los componentes
+    mapper = GoogleDriveURIMapper(service=service, drive_cache=drive_cache)
     backend = GoogleDriveBackend(
         service=service, drive_cache=drive_cache, scan_cache=scan_cache
     )
 
-    mapper = GoogleDriveURIMapper(service=service, drive_cache=drive_cache)
-
-    # 6. Retorno del Datasource Orquestador
+    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,

@@ -128,40 +128,28 @@ def use_aws_cloud(
     DatasourceContract
         Objeto orquestador configurado para AWS S3.
     """
-    # 1. Configuración de la Sesión de AWS y del cliente S3
-    # Acceso Anónimo vs Autenticado: Esto permite flexibilidad total,
-    # desde perfiles hasta llaves directas
-    client, config = _get_s3_client(**kwargs)
+    # 1. Configurar el mountpoint
+    local_root = pl.PurePosixPath(POSIX_PREFIX)
+    base_path = pl.Path("/" if root_path is None else root_path).resolve()
+    base_path = base_path.relative_to(base_path.anchor)
+    mountpoint = local_root / base_path.as_posix()
 
-    # 2. Inicialización de la Caché de Listado (ScanCache)
-    # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
-    # ScanCache
+    # 2. Configurar e instanciar la caché
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
+    # 3. Instanciar los servicios
+    client, config = _get_s3_client(**kwargs)
 
-    local_root = pl.PurePosixPath(POSIX_PREFIX)
-    mountpoint = local_root / base_path.as_posix()
-
-    # 3. Instanciación de componentes
-    # El Mapper es determinista: solo necesita saber el bucket y el
-    # prefijo
+    # 4. Instanciar los componentes
     mapper = AWSURIMapper(bucket=bucket)
-
-    # El Backend recibe la sesión y la caché de escaneo
     backend = AWSBackend(
-        bucket=bucket,
-        client=client,
-        scan_cache=scan_cache,
-        config=config,
+        bucket=bucket, client=client, scan_cache=scan_cache, config=config
     )
 
-    # 5. Retorno del Orquestador
-    # Pasamos scan_cache como la caché principal del Datasource
+    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,

@@ -21,16 +21,17 @@ def use_local_drive(*, root_path: str | None = None) -> Datasource:
     Datasource
         Contexto configurado listo para usar.
     """
+    # 1. Configurar el mountpoint
+    local_root = pl.PurePosixPath("/")
     base_path = pl.Path("/" if root_path is None else root_path).resolve()
     base_path = base_path.relative_to(base_path.anchor)
-
-    local_root = pl.PurePosixPath("/")
     mountpoint = local_root / base_path.as_posix()
 
+    # 2. Instanciar los componentes
+    mapper = PathURIMapper()
     backend = FilesystemBackend()
 
-    mapper = PathURIMapper()
-
+    # 3. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
