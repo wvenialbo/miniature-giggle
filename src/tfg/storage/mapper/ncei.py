@@ -24,7 +24,7 @@ class NCEIURIMapper(URIMapper):
         Convierte una URL de NCEI en una ruta lógica POSIX.
     """
 
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, *, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
 
     def __repr__(self) -> str:

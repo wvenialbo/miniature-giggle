@@ -71,7 +71,7 @@ class GoogleDriveURIMapper(URIMapper):
     """
 
     def __init__(
-        self, service: "DriveResource", drive_cache: DriveCache
+        self, *, service: "DriveResource", drive_cache: DriveCache
     ) -> None:
         self._service = service
         self._drive_cache = drive_cache

@@ -37,7 +37,7 @@ class GenericURIMapper:
         Convierte una URI genérica a una URI nativa.
     """
 
-    def __init__(self, base_path: str) -> None:
+    def __init__(self, *, base_path: str) -> None:
         cwd = pl.Path().resolve(strict=False)
         crd = cwd / base_path
         self.base_path = f"/{crd.relative_to(crd.anchor).as_posix()}"

@@ -36,7 +36,7 @@ class GCSURIMapper(URIMapper):
         Convierte una URI genérica absoluta a una URI nativa absoluta.
     """
 
-    def __init__(self, bucket: str) -> None:
+    def __init__(self, *, bucket: str) -> None:
         self.bucket = bucket
 
     def __repr__(self) -> str:
