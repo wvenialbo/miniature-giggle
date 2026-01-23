@@ -1,15 +1,13 @@
 from .base import AbstractCache, CacheBase
-from .simple import DriveCache, ScanCache, SimpleCache
-from .timed import TimedCache, TimedDriveCache, TimedScanCache
+from .gdrive import GoogleDriveCacheWrapper
+from .simple import SimpleCache
+from .timed import TimedCache
 
 
 __all__ = [
     "AbstractCache",
     "CacheBase",
-    "DriveCache",
-    "ScanCache",
+    "GoogleDriveCacheWrapper",
     "SimpleCache",
     "TimedCache",
-    "TimedDriveCache",
-    "TimedScanCache",
 ]

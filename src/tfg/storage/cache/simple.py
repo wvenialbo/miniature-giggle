@@ -146,7 +146,4 @@ class SimpleCache(CacheBase[T]):
             self.cache_file.write_text(content, encoding="utf-8")
 
 
-DriveCache = SimpleCache[str]
-ScanCache = SimpleCache[list[str]]
-
-__all__ = ["DriveCache", "ScanCache", "SimpleCache"]
+__all__ = ["SimpleCache"]

@@ -104,3 +104,6 @@ class CacheBase[T](AbstractCache):
             El objeto a almacenar en la caché.
         """
         ...
+
+
+__all__ = ["AbstractCache", "CacheBase"]

@@ -7,7 +7,7 @@ type DriveCache = CacheBase[tuple[str, str]]
 type ScanCache = CacheBase[list[str]]
 
 
-ID_PREFIX = "id://"
+_ID_PREFIX = "id://"
 
 
 class GoogleDriveCacheWrapper(AbstractCache):
@@ -42,7 +42,7 @@ class GoogleDriveCacheWrapper(AbstractCache):
             return
 
         def get_id(uri: str) -> str:
-            return uri.split("|", maxsplit=1)[0].replace(ID_PREFIX, "")
+            return uri.split("|", maxsplit=1)[0].replace(_ID_PREFIX, "")
 
         if indices_to_remove := [
             i for i, uri in enumerate(cached_content) if get_id(uri) == file_id
@@ -64,3 +64,6 @@ class GoogleDriveCacheWrapper(AbstractCache):
     def purge(self) -> None:
         self._drive_cache.purge()
         self._scan_cache.purge()
+
+
+__all__ = ["GoogleDriveCacheWrapper"]

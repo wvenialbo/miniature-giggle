@@ -210,7 +210,4 @@ class TimedCache(CacheBase[T]):
         self._save_to_disk()
 
 
-TimedDriveCache = TimedCache[tuple[str, str]]
-TimedScanCache = TimedCache[list[str]]
-
-__all__ = ["CacheItem", "TimedCache", "TimedDriveCache", "TimedScanCache"]
+__all__ = ["CacheItem", "TimedCache"]
