@@ -5,9 +5,12 @@ from ..cache import CacheBase
 from .base import URIMapper
 
 
-Resource = tp.Any
+if tp.TYPE_CHECKING:
+    from googleapiclient._apis.drive.v3.resources import DriveResource
 
-DriveCache = CacheBase[tuple[str, str]]
+
+type DriveCache = CacheBase[tuple[str, str]]
+
 
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
 ID_PREFIX = "id://"
@@ -68,11 +71,10 @@ class GoogleDriveURIMapper(URIMapper):
       archivos de manera eficiente y portátil.
     """
 
-    def __init__(self, service: Resource, drive_cache: DriveCache) -> None:
-        if tp.TYPE_CHECKING:
-            from googleapiclient._apis.drive.v3.resources import DriveResource
-
-        self._service: DriveResource = service
+    def __init__(
+        self, service: "DriveResource", drive_cache: DriveCache
+    ) -> None:
+        self._service = service
         self._drive_cache = drive_cache
 
     def __repr__(self) -> str:
