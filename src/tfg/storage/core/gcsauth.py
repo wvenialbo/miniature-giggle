@@ -1,3 +1,4 @@
+import contextlib
 import typing as tp
 
 from .gutils import AuthConfig, TokenManager, authenticate_user
@@ -28,14 +29,12 @@ def _is_public(bucket: str, config: AuthConfig) -> bool:
     # Endpoint de la API XML de GCS para el bucket
     url = f"https://storage.googleapis.com/{bucket}"
 
-    try:
+    with contextlib.suppress(Exception):
         # Petición simple SIN cabeceras de autorización
         response = requests.get(url, timeout=config.timeout)
-
         return response.status_code == HTTP_200_OK
 
-    except Exception:
-        return False
+    return False
 
 
 def _get_gcs_anonymous_client(
