@@ -1,4 +1,5 @@
 import collections.abc as col
+import contextlib
 import io
 import mimetypes
 import pathlib as pl
@@ -194,17 +195,15 @@ class GoogleDriveBackend(ReadWriteBackend):
             return False
 
         # Si tenemos un ID, debemos verificar que no sea una carpeta.
-        try:
-            _, _, mime_type = self._split_id(uri)
-
+        with contextlib.suppress(Exception):
             # Consultamos el mimeType para asegurar que no es una
             # carpeta.  Un objeto "existe" para nosotros solo si
             # tiene bytes (no es carpeta)
+            _, _, mime_type = self._split_id(uri)
             return mime_type != FOLDER_MIME_TYPE
 
-        except Exception:
-            # Si hay error, el objeto no "existe" para nosotros.
-            return False
+        # Si hay error, el objeto no "existe" para nosotros.
+        return False
 
     def read(self, *, uri: str) -> bytes:
         """
