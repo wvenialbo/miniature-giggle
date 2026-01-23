@@ -82,7 +82,7 @@
   readme = { file = "README.md", content-type = "text/markdown" }
 
   # The minimum version of Python required to run your project
-  requires-python = ">=3.10"
+  requires-python = ">=3.12"
 
   [project.optional-dependencies]
     dev = [
@@ -90,6 +90,7 @@
       "mypy",
       "pyright",
       "ruff",
+      "ty",
 
       # Docstrings QC tools
       "pydoclint", # remove when ruff declares full support for DOC rules
@@ -97,7 +98,10 @@
       # Testing
       "coverage[toml]",
       "pytest",
+      "pytest-cov",
       "pytest-doctestplus",
+      "pytest-mock",
+      "pytest-xdist",
       "xdoctest",
 
       # Notebooks
@@ -156,10 +160,60 @@
       precision    = 2
       fail_under   = 80
 
+  [tool.pydoclint]
+    style          = 'numpy'
+    max-doc-length = 72
+
+    exclude = "\\.git*|\\.ipynb_.*|\\.mypy_.*|\\.ruff_.*|\\.pytest_.*|\\.venv|\\.vscode|experimental/.*|scripts/.*|temp/*|tests/.*|typings/.*|.+\\.ipynb|.+\\.pyi"
+
+    baseline                 = "pydoclint-baseline.txt"
+    generate-baseline        = false
+    auto-regenerate-baseline = true
+
+    check-style-mismatch = true
+
+    allow-init-docstring = false
+
+    arg-type-hints-in-docstring = true
+    arg-type-hints-in-signature = true
+
+    check-arg-order    = true
+    check-arg-defaults = true
+
+    check-return-types = true
+    check-yield-types  = true
+
+    check-class-attributes = true
+
+    skip-checking-raises = false
+
+    skip-checking-short-docstrings = false
+
+    native-mode-noqa-location = "definition"
+
+    ignore-underscore-args = true
+    ignore-private-args    = true
+
+    should-document-star-arguments      = true
+    omit-stars-when-documenting-varargs = false
+
+    require-return-section-when-returning-nothing = false
+    require-yield-section-when-yielding-nothing   = true
+
+    should-document-private-class-attributes            = false
+    treat-property-methods-as-class-attributes          = false
+    only-attrs-with-ClassVar-are-treated-as-class-attrs = false
+
+    show-filenames-in-every-violation-message = false
+
+  [tool.ty]
+    [tool.ty.environment]
+      python-version = "3.12"
+      extra-paths    = ["./typings", "./.venv/Lib/site-packages"]
+
   [tool.mypy]
-    # Introduce stricter options
+    python_version = "3.12"
     strict         = true
-    python_version = "3.13"
 
     # Start off with these
     warn_redundant_casts = true
@@ -230,13 +284,15 @@
       # treating it as Any securely only at the boundary of your code.
 
   [tool.pyright]
-    pythonVersion    = "3.13"
+    pythonVersion    = "3.12"
     typeCheckingMode = "strict"
 
     indexing = true
     stubPath = "./typings"
 
     executionEnvironments = [{ root = "./src" }]
+
+    reportImplicitTypeAlias = "error"
 
     # Configuraciones de inferencia estricta
     strictDictionaryInference = true
@@ -274,52 +330,6 @@
 
     ignore = ["**/experimental"]
 
-  [tool.pydoclint]
-    style          = 'numpy'
-    max-doc-length = 72
-
-    exclude = "\\.git*|\\.ipynb_.*|\\.mypy_.*|\\.ruff_.*|\\.pytest_.*|\\.venv|\\.vscode|experimental/.*|scripts/.*|temp/*|tests/.*|typings/.*|.+\\.ipynb|.+\\.pyi"
-
-    baseline                 = "pydoclint-baseline.txt"
-    generate-baseline        = false
-    auto-regenerate-baseline = true
-
-    check-style-mismatch = true
-
-    allow-init-docstring = false
-
-    arg-type-hints-in-docstring = true
-    arg-type-hints-in-signature = true
-
-    check-arg-order    = true
-    check-arg-defaults = true
-
-    check-return-types = true
-    check-yield-types  = true
-
-    check-class-attributes = true
-
-    skip-checking-raises = false
-
-    skip-checking-short-docstrings = false
-
-    native-mode-noqa-location = "definition"
-
-    ignore-underscore-args = true
-    ignore-private-args    = true
-
-    should-document-star-arguments      = true
-    omit-stars-when-documenting-varargs = false
-
-    require-return-section-when-returning-nothing = false
-    require-yield-section-when-yielding-nothing   = true
-
-    should-document-private-class-attributes            = false
-    treat-property-methods-as-class-attributes          = false
-    only-attrs-with-ClassVar-are-treated-as-class-attrs = false
-
-    show-filenames-in-every-violation-message = false
-
   [tool.ruff]
     preview     = true
     line-length = 79
@@ -354,22 +364,50 @@
     [tool.ruff.lint]
 
       select = [
+        "A",   # detect shadowed builtins
         "B",   # flake8-bugbear (bugs/performance)
         "D",   # pydocstyle (docstrings)
         "E",   # pycodestyle (style)
         "F",   # pyflakes (logic/imports)
+        "G",   # Better usage of built-in logging
         "I",   # isort (import sorting)
+        "N",   # enforce naming conventions
+        "Q",   # Linting rules for quites
         "S",   # bandit (security)
         "W",   # pycodestyle (warnings)
+        "C4",  # Catch incorrect use of comprehensions, dict, list, etc
+        "FA",  # flake8-future-annotations
         "PL",  # pylint (logic/design)
+        "PT",  # pytest (testing)
+        "TC",  # Move type only imports to type-checking conditionals
+        "TD",  # flake8-todos (be diligent with TODO comments)
         "UP",  # pyupgrade (modernise)
         "ANN", # flake8-annotations (type annotations)
+        "BLE", # disallow catch-all exceptions
+        "C90", # mccabe
+        "COM", # enforce trailing comma rules
+        "CPY", # flake8-copyright
         "DOC", # pydoclint (docstrings)
+        "DTZ", # require strict timezone manipulation with datetime
         "ERA", # eradicate (detecta código comentado)
+        "FBT", # detect boolean traps
+        "ICN", # Use common import conventions
+        "ISC", # Good use of string concatenation
+        "LOG", # Checks for issues using the standard library logging module
+        "NPY", # Some numpy-specific things
+        "PGH", # pygrep-hooks
+        "PTH", # Use pathlib instead of os.path
+        "PYI", # Linting rules for type annotations
+        "RET", # Good return practices
         "RUF", # ruff-specific rules
+        "SIM", # Common simplification rules
+        "TID", # Some good import practices
+        "YTT", # flake8-2020
       ]
 
       ignore = [
+        "COM812",  # Missing trailing comma in a collection
+        "CPY001",  # Missing copyright notice at top of file
         "D100",    # Missing docstring in public module
         "D101",    # Missing docstring in public class
         "D102",    # Missing docstring in public method
@@ -377,6 +415,7 @@
         "D104",    # Missing docstring in public package
         "D105",    # Missing docstring in magic method
         "PLC0415", # `import` should be at the top-level of a file
+        "TID252",  # Prefer absolute imports over relative imports
       ]
 
       fixable   = ["ALL"]
@@ -394,6 +433,9 @@
         max-line-length               = 79
         max-doc-length                = 72
         ignore-overlong-task-comments = false
+
+      [tool.ruff.lint.pyupgrade]
+        keep-runtime-typing = false
 
       [tool.ruff.lint.pydocstyle]
         convention = "numpy"

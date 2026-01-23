@@ -28,6 +28,16 @@ if (-not $env:VIRTUAL_ENV) {
 
 Write-Host "--- Running ruff {check|format} <file> [--fix]"
 ruff check $project
+# ruff check --fix $project
+# ruff format $project
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+Write-Host ""
+
+Write-Host "--- Running ty check <file>"
+ty check $project
 
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
