@@ -134,9 +134,7 @@ class GCSBackend(ReadWriteBackend):
         bool
             True si el blob existe, False en caso contrario.
         """
-        from google.cloud import storage
-
-        blob: storage.Blob = self._get_blob(uri)
+        blob = self._get_blob(uri)
 
         return bool(blob.exists())
 
@@ -154,9 +152,7 @@ class GCSBackend(ReadWriteBackend):
         bytes
             Contenido binario del objeto.
         """
-        from google.cloud import storage
-
-        blob: storage.Blob = self._get_blob(uri)
+        blob = self._get_blob(uri)
 
         return bytes(blob.download_as_bytes())
 
@@ -182,9 +178,7 @@ class GCSBackend(ReadWriteBackend):
         bytes
             Fragmentos del contenido binario del archivo.
         """
-        from google.cloud import storage
-
-        blob: storage.Blob = self._get_blob(uri)
+        blob = self._get_blob(uri)
         with blob.open("rb", chunk_size=chunk_size) as f:
             while chunk := tp.cast("bytes", f.read(chunk_size)):
                 yield chunk
@@ -206,8 +200,6 @@ class GCSBackend(ReadWriteBackend):
         list[str]
             Lista de URIs nativas absolutas encontradas.
         """
-        from google.cloud import storage
-
         # Intentar recuperar de caché si existe
         if self.scan_cache:
             cached = self.scan_cache.get(prefix)
@@ -220,7 +212,7 @@ class GCSBackend(ReadWriteBackend):
 
         # list_blobs maneja la paginación automáticamente
         blobs = tp.cast(
-            "col.Iterator[storage.Blob]",
+            "col.Iterator[Blob]",
             self.client.list_blobs(
                 bucket, prefix=blob_prefix, fields="items(name),nextPageToken"
             ),
@@ -228,7 +220,6 @@ class GCSBackend(ReadWriteBackend):
 
         results: list[str] = []
 
-        blob: storage.Blob
         for blob in blobs:
             # Construir la URI nativa completa
             full_uri = f"{ID_PREFIX}{bucket_name}{SEPARATOR}{blob.name}"
