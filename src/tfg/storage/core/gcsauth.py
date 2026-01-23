@@ -73,7 +73,7 @@ def _get_gcs_anonymous_client(
 
 def _get_gcs_default_client(
     project: str | None,
-    credentials: Credentials | None,
+    credentials: "Credentials | None",
     **kwargs: object | str | bool | None,
 ) -> "Client":
     """
@@ -114,7 +114,7 @@ def _get_gcs_default_client(
 def get_gcs_client(
     bucket: str,
     project: str | None,
-    credentials: Credentials | None,
+    credentials: "Credentials | None",
     **kwargs: object | str | bool | None,
 ) -> "Client":
     """
