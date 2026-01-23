@@ -36,3 +36,6 @@ def use_local_drive(*, root_path: str | None = None) -> Datasource:
         backend=backend,
         mapper=mapper,
     )
+
+
+__all__ = ["use_local_drive"]

@@ -45,3 +45,6 @@ def get_gdrive_client(credentials: "Credentials | None") -> "DriveResource":
             project_id=None, config=_CONFIG, tokens=_tokens
         )
     return _get_gdrive_default_client(credentials=credentials)
+
+
+__all__ = ["get_gdrive_client"]

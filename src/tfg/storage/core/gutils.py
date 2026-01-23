@@ -298,3 +298,6 @@ def authenticate_user(
         tokens.save(credentials)
 
     return credentials
+
+
+__all__ = ["AuthConfig", "TokenManager", "authenticate_user"]

@@ -171,3 +171,6 @@ def get_gcs_client(
     return _get_gcs_default_client(
         project=project, credentials=credentials, **kwargs
     )
+
+
+__all__ = ["get_gcs_client"]

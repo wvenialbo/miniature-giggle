@@ -2,7 +2,7 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import AWSBackend
-from ..cache import TimedScanCache
+from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import AWSURIMapper
 
@@ -137,7 +137,7 @@ def use_aws_cloud(
     # S3 no necesita DriveCache (IDs), pero se beneficia enormemente de
     # ScanCache
     cache_path_str = str(cache_file) if cache_file else None
-    scan_cache = TimedScanCache(
+    scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
@@ -168,3 +168,6 @@ def use_aws_cloud(
         mapper=mapper,
         cache=scan_cache,
     )
+
+
+__all__ = ["use_aws_cloud"]

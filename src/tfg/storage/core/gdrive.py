@@ -2,8 +2,7 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import GoogleDriveBackend
-from ..cache import TimedDriveCache, TimedScanCache
-from ..cache.gdrive import GoogleDriveCacheWrapper
+from ..cache import GoogleDriveCacheWrapper, TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
@@ -62,10 +61,10 @@ def use_google_drive(
         scan_path = path_str(cache_file, "-index")
 
     # 3. Inicialización del Cache
-    drive_cache = TimedDriveCache(
+    drive_cache = TimedCache[tuple[str, str]](
         cache_file=drive_path, expire_after=expire_after
     )
-    scan_cache = TimedScanCache(
+    scan_cache = TimedCache[list[str]](
         cache_file=scan_path, expire_after=expire_after
     )
     gdrive_cache = GoogleDriveCacheWrapper(
@@ -94,3 +93,6 @@ def use_google_drive(
         mapper=mapper,
         cache=gdrive_cache,
     )
+
+
+__all__ = ["use_google_drive"]

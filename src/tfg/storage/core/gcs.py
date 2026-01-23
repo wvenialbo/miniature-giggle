@@ -2,7 +2,7 @@ import pathlib as pl
 import typing as tp
 
 from ..backend import GCSBackend
-from ..cache import TimedScanCache
+from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import GCSURIMapper
 from .gcsauth import GCSAuthArgs, get_gcs_client
@@ -71,7 +71,7 @@ def use_gcs_cloud(
     #    GCS se beneficia de ScanCache para evitar listar buckets
     #    grandes repetidamente.
     cache_path_str = str(cache_file) if cache_file else None
-    scan_cache = TimedScanCache(
+    scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
@@ -103,3 +103,6 @@ def use_gcs_cloud(
         mapper=mapper,
         cache=scan_cache,
     )
+
+
+__all__ = ["use_gcs_cloud"]

@@ -3,7 +3,7 @@ import pathlib as pl
 import requests
 
 from ..backend import NCEIBackend
-from ..cache import TimedScanCache
+from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import NCEIURIMapper
 
@@ -41,7 +41,7 @@ def use_ncei_archive(
     """
     # 1. Configurar caché
     cache_path_str = str(cache_file) if cache_file else None
-    scan_cache = TimedScanCache(
+    scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
@@ -68,3 +68,6 @@ def use_ncei_archive(
         mapper=mapper,
         cache=scan_cache,
     )
+
+
+__all__ = ["use_ncei_archive"]
