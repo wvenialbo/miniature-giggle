@@ -2,7 +2,7 @@ import collections.abc as col
 import contextlib
 import typing as tp
 
-from ..cache import CacheBase, DummyCache
+from ..cache import CacheBase
 from .base import ReadWriteBackend
 
 
@@ -11,12 +11,9 @@ if tp.TYPE_CHECKING:
     from google.cloud.storage.client import Client
 
 
-# Definición de tipos para el caché
 GCSCache = CacheBase[list[str]]
-NoopCache = DummyCache[list[str]]
 
 
-# Constantes de contexto
 ID_PREFIX = "gs://"
 SEPARATOR = "/"
 
@@ -76,7 +73,7 @@ class GCSBackend(ReadWriteBackend):
     ) -> None:
         self.bucket_name = bucket
         self.client = client
-        self.scan_cache: GCSCache = scan_cache or NoopCache()
+        self.scan_cache = scan_cache
 
     def __repr__(self) -> str:
         return (
@@ -211,10 +208,11 @@ class GCSBackend(ReadWriteBackend):
         """
         from google.cloud import storage
 
-        # Intentar recuperar de caché
-        cached = self.scan_cache.get(prefix)
-        if cached is not None:
-            return cached
+        # Intentar recuperar de caché si existe
+        if self.scan_cache:
+            cached = self.scan_cache.get(prefix)
+            if cached is not None:
+                return cached
 
         bucket_name, blob_prefix = self._split_uri(prefix)
         # Obtener referencia al bucket sin llamada de red explícita aquí
@@ -237,7 +235,8 @@ class GCSBackend(ReadWriteBackend):
             results.append(full_uri)
 
         # Actualizar caché
-        self.scan_cache.set(prefix, results)
+        if self.scan_cache:
+            self.scan_cache.set(prefix, results)
 
         return results
 
