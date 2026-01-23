@@ -1,15 +1,12 @@
 import collections.abc as col
 import io
-import typing as tp
 
 from ..backend import StorageBackend
-from ..cache import AbstractCache, DummyCache
+from ..cache import AbstractCache
 from ..mapper import GenericURIMapper, URIMapper
 from .base import DatasourceBasic
 from .utils import ProgressTracker, StreamAdapter
 
-
-NoopCache = DummyCache[tp.Any]
 
 GENERIC_SUFFIX = ".*"
 
@@ -58,9 +55,8 @@ class DataService(DatasourceBasic):
         Backend para operaciones de E/S crudas.
     mapper : URIMapper
         Mapeador entre URIs genéricas y nativas.
-    handlers : dict[str, DataHandler]
-        Diccionario de manejadores de formatos disponibles, indexados
-        por extensión.
+    cache : AbstractCache
+        Caché para optimizar operaciones de E/S.
 
     Methods
     -------
@@ -101,7 +97,7 @@ class DataService(DatasourceBasic):
         self.backend = backend
         self.mapper = mapper
         self.local_mapper = GenericURIMapper(base_path=mountpoint)
-        self.cache = cache or NoopCache()
+        self.cache = cache
 
     def __repr__(self) -> str:
         return (
@@ -119,7 +115,8 @@ class DataService(DatasourceBasic):
         Esta operación elimina todos los objetos actualmente almacenados
         en la caché.
         """
-        self.cache.clear()
+        if self.cache:
+            self.cache.clear()
 
     def delete(self, *, uri: str) -> None:
         """
@@ -139,7 +136,8 @@ class DataService(DatasourceBasic):
             La URI genérica de los datos a eliminar.
         """
         self.backend.delete(uri=self._to_native_uri(uri))
-        self.cache.invalidate(path=uri)
+        if self.cache:
+            self.cache.invalidate(path=uri)
 
     def exists(self, *, uri: str) -> bool:
         """
@@ -294,7 +292,8 @@ class DataService(DatasourceBasic):
         máximo). Esta función elimina todos los objetos que hayan
         expirado según dichas políticas.
         """
-        self.cache.purge()
+        if self.cache:
+            self.cache.purge()
 
     def save(self, *, uri: str, data: io.BytesIO) -> None:
         """
