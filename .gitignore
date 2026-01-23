@@ -98,7 +98,6 @@ dmypy.json
 pydoclint-baseline.txt
 
 # Local reference folder and files
-scripts/
 src/tfg/config/client_secret_*.json
 src/tfg/experimental*/
 temp/

@@ -1,0 +1,30 @@
+Installation pipeline
+=====================
+init.ps1        # Initialize/update the project environment
+deploy-edit.ps1 # Install the project in editable mode
+make.ps1        # Make the project development requirements.dev
+install.ps1     # Install the project development requirements.dev
+find-deps.ps1   # Find the project dependencies and create requirements.txt
+
+
+Environment management and maintenance
+======================================
+activate.ps1    # Activate the project environment
+deactivate      # Deactivate the project environment
+build.ps1       # Build a release package for deployment
+compile.ps1     # Build a release executable for deployment
+cleanup.ps1     # Clean the project environment (remove all installed packages)
+
+
+Test code coverage
+==================
+make-cov.ps1    # Make the project code coverage database
+report-cov.ps1  # Build the project code coverage report
+
+
+Miscellaneous tools
+===================
+run.ps1         # Run the project application
+check-deps.ps1  # Build the dependencies of the project tree
+check-diff.ps1  # Check the dependencies of the project differences
+lint.ps1        # Lint the project against QC tools
