@@ -9,7 +9,7 @@ from .base import ReadWriteBackend
 
 
 if tp.TYPE_CHECKING:
-    from mypy_boto3_s3.client import S3Client
+    from mypy_boto3_s3.client import S3Client as Client
 
 
 type AWSCache = CacheBase[list[str]]
@@ -69,7 +69,7 @@ class AWSBackend(ReadWriteBackend):
     def __init__(
         self,
         bucket: str,
-        client: "S3Client",
+        client: "Client",
         scan_cache: AWSCache | None = None,
         config: Config | None = None,
     ) -> None:

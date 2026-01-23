@@ -9,19 +9,19 @@ from ..mapper import AWSURIMapper
 
 if tp.TYPE_CHECKING:
     from boto3 import Session
+    from botocore.config import Config
+    from mypy_boto3_s3.client import S3Client as Client
+
 
 S3_PREFIX = "s3://"
 POSIX_PREFIX = "/"
-
-Client = tp.Any
-Config = tp.Any
 
 
 def _get_s3_client(
     profile_name: str | None = None,
     region_name: str | None = None,
     **kwargs: "Session | str | None",
-) -> tuple[Client, Config]:
+) -> "tuple[Client, Config | None]":
     """
     Crea un cliente de S3 para acceso autenticado o anónimo.
 
