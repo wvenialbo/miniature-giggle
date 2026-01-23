@@ -68,6 +68,7 @@ class AWSBackend(ReadWriteBackend):
 
     def __init__(
         self,
+        *,
         bucket: str,
         client: "Client",
         scan_cache: AWSCache | None = None,

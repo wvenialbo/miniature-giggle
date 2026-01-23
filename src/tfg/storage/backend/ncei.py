@@ -56,7 +56,7 @@ class NCEIBackend(ReadOnlyBackend):
     """
 
     def __init__(
-        self, session: requests.Session, scan_cache: NCEICache | None = None
+        self, *, session: requests.Session, scan_cache: NCEICache | None = None
     ) -> None:
         self.session = session
         self.scan_cache = scan_cache

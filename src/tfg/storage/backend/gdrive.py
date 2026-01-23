@@ -72,6 +72,7 @@ class GoogleDriveBackend(ReadWriteBackend):
 
     def __init__(
         self,
+        *,
         service: "DriveResource",
         drive_cache: DriveCache,
         scan_cache: ScanCache,

@@ -67,6 +67,7 @@ class GCSBackend(ReadWriteBackend):
 
     def __init__(
         self,
+        *,
         bucket: str,
         client: "Client",
         scan_cache: GCSCache | None = None,
