@@ -17,11 +17,11 @@ type DriveCache = CacheBase[tuple[str, str]]
 type ScanCache = CacheBase[list[str]]
 
 
-EMPTY_VALUE = ""
-FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
-ID_PREFIX = "id://"
-PATH_PREFIX = "path://"
-PATH_ID_SEPARATOR = "|"
+_EMPTY_VALUE = ""
+_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+_ID_PREFIX = "id://"
+_PATH_PREFIX = "path://"
+_PATH_ID_SEPARATOR = "|"
 
 HTTP_404_NOT_FOUND = 404
 
@@ -119,11 +119,11 @@ class GoogleDriveBackend(ReadWriteBackend):
             Si el URI no tiene un esquema soportado.
         """
         # Caso 1: ID ya existe, retornamos tal cual
-        if uri.startswith(ID_PREFIX):
+        if uri.startswith(_ID_PREFIX):
             return uri
 
         # CASO 2: Creación de archivo nuevo (requiere mkdir recursivo)
-        if uri.startswith(PATH_PREFIX):
+        if uri.startswith(_PATH_PREFIX):
             return self._do_create_path(uri)
 
         raise ValueError(f"Esquema de URI no soportado: '{uri}'")
@@ -156,10 +156,10 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         # Si recibimos un 'path://', significa que el Mapper determinó
         # que el objeto no existe. Por idempotencia, no hacemos nada.
-        if uri.startswith(PATH_PREFIX):
+        if uri.startswith(_PATH_PREFIX):
             return
 
-        file_id = self._strip_prefix(uri, ID_PREFIX)
+        file_id = self._strip_prefix(uri, _ID_PREFIX)
         try:
             self._service.files().delete(
                 fileId=file_id, supportsAllDrives=True
@@ -191,7 +191,7 @@ class GoogleDriveBackend(ReadWriteBackend):
             no existe).
         """
         # Si el Mapper devolvió un 'path://', definitivamente no existe.
-        if not uri.startswith(ID_PREFIX):
+        if not uri.startswith(_ID_PREFIX):
             return False
 
         # Si tenemos un ID, debemos verificar que no sea una carpeta.
@@ -200,7 +200,7 @@ class GoogleDriveBackend(ReadWriteBackend):
             # carpeta.  Un objeto "existe" para nosotros solo si
             # tiene bytes (no es carpeta)
             _, _, mime_type = self._split_id(uri)
-            return mime_type != FOLDER_MIME_TYPE
+            return mime_type != _FOLDER_MIME_TYPE
 
         # Si hay error, el objeto no "existe" para nosotros.
         return False
@@ -228,7 +228,7 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         object_id, _, object_mime = self._split_id(uri)
 
-        if object_mime == FOLDER_MIME_TYPE:
+        if object_mime == _FOLDER_MIME_TYPE:
             raise FileNotFoundError(
                 f"El URI corresponde a una carpeta: '{uri}'"
             )
@@ -278,7 +278,7 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         object_id, _, object_mime = self._split_id(uri)
 
-        if object_mime == FOLDER_MIME_TYPE:
+        if object_mime == _FOLDER_MIME_TYPE:
             raise FileNotFoundError(
                 f"El URI corresponde a una carpeta: '{uri}'"
             )
@@ -337,7 +337,7 @@ class GoogleDriveBackend(ReadWriteBackend):
             prefix
         )
 
-        if mime_type != FOLDER_MIME_TYPE:
+        if mime_type != _FOLDER_MIME_TYPE:
             raise FileNotFoundError(
                 f"El URI no corresponde a una carpeta: '{prefix}'"
             )
@@ -370,7 +370,7 @@ class GoogleDriveBackend(ReadWriteBackend):
 
         while folders_to_scan:
             current_id, current_path = folders_to_scan.pop(0)
-            page_token = EMPTY_VALUE
+            page_token = _EMPTY_VALUE
 
             current_container_files: list[str] = []
 
@@ -408,16 +408,16 @@ class GoogleDriveBackend(ReadWriteBackend):
 
                     # Si es carpeta, la agregamos a la cola para seguir
                     # bajando
-                    if f_mime == FOLDER_MIME_TYPE:
+                    if f_mime == _FOLDER_MIME_TYPE:
                         folders_to_scan.append((f_id, f_logical_path))
 
                     else:
                         # Si es archivo, lo agregamos al resultado
                         # Formato nativo: id://{id}|{logical_path}
                         f_uri: str = (
-                            f"{ID_PREFIX}{f_id}"
-                            f"{PATH_ID_SEPARATOR}{f_logical_str}"
-                            f"{PATH_ID_SEPARATOR}{f_mime}"
+                            f"{_ID_PREFIX}{f_id}"
+                            f"{_PATH_ID_SEPARATOR}{f_logical_str}"
+                            f"{_PATH_ID_SEPARATOR}{f_mime}"
                         )
                         all_file_uris.append(f_uri)
                         current_container_files.append(f_uri)
@@ -453,7 +453,7 @@ class GoogleDriveBackend(ReadWriteBackend):
         """
         object_id, _, object_mime = self._split_id(uri)
 
-        if object_mime == FOLDER_MIME_TYPE:
+        if object_mime == _FOLDER_MIME_TYPE:
             raise FileNotFoundError(
                 f"El URI corresponde a una carpeta: '{uri}'"
             )
@@ -507,10 +507,10 @@ class GoogleDriveBackend(ReadWriteBackend):
         )
 
         # CASO 1: Actualización de archivo existente
-        if uri.startswith(ID_PREFIX):
+        if uri.startswith(_ID_PREFIX):
             file_id, _, file_mime = self._split_id(uri)
 
-            if file_mime == FOLDER_MIME_TYPE:
+            if file_mime == _FOLDER_MIME_TYPE:
                 raise FileNotFoundError(
                     f"El URI corresponde a una carpeta: '{uri}'"
                 )
@@ -522,7 +522,7 @@ class GoogleDriveBackend(ReadWriteBackend):
             return
 
         # CASO 2: Creación de archivo nuevo
-        if uri.startswith(PATH_PREFIX):
+        if uri.startswith(_PATH_PREFIX):
             # Formato esperado:
             #   path://root/path/to/parent|filename.txt|parent_id
             parent_path, filename, parent_id = self._split_path(uri)
@@ -565,9 +565,9 @@ class GoogleDriveBackend(ReadWriteBackend):
         )
 
         return (
-            f"{PATH_PREFIX}{parent_path}"
-            f"{PATH_ID_SEPARATOR}{filename}"
-            f"{PATH_ID_SEPARATOR}{target_folder_id}"
+            f"{_PATH_PREFIX}{parent_path}"
+            f"{_PATH_ID_SEPARATOR}{filename}"
+            f"{_PATH_ID_SEPARATOR}{target_folder_id}"
         )
 
     def _find_folder_id(self, parent_id: str, name: str) -> str | None:
@@ -598,10 +598,10 @@ class GoogleDriveBackend(ReadWriteBackend):
     @staticmethod
     def _guess_mime_type(uri: str) -> str | None:
         # Limpiamos el URI para quedarnos solo con el nombre/ruta final
-        if PATH_ID_SEPARATOR in uri:
+        if _PATH_ID_SEPARATOR in uri:
             # Caso path://ruta/archivo|id -> ruta/archivo
-            clean_path = uri.split(PATH_ID_SEPARATOR, maxsplit=1)[0].replace(
-                PATH_PREFIX, ""
+            clean_path = uri.split(_PATH_ID_SEPARATOR, maxsplit=1)[0].replace(
+                _PATH_PREFIX, ""
             )
         else:
             # Caso id://123 -> no hay nombre, difícil adivinar.
@@ -679,16 +679,16 @@ class GoogleDriveBackend(ReadWriteBackend):
             current_logical_path /= folder_name
             self._drive_cache.set(
                 str(current_logical_path),
-                (current_parent_id, FOLDER_MIME_TYPE),
+                (current_parent_id, _FOLDER_MIME_TYPE),
             )
 
         return current_parent_id
 
     def _split_id(self, uri: str) -> tuple[str, str, str]:
         try:
-            clean_uri = self._strip_prefix(uri, ID_PREFIX)
+            clean_uri = self._strip_prefix(uri, _ID_PREFIX)
             object_id, object_path, object_mime = clean_uri.split(
-                PATH_ID_SEPARATOR, 2
+                _PATH_ID_SEPARATOR, 2
             )
             return object_id, object_path, object_mime
 
@@ -697,9 +697,9 @@ class GoogleDriveBackend(ReadWriteBackend):
 
     def _split_path(self, uri: str) -> tuple[str, str, str]:
         try:
-            clean_uri = self._strip_prefix(uri, PATH_PREFIX)
+            clean_uri = self._strip_prefix(uri, _PATH_PREFIX)
             parent_path, child_path, parent_id = clean_uri.split(
-                PATH_ID_SEPARATOR, 2
+                _PATH_ID_SEPARATOR, 2
             )
             return parent_path, child_path, parent_id
 
@@ -713,3 +713,6 @@ class GoogleDriveBackend(ReadWriteBackend):
                 f"Se esperaba un URI '{prefix}', se recibió: '{uri}'"
             )
         return uri[len(prefix) :]
+
+
+__all__ = ["DriveCache", "GoogleDriveBackend", "ScanCache"]

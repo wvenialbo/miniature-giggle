@@ -15,8 +15,8 @@ if tp.TYPE_CHECKING:
 type AWSCache = CacheBase[list[str]]
 
 
-S3_PREFIX = "s3://"
-S3_SEPARATOR = "/"
+_S3_PREFIX = "s3://"
+_S3_SEPARATOR = "/"
 
 
 class AWSBackend(ReadWriteBackend):
@@ -238,7 +238,7 @@ class AWSBackend(ReadWriteBackend):
         for page in paginator.paginate(Bucket=bucket, Prefix=key_prefix):
             if "Contents" in page:
                 results.extend(
-                    f"{S3_PREFIX}{bucket}/{obj.get('Key')}"
+                    f"{_S3_PREFIX}{bucket}/{obj.get('Key')}"
                     for obj in page["Contents"]
                 )
 
@@ -293,7 +293,10 @@ class AWSBackend(ReadWriteBackend):
 
     @staticmethod
     def _split_uri(uri: str) -> tuple[str, str]:
-        if not uri.startswith(S3_PREFIX):
+        if not uri.startswith(_S3_PREFIX):
             raise ValueError(f"URI inválida para AWS: '{uri}'")
-        parts = uri[len(S3_PREFIX) :].split(S3_SEPARATOR, 1)
+        parts = uri[len(_S3_PREFIX) :].split(_S3_SEPARATOR, 1)
         return parts[0], parts[1] if len(parts) > 1 else ""
+
+
+__all__ = ["AWSBackend", "AWSCache"]

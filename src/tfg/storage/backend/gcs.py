@@ -14,8 +14,8 @@ if tp.TYPE_CHECKING:
 type GCSCache = CacheBase[list[str]]
 
 
-ID_PREFIX = "gs://"
-SEPARATOR = "/"
+_ID_PREFIX = "gs://"
+_SEPARATOR = "/"
 
 
 class GCSBackend(ReadWriteBackend):
@@ -222,7 +222,7 @@ class GCSBackend(ReadWriteBackend):
 
         for blob in blobs:
             # Construir la URI nativa completa
-            full_uri = f"{ID_PREFIX}{bucket_name}{SEPARATOR}{blob.name}"
+            full_uri = f"{_ID_PREFIX}{bucket_name}{_SEPARATOR}{blob.name}"
             results.append(full_uri)
 
         # Actualizar caché
@@ -290,12 +290,12 @@ class GCSBackend(ReadWriteBackend):
         ValueError
             Si la URI no comienza con el prefijo 'gs://'.
         """
-        if not uri.startswith(ID_PREFIX):
+        if not uri.startswith(_ID_PREFIX):
             raise ValueError(f"URI inválida para GCS: '{uri}'")
 
         # Eliminar prefijo y separar por el primer '/'
         # uri[5:] salta "gs://"
-        parts = uri[len(ID_PREFIX) :].split(SEPARATOR, 1)
+        parts = uri[len(_ID_PREFIX) :].split(_SEPARATOR, 1)
 
         bucket_name = parts[0]
         # Si no hay parte después del bucket, el blob_name es cadena
@@ -303,3 +303,6 @@ class GCSBackend(ReadWriteBackend):
         blob_name = parts[1] if len(parts) > 1 else ""
 
         return bucket_name, blob_name
+
+
+__all__ = ["GCSBackend", "GCSCache"]

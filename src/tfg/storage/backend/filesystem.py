@@ -297,3 +297,6 @@ def _check_uri(uri: str) -> pl.Path:
             "Posible error en la capa superior (URIMapper o DataContext)."
         )
     return path
+
+
+__all__ = ["FilesystemBackend"]
