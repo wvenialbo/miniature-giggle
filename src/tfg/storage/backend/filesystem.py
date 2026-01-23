@@ -178,7 +178,7 @@ class FilesystemBackend(ReadWriteBackend):
         bytes
             Fragmentos del contenido binario del archivo.
         """
-        with open(uri, "rb") as f:
+        with pl.Path(uri).open("rb") as f:
             while chunk := f.read(chunk_size):
                 yield chunk
 
