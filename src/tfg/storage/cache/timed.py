@@ -18,6 +18,11 @@ class CacheItem[T]:
     created_at: float
 
 
+class RawCacheItem[T](tp.TypedDict):
+    data: T
+    created_at: float
+
+
 class TimedCache(CacheBase[T]):
     """
     Caché con tiempo de vida.
@@ -180,13 +185,9 @@ class TimedCache(CacheBase[T]):
 
         try:
             content = self.cache_file.read_text(encoding="utf-8")
-            raw_cache: dict[str, dict[str, tp.Any]] = json.loads(content)
+            raw_cache: dict[str, RawCacheItem[T]] = json.loads(content)
             self.cache = {
-                key: CacheItem[T](
-                    data=tp.cast("T", value["data"]),
-                    created_at=value["created_at"],
-                )
-                for key, value in raw_cache.items()
+                key: CacheItem[T](**value) for key, value in raw_cache.items()
             }
         except (OSError, json.JSONDecodeError, KeyError):
             # Si falla la carga, iniciamos con caché vacío por seguridad
