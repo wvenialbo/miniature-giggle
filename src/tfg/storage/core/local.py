@@ -1,37 +1,42 @@
-import pathlib as pl
+"""
+Provide local filesystem storage helpers.
+
+This module offers utilities to configure and create data sources based
+on the local file system.
+
+Functions
+---------
+use_local_drive(root_path)
+    Create a data source context for the local filesystem.
+"""
 
 from ..backend import FilesystemBackend
 from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
+from .utils import calculate_mountpoint
 
 
 def use_local_drive(*, root_path: str | None = None) -> Datasource:
     r"""
-    Crea el contexto para el sistema de archivos local.
+    Create a data source context for the local filesystem.
 
     Parameters
     ----------
-    root_path : str, optional
-        Ruta raíz dentro del sistema de archivos local para el contexto.
-        Si es None, se utiliza la raíz del sistema ("/" en Unix, "C:\"
-        en Windows).
+    root_path : str | None
+        The root path within the local filesystem for the context. If
+        ``None``, the system root is used (e.g., "/" on Unix, "C:\" on
+        Windows).
 
     Returns
     -------
     Datasource
-        Contexto configurado listo para usar.
+        The configured data source context ready for use.
     """
-    # 1. Configurar el mountpoint
-    local_root = pl.PurePosixPath("/")
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    mountpoint = local_root / base_path.as_posix()
+    mountpoint = calculate_mountpoint(root_path=root_path)
 
-    # 2. Instanciar los componentes
     mapper = PathURIMapper()
     backend = FilesystemBackend()
 
-    # 3. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
