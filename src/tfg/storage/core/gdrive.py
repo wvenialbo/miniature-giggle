@@ -1,14 +1,30 @@
-import pathlib as pl
-import typing as tp
+"""
+Configure dataset access for Google Drive.
+
+This module provides high-level configuration helpers to establish
+connections to Google Drive folders. It orchestrates the backend,
+caching, mapping, and authentication components required to traverse
+and download file from Google Drive.
+
+Functions
+---------
+use_google_drive(*, root_path=None, credentials=None, cache_file=None,
+                 expire_after=None)
+    Configure access to a Google Drive folder via API.
+"""
+
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..backend import GoogleDriveBackend
 from ..cache import GoogleDriveCacheWrapper, TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import GoogleDriveURIMapper
 from .gdauth import get_gdrive_client
+from .utils import calculate_mountpoint
 
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from google.auth.credentials import Credentials
 
 
@@ -16,55 +32,65 @@ def use_google_drive(
     *,
     root_path: str | None = None,
     credentials: "Credentials | None" = None,
-    cache_file: str | pl.Path | None = None,
+    cache_file: str | Path | None = None,
     expire_after: float | None = None,
 ) -> Datasource:
     """
-    Crea un contexto de Datasource conectado a Google Drive vía API.
+    Configure access to a Google Drive folder via API.
 
-    Utiliza una cuenta de servicio (Service Account) para la
-    autenticación y configura un mapeo de rutas POSIX sobre la
-    estructura de archivos de Drive.
+    Establish a data service connection to a Google Drive account. This
+    service handles file ID mapping, dual-strategy caching (ID and
+    listing), and file retrieval using the authenticated Google Drive
+    API backend.
 
     Parameters
     ----------
-    root_path : str, optional
-        Ruta raíz dentro de Google Drive para el contexto. Si es None,
-        se utiliza la raíz del Drive.
-    credentials: Credentials | None, optional
-        Credenciales para autenticación. Si es None, se usan las
-    cache_file : str | Path, optional
-        Ruta al archivo para persistir el caché de IDs. Si es None, el
-        caché será volátil (en memoria).
-    expire_after : float, optional
-        Tiempo en segundos tras el cual las entradas del caché expiran.
-        Si es None, el caché no expira.
+    root_path : str | None, optional
+        The local directory path to use as the root for downloaded
+        files. If ``None``, a default location is determined by the
+        system.
+    credentials : Credentials | None, optional
+        The Google OAuth2 credentials to use for authentication. If
+        ``None``, the system attempts to find default application
+        credentials or initiates an interactive login flow.
+    cache_file : str | Path | None, optional
+        The base path to a file for persisting caches. This path is
+        split into two separate files (suffixed with ``-id`` and
+        ``-index``) to store ID mappings and directory listings
+        independently. If ``None``, caching is transient.
+    expire_after : float | None, optional
+        The duration in seconds before cached entries are considered
+        stale. If ``None``, entries might never expire.
 
     Returns
     -------
     Datasource
-        Objeto orquestador configurado con el backend de Drive API.
-    """
-    # 1. Configurar el mountpoint
-    local_root = pl.PurePosixPath("/")
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    mountpoint = local_root / base_path.as_posix()
+        The initialized data service configured for Google Drive access.
 
-    # 2. Configurar e instanciar las cachés
-    # 2.1 Preparar las rutas de las cachés
-    def path_str(path: pl.Path, suffix: str) -> str | None:
+    Examples
+    --------
+    >>> creds = get_credentials()
+    >>> service = use_google_drive(
+    ...     root_path="./data/gdrive",
+    ...     credentials=creds,
+    ...     cache_file="./cache/gdrive.pkl",
+    ... )
+    """
+    mountpoint = calculate_mountpoint(root_path=root_path)
+
+    def path_str(path: Path, suffix: str) -> str | None:
         return str(path.with_name(f"{path.stem}{suffix}{path.suffix}"))
 
     drive_path: str | None = None
     scan_path: str | None = None
 
     if cache_file is not None:
-        cache_file = pl.Path(cache_file)
+        # Split the single cache path to maintain separate persistent
+        # stores for file-id mapping and for directory listings.
+        cache_file = Path(cache_file)
         drive_path = path_str(cache_file, "-id")
         scan_path = path_str(cache_file, "-index")
 
-    # 2.2 Instanciar las cachés
     drive_cache = TimedCache[tuple[str, str]](
         cache_file=drive_path, expire_after=expire_after
     )
@@ -75,16 +101,13 @@ def use_google_drive(
         drive_cache=drive_cache, scan_cache=scan_cache
     )
 
-    # 3. Instanciar los servicios
     service = get_gdrive_client(credentials)
 
-    # 4. Instanciar los componentes
     mapper = GoogleDriveURIMapper(service=service, drive_cache=drive_cache)
     backend = GoogleDriveBackend(
         service=service, drive_cache=drive_cache, scan_cache=scan_cache
     )
 
-    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
