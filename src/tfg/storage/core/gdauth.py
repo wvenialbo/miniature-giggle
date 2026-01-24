@@ -1,3 +1,23 @@
+"""
+Provide Google Drive authentication helpers.
+
+Offer utilities to create an authorized Google Drive API
+service client and manage the authentication configuration and
+runtime token manager. The module exposes `get_gdrive_client`
+for public consumption and an internal helper
+`_get_gdrive_default_client`.
+
+Functions
+---------
+get_gdrive_client(credentials)
+    Create and return an authorized Google Drive API client.
+
+_get_gdrive_default_client(credentials)
+    Build the Drive service and validate credentials with a
+    minimal request.
+
+"""
+
 import typing as tp
 
 from .gutils import AuthConfig, TokenManager, authenticate_user
@@ -20,6 +40,24 @@ _tokens = TokenManager(_CONFIG)
 
 
 def _get_gdrive_default_client(credentials: "Credentials") -> "DriveResource":
+    """
+    Create a default Google Drive API service client.
+
+    Build and return an authorized Google Drive ``Drive`` service using
+    the provided `credentials`. A lightweight request is executed to
+    validate that the credentials are usable and that token refresh
+    behavior is correct before returning the service.
+
+    Parameters
+    ----------
+    credentials : google.auth.credentials.Credentials
+        The OAuth2 credentials to use for the API client.
+
+    Returns
+    -------
+    googleapiclient._apis.drive.v3.resources.DriveResource
+        An authorized Google Drive API service client.
+    """
     from googleapiclient import discovery
 
     # Construcción del cliente de API (Service)
@@ -40,6 +78,22 @@ def _get_gdrive_default_client(credentials: "Credentials") -> "DriveResource":
 
 
 def get_gdrive_client(credentials: "Credentials | None") -> "DriveResource":
+    """Create and return a Google Drive API client.
+
+    If `credentials` are not provided, this function will attempt to
+    authenticate the user using the default configuration.
+
+    Parameters
+    ----------
+    credentials : google.auth.credentials.Credentials | None
+        The OAuth 2.0 credentials to use for the client. If `None`,
+        user authentication will be initiated.
+
+    Returns
+    -------
+    googleapiclient._apis.drive.v3.resources.DriveResource
+        An authorized Google Drive API service client.
+    """
     if not credentials:
         credentials = authenticate_user(
             project_id=None, config=_CONFIG, tokens=_tokens
