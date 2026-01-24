@@ -19,13 +19,12 @@ GCSAuthArgs
 """
 
 import contextlib
-import typing
-from typing import TypedDict, Unpack
+from typing import TYPE_CHECKING, TypedDict, Unpack
 
 from .gutils import AuthConfig, TokenManager, authenticate_user
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from google.api_core.client_info import ClientInfo
     from google.api_core.client_options import ClientOptions
     from google.auth.credentials import Credentials

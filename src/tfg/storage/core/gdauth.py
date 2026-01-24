@@ -13,12 +13,12 @@ get_gdrive_client(credentials)
 
 """
 
-import typing
+from typing import TYPE_CHECKING
 
 from .gutils import AuthConfig, TokenManager, authenticate_user
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from google.auth.credentials import Credentials
     from googleapiclient._apis.drive.v3.resources import DriveResource
 

@@ -26,15 +26,15 @@ authenticate_user(project_id, config, tokens)
 """
 
 import contextlib
-import pathlib as pl
-import typing
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, TypeGuard
 
 from ... import __package_id__, __package_root__
 from ...utils import running_on_colab, running_on_notebook
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from google.auth.credentials import Credentials as AuthCredentials
     from google.oauth2.credentials import Credentials as OAuthCredentials
 
@@ -97,7 +97,7 @@ class AuthConfig:
     timeout: int = 60
 
     @property
-    def token_path(self) -> pl.Path:
+    def token_path(self) -> Path:
         """
         Get the path to the stored token file.
 
@@ -108,7 +108,7 @@ class AuthConfig:
         """
         from platformdirs import user_data_dir
 
-        path = pl.Path(user_data_dir(self.app_name, self.app_author))
+        path = Path(user_data_dir(self.app_name, self.app_author))
         return path / self.token_name
 
 
@@ -379,9 +379,7 @@ def _run_local_interactive_auth(config: AuthConfig) -> "AuthCredentials":
     return flow.run_local_server(port=0)
 
 
-def _get_client_configuration_path(
-    config: AuthConfig,
-) -> pl.Path:
+def _get_client_configuration_path(config: AuthConfig) -> Path:
     """
     Retrieve the path to the client secrets file.
 
@@ -392,7 +390,7 @@ def _get_client_configuration_path(
 
     Returns
     -------
-    pl.Path
+    Path
         Path to the client secrets file.
 
     Raises
@@ -439,7 +437,7 @@ def _is_refreshable(credentials: "AuthCredentials") -> bool:
 
 def _is_serializable(
     credentials: "AuthCredentials",
-) -> typing.TypeGuard["OAuthCredentials"]:
+) -> TypeGuard["OAuthCredentials"]:
     """
     Check if credentials can be serialized to JSON.
 
