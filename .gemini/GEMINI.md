@@ -25,6 +25,8 @@ applyTo: "**/*.py"
    - **Constants**: Use `SCREAMING_SNAKE_CASE`.
    - **Private Members**: Prefix with a single underscore `_`.
 6. **Imports**: Always use `import numpy as np` `import matplotlib as mpl` and `import matplotlib.pyplot as plt`. Do not abbreviate `scipy`.
+7. **Collections**: Import collection and generic types from `collection.abc`.
+8. **Python Version**: Target for Python >=3.12.
 
 ## 3. Python Documentation Standards (PEP 257 Mandatory, and relevant parts of PEP 8)
 
@@ -38,14 +40,13 @@ applyTo: "**/*.py"
    - USE the imperative mood present tense for the short summary.
    - USE triple-double quotation.
    - The opening and closing three quotation marks MUST be in a line of their own.
-   - In modules, PRECEED the closing three quotation marks by a blank line.
-   - In classes, FOLLOW the closing three quotation marks by a blank line.
-   - Section headers MUST be followed by a underline of exactly the same number of dashes (e.g., `Parameters` then `----------`).
+   - In modules docstrings, PRECEED the closing three quotation marks by a blank line.
+   - In classes docstrings, FOLLOW the closing three quotation marks by a blank line.
+   - In methods/function docstrings, DO NOT preceed nor follow the closing three quotation marks by a blank line.
    - USE re-structured text (reST) syntax to be rendered using Sphinx.
    - USE professional, clear, and concise tone.
    - STRICTLY USE NumpyDoc style format.
-   - Class initialization is included in the class' docstring. If required, a docstring for the class constructor (**init**) can, optionally, be added to provide detailed initialization documentation.
-   - When referring to a method, function, class, variable, constant, or module, anywhere within the docstring, enclose its name in single backticks.
+   - Class initialization is included in the class' docstring. A docstring for the class constructor (**init**) can, optionally, be added to provide detailed initialization documentation.
    - If a method/function has an equivalent function (or it is a wrapper), the function docstring should contain the detailed documentation, and the method docstring should refer to it. Only put brief summary and `See Also` sections in the method docstring.
    - Generators should be documented just as functions are documented.
    - Note that license and author info, while often included in source files, do not belong in docstrings.
@@ -60,20 +61,26 @@ applyTo: "**/*.py"
    - **Symbols**: Module, class, function, method, and attribute names should render as hyperlinks in monospaced font, depending on project settings, this may be accomplished simply be enclosing them in single backticks. If the hyperlink does not render as intended, explicitly include the appropriate role and/or namespace.
 4. **Structure Order**:
    - The first line MUST be a VERY short summary command (MANDATORY):
-     - Single line, no variable/function names.
-     - Modules: Provide..., Implement..., Encapsulate..., Define..., etc.
-     - Classes: Represent..., Define..., Manage..., Store..., etc.
-     - Methods and functions: Calculate..., Create..., Generate..., Load..., etc.
+     - **Format**: Single line, no variable/function names.
+     - **Modules**: Provide..., Implement..., Encapsulate..., Define..., etc.
+     - **Classes**: Represent..., Define..., Manage..., Store..., etc.
+     - **Methods and functions**: Calculate..., Create..., Generate..., Load..., etc.
    - Extended summary:
-     - Clarify functionality that is not obvious from the short summary, do not discuss implementation detail, contract details, or background theory, which should rather be explored in the Notes section.
-     - May extend over multiple lines and can have many paragraphs.
+     - **Format**: May extend over multiple lines and can have many paragraphs.
+     - **Contents**: Focus on capabilities, not implementation. Clarify functionality that is not obvious from the short summary, do not discuss implementation detail, contract detail, or background theory.
+     - **Referencing Code**: When referring to a method, function, class, variable, constant, enclose its name in single backticks.
+     - **No Private Members**: NEVER mention internal/private members (prefixed with \_) in public module or class docstrings.
+     - **No Redundancy**: Do not list the same function name in the Extended Summary if it is already the main subject of the docstring or listed in the Functions section.
+     - **Focus on Usage**: The module summary must focus on "What can I do with this module/class/method?" rather than "How is this module/class/method structured?".
    - Sections (include all applicable):
-     - Modules: `Classes`, `Exceptions`, `Functions`.
-     - Classes: `Parameters`, `Attributes`, `Other Parameters`, `Methods`.
-     - Methods and functions: `Parameters`, `Receives`, `Returns / Yields`, `Other Parameters`, `Raises`, `Warns`.
-     - Constants: all the common sections below.
-     - Common for all above: `Warnings`, `See Also`, `Notes`, `References`, `Examples`.
+     - **Section headers**: MUST be followed by a underline of exactly the same number of dashes (e.g., `Parameters` then `----------`).
+     - **Modules**: `Classes`, `Exceptions`, `Functions`.
+     - **Classes**: `Parameters`, `Attributes`, `Other Parameters`, `Methods`.
+     - **Methods and functions**: `Parameters`, `Receives`, `Returns / Yields`, `Other Parameters`, `Raises`, `Warns`.
+     - **Constants**: all the common sections below.
+     - **Common for all above**: `Warnings`, `See Also`, `Notes`, `References`, `Examples`.
 5. **Section Specification**:
+   - **Referencing Code**: When referring symbol, within descriptive sections (`Notes`, `Warnings`, etc.) or symbol descriptions, enclose its name in single backticks.
    - **Parameters / Attributes / Receives / Other Parameters**: Use `name : type` format. There must be a single space before and after the colon.
    - **Receives**: Explicitly describe objects passed to a generator’s `.send()` method. If `Receives` is present, `Yields` MUST also be present.
    - **Other Parameters**: Optional section used to describe infrequently used parameters. It should only be used if a function has a large number of keyword parameters, to prevent cluttering the Parameters section.
@@ -88,8 +95,26 @@ applyTo: "**/*.py"
      - Continuation lines start with ... (with a space).
      - Expected output starts on the next line without any prefix.
      - Separate multiple examples and their explanatory comments with blank lines.
-6. **Key Principles**
+6. **Type Specification**:
+   - **Type Naming**: USE the shortest unique valid name in the current namespace for types (e.g., `Credentials` instead of `google.auth.credentials.Credentials`).
+   - **Standard Library Types**: Use built-in lowercase types (int, str, list, dict) and PEP 585/604 syntax (e.g., str | None instead of Optional[str], str | int instead of Union[str, int]).
+   - **No Backticks in Types**: DO NOT use backticks for the type part of the `name : type` definition (e.g., use name : str | None, NOT `name : str | None`).
+7. **Key Principles**
    - **Command, not description**: The short summary should read as a command to the processor carrying out the function.
    - **Consistency**: The imperative mood is the standard for core Python and ensures consistency with built-in documentation.
    - **Complete sentences**: The imperative phrase should be a complete, grammatical sentence, starting with a capital letter and ending with a period.
-7. **Generation**: Generate the entire docstring in one shot.
+   - **Privacy & Exposure**:
+     - DO NOT document or mention private members (starting with `_`) in any public docstring.
+     - DO NOT repeat the function name in its own summary or extended description.
+   - **STRICT CONSISTENCY**: Every docstring in a project MUST use the same naming convention for types. If one function uses short names, ALL must use short names.
+   - **DRY (Don't Repeat Yourself)**: If a type is obvious from the context or a standard library, do not use fully qualified paths.
+8. **Inheritance & Protocol Rules (DRY)**:
+   - **Inherited Methods**: If a method overrides one from a base class or implements a Protocol and the contract remains identical:
+     - DO NOT repeat the full docstring, summarize the differences (overrides or extends).
+     - State explicitly whether the method extends (calls super()) or overrides (replaces) the original behavior.
+     - USE incremental o differential documentation focused on what THIS specialization do.
+     - Use only a single line summary when you can (e.g., "Implement `BaseClass.method_name`.") or the directive `.. include::` if specific to Sphinx. Add an extended summary if you have to.
+     - Alternatively, if the implementation is standard, use a minimal docstring or leave it empty if the toolchain handles inheritance (refer to `See Also`).
+   - **Abstract Base Classes (ABC)**: When implementing an abstract method, focus only on the specific implementation details of the subclass. Do not redefine parameters already defined in the ABC.
+   - **Protocols**: For classes implementing a `typing.Protocol`, do not re-document the protocol's requirements. Use: "See `ProtocolName` for details.", the `See Also section`, or both.
+9. **Generation**: Generate the entire docstring in one shot.
