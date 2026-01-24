@@ -337,13 +337,11 @@
     "files.exclude": {
         "**/__pycache__": true,
         "**/.git": true,
-        "**/.github": true,
         "**/.ipynb_checkpoints": true,
         "**/.mypy_cache": true,
         "**/.ruff_cache": true,
         "**/.pytest_cache": true,
         "**/.venv": true,
-        "**/.vscode": true,
         "**/htmlcov": true,
         "*.coverage": true,
         "coverage.xml": true,

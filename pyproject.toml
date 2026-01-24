@@ -211,6 +211,9 @@
       python-version = "3.12"
       extra-paths    = ["./typings", "./.venv/Lib/site-packages"]
 
+    [tool.ty.rules]
+      "unresolved-import" = "ignore"
+
   [tool.mypy]
     python_version = "3.12"
     strict         = true
