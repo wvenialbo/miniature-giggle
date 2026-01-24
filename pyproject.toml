@@ -337,6 +337,7 @@
 
     exclude = [
       "__pycache__",
+      ".gemini",
       ".git",
       ".github",
       ".ipynb_checkpoints",
