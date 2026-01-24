@@ -1,4 +1,19 @@
-import pathlib as pl
+"""
+Configure dataset access for NCEI.
+
+This module provides high-level configuration helpers to establish
+connections to NCEI HTTP archives. It orchestrates the backend,
+caching, and mapping components required to traverse and download
+data from NCEI's public servers.
+
+Functions
+---------
+use_ncei_archive(*, dataset_path, root_path=None, cache_file=None,
+                 expire_after=None)
+    Configure access to a remote NCEI dataset via HTTP.
+"""
+
+from pathlib import Path
 
 import requests
 
@@ -6,6 +21,7 @@ from ..backend import NCEIBackend
 from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import NCEIURIMapper
+from .utils import calculate_mountpoint
 
 
 NCEI_BASE_URL = "https://www.ncei.noaa.gov/data/"
@@ -15,54 +31,65 @@ def use_ncei_archive(
     *,
     dataset_path: str,
     root_path: str | None = None,
-    cache_file: str | pl.Path | None = None,
+    cache_file: str | Path | None = None,
     expire_after: float | None = None,
 ) -> Datasource:
     """
-    Crea un contexto de Datasource para el archivo HTTP de NCEI.
+    Configure access to a remote NCEI dataset via HTTP.
+
+    Establish a data service connection to a specific dataset within
+    the NCEI public archive. This service handles URL mapping, local
+    specific caching, and remote file retrieval using a reliable HTTP
+    backend.
 
     Parameters
     ----------
     dataset_path : str
-        Ruta del dataset en el servidor de NCEI Archive, relativa a
-        'https://www.ncei.noaa.gov/data/'.
-    root_path : str, optional
-        Prefijo raíz dentro del dataset para este Datasource.  Por
-        defecto None (raíz del dataset).
-    cache_file : str | Path, optional
-        Ruta para persistir el listado de archivos.
-    expire_after : float, optional
-        Tiempo de expiración de la caché en segundos.
+        The relative URL path to the specific dataset on the NCEI
+        server. For example, 'global-hourly/access/'.
+    root_path : str | None, optional
+        The local directory path to use as the root for downloaded
+        files. If ``None``, a default location is determined by the
+        system.
+    cache_file : str | Path | None, optional
+        The path to a file for persisting calculation or listing
+        caches. If ``None``, caching may be transient or in-memory
+        only.
+    expire_after : float | None, optional
+        The duration in seconds before cached entries are considered
+        stale. If ``None``, entries might never expire or use a
+        default policy.
 
     Returns
     -------
     Datasource
-        Objeto orquestador configurado para NCEI Archive.
+        The initialized data service configured for the specified NCEI
+        archive.
+
+    Examples
+    --------
+    >>> service = use_ncei_archive(
+    ...     dataset_path="ghcnd/daily",
+    ...     root_path="./data/weather",
+    ...     expire_after=3600.0,
+    ... )
     """
-    # 1. Configurar la URL base y el mountpoint
     root_url = NCEI_BASE_URL.rstrip("/")
     dataset_path = dataset_path.lstrip("/")
     base_url = f"{root_url}/{dataset_path}"
 
-    local_root = pl.PurePosixPath("/")
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    mountpoint = local_root / base_path.as_posix()
+    mountpoint = calculate_mountpoint(root_path=root_path)
 
-    # 2. Configurar e instanciar la caché
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    # 3. Instanciar los servicios
     session = requests.Session()
 
-    # 4. Instanciar los componentes
     mapper = NCEIURIMapper(base_url=base_url)
     backend = NCEIBackend(session=session, scan_cache=scan_cache)
 
-    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
