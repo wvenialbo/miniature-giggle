@@ -1,18 +1,48 @@
-import pathlib as pl
-import typing as tp
+"""
+Provide Google Cloud Storage (GCS) backend helpers.
+
+This module contains utilities to configure and create data sources
+backed by Google Cloud Storage buckets.
+
+Functions
+---------
+use_gcs_cloud(*, bucket, root_path=None, cache_file=None,
+              expire_after=None, **kwargs)
+    Create a data source context for a Google Cloud Storage bucket.
+
+Classes
+-------
+GCSClientArgs
+    Define configuration arguments for GCS data sources.
+"""
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Unpack
 
 from ..backend import GCSBackend
 from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import GCSURIMapper
 from .gcsauth import GCSAuthArgs, get_gcs_client
+from .utils import calculate_mountpoint
 
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from google.auth.credentials import Credentials
 
 
 class GCSClientArgs(GCSAuthArgs):
+    """
+    Define configuration arguments for GCS data sources.
+
+    Attributes
+    ----------
+    project : str | None
+        The Google Cloud project ID.
+    credentials : Credentials | None
+        Explicit credentials for authentication.
+    """
+
     project: str | None
     credentials: "Credentials | None"
 
@@ -21,69 +51,45 @@ def use_gcs_cloud(
     *,
     bucket: str,
     root_path: str | None = None,
-    cache_file: str | pl.Path | None = None,
+    cache_file: str | Path | None = None,
     expire_after: float | None = None,
-    **kwargs: tp.Unpack[GCSClientArgs],
+    **kwargs: Unpack[GCSClientArgs],
 ) -> Datasource:
     """
-    Crea un contexto de Datasource conectado a Google Cloud Storage.
-
-    Configura un backend de almacenamiento GCS con un mapeador
-    determinista y optimización de listado mediante caché de escaneo.
-
-    Soporta autenticación mediante Application Default Credentials (ADC)
-    o parámetros explícitos.
-
-    Manejo de Autenticación:
-        1. Intenta usar credenciales por defecto (ADC) o las pasadas en
-           client_kwargs.
-        2. Si no encuentra credenciales, hace fallback automático a un
-           cliente ANÓNIMO (útil para buckets públicos como
-           gcp-public-data).
+    Create a data source context for a Google Cloud Storage bucket.
 
     Parameters
     ----------
     bucket : str
-        Nombre del bucket de GCS.
-    root_path : str, optional
-        Prefijo raíz dentro del bucket para este Datasource. Por defecto
-        None (raíz del bucket).
-    cache_file : str | Path, optional
-        Ruta al archivo para persistir el caché de las operaciones
-        'scan'. Crucial para buckets con miles de objetos para evitar
-        latencia y costes de API.
-    expire_after : float, optional
-        Tiempo en segundos tras el cual expira la caché de escaneo. Si
-        es None, la caché no expira automáticamente.
-    **kwargs : object | str | bool | None
-        Argumentos adicionales para `storage.Client` (project,
-        credentials, client_info, client_options, etc.).
+        The name of the GCS bucket.
+    root_path : str | None
+        The root path within the virtual mountpoint. If ``None``, the
+        system root is used.
+    cache_file : str | pathlib.Path | None
+        Path to the cache file.
+    expire_after : float | None
+        Time in seconds before cache entries expire.
+    **kwargs : Unpack[GCSClientArgs]
+        Additional authentication arguments (e.g., project,
+        credentials).
 
     Returns
     -------
-    DatasourceContract
-        Objeto orquestador configurado para Google Cloud Storage.
+    Datasource
+        The configured data source context ready for use.
     """
-    # 1. Configurar el mountpoint
-    local_root = pl.PurePosixPath("/")
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    mountpoint = local_root / base_path.as_posix()
+    mountpoint = calculate_mountpoint(root_path=root_path)
 
-    # 2. Configurar e instanciar la caché
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    # 3. Instanciar los servicios
     client = get_gcs_client(bucket=bucket, **kwargs)
 
-    # 4. Instanciar los componentes
     mapper = GCSURIMapper(bucket=bucket)
     backend = GCSBackend(bucket=bucket, client=client, scan_cache=scan_cache)
 
-    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
