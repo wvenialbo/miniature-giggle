@@ -1,23 +1,61 @@
-import pathlib as pl
-import typing as tp
+"""
+Configure dataset access for Amazon Web Services (AWS) S3.
+
+This module provides high-level configuration helpers to establish
+connections to AWS S3 buckets. It orchestrates the backend, caching,
+and mapping components required to traverse and download data from
+public or private S3 storage.
+
+Functions
+---------
+use_aws_cloud(*, bucket, root_path=None, cache_file=None,
+              expire_after=None, **kwargs)
+    Configure access to a remote S3 bucket via direct API calls.
+
+Classes
+-------
+S3SessionArgs
+    Define credentials and session parameters for AWS authentication.
+AWSCloudArgs
+    Define comprehensive arguments including region and profile.
+"""
+from pathlib import Path
+from typing import TYPE_CHECKING, TypedDict, Unpack
 
 from ..backend import AWSBackend
 from ..cache import TimedCache
 from ..datasource import DataService, Datasource
 from ..mapper import AWSURIMapper
+from .utils import calculate_mountpoint
 
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from botocore.config import Config
     from botocore.session import Session
     from mypy_boto3_s3.client import S3Client as Client
 
 
 S3_PREFIX = "s3://"
-POSIX_PREFIX = "/"
 
 
-class S3SessionArgs(tp.TypedDict, total=False):
+class S3SessionArgs(TypedDict, total=False):
+    """
+    Define credentials and session parameters for AWS authentication.
+
+    Attributes
+    ----------
+    aws_access_key_id : str | None
+        AWS access key ID.
+    aws_secret_access_key : str | None
+        AWS secret access key.
+    aws_session_token : str | None
+        AWS temporary session token.
+    botocore_session : Session | None
+        Pre-configured botocore session object.
+    aws_account_id : str | None
+        AWS account ID.
+    """
+
     aws_access_key_id: str | None
     aws_secret_access_key: str | None
     aws_session_token: str | None
@@ -26,6 +64,18 @@ class S3SessionArgs(tp.TypedDict, total=False):
 
 
 class AWSCloudArgs(S3SessionArgs):
+    """
+    Define comprehensive arguments including region and profile.
+
+    Attributes
+    ----------
+    region_name : str | None
+        Default region when creating new connections.
+    profile_name : str | None
+        The name of a profile to use. If not given, it looks for
+        credentials in environment variables or metadata service.
+    """
+
     region_name: str | None
     profile_name: str | None
 
@@ -33,56 +83,30 @@ class AWSCloudArgs(S3SessionArgs):
 def _get_s3_client(
     profile_name: str | None = None,
     region_name: str | None = None,
-    **kwargs: tp.Unpack[S3SessionArgs],
+    **kwargs: Unpack[S3SessionArgs],
 ) -> "tuple[Client, Config | None]":
-    """
-    Crea un cliente de S3 para acceso autenticado o anónimo.
-
-    Parameters
-    ----------
-    profile_name : str, optional
-        Nombre del perfil de AWS configurado en la máquina local.
-    region_name : str, optional
-        Región de AWS (ej: 'us-east-1').
-    **kwargs : "Session | str | None"
-        Argumentos adicionales para boto3.Session (aws_access_key_id,
-        etc.)
-
-    Returns
-    -------
-    boto3.client
-        Cliente de S3 configurado.
-
-    Raises
-    ------
-    ValueError
-        Si no se pueden obtener credenciales de AWS cuando se espera
-        acceso autenticado.
-    """
     import boto3
     from botocore import UNSIGNED
     from botocore.config import Config
 
-    # 1. Intentar crear sesión con lo que haya
     session = boto3.Session(
         profile_name=profile_name, region_name=region_name, **kwargs
     )
     creds = session.get_credentials()
 
-    # 2. Determinar si debemos usar modo UNSIGNED
     if creds is None:
-        # Si no hay credenciales en la sesión Y no se pasaron
-        # argumentos, es anónimo.
+        # Raise error if authentication was requested (via profile or
+        # keys) but failed to resolve, rather than silently falling
+        # back to anonymous (unsigned) requests.
         if profile_name or kwargs:
             raise ValueError(
-                "No se pudieron obtener credenciales de AWS. "
-                "Por favor, revise la configuración de su perfil "
-                "o las credenciales proporcionadas."
+                "Unable to obtain AWS credentials; verify profile "
+                "configuration or provided credentials"
             )
-        # Configuración UNSIGNED para acceso público sin credenciales
+        # Use unsigned signature to access public buckets anonymously.
         config = Config(signature_version=UNSIGNED)
-        # Forzamos una sesión vacía para evitar que boto3 busque
-        # archivos config
+        # Re-initialize session to ensure no implicit configuration
+        # files interfere with the anonymous request context.
         session = boto3.Session(region_name=region_name)
 
     else:
@@ -95,61 +119,63 @@ def use_aws_cloud(
     *,
     bucket: str,
     root_path: str | None = None,
-    cache_file: str | pl.Path | None = None,
+    cache_file: str | Path | None = None,
     expire_after: float | None = None,
-    **kwargs: tp.Unpack[AWSCloudArgs],
+    **kwargs: Unpack[AWSCloudArgs],
 ) -> Datasource:
     """
-    Crea un contexto de Datasource conectado a AWS S3.
+    Configure access to a remote S3 bucket via direct API calls.
 
-    Configura un backend de objetos S3 con un mapeador determinista y
-    optimización de listado mediante caché de escaneo.  Soporta acceso
-    autenticado y anónimo (público).
+    Establish a data service connection to a specific S3 bucket. This
+    service handles key mapping, local caching for listings, and file
+    retrieval using the ``boto3`` library.
 
     Parameters
     ----------
     bucket : str
-        Nombre del bucket de S3.
-    root_path : str, optional
-        Prefijo raíz dentro del bucket para este Datasource.  Por
-        defecto None (raíz del bucket).
-    cache_file : str | Path, optional
-        Ruta al archivo para persistir el caché de las operaciones
-        'scan'.  Crucial para buckets con miles de objetos.
-    expire_after : float, optional
-        Tiempo en segundos tras el cual expira la caché de escaneo. Si
-        es None, la caché no expira automáticamente.
-    **kwargs : Session | str | None
-        Argumentos adicionales para boto3.Session (profile_name,
-        region_name, aws_access_key_id, etc.)
+        The name of the S3 bucket to access (e.g., 'noaa-goes16').
+    root_path : str | None, optional
+        The local directory path to use as the root for downloaded
+        files. If ``None``, a default location is determined by the
+        system.
+    cache_file : str | Path | None, optional
+        The path to a file for persisting directory listing caches.
+        If ``None``, caching is transient or in-memory only.
+    expire_after : float | None, optional
+        The duration in seconds before cached entries are considered
+        stale. If ``None``, entries might never expire.
+    **kwargs : Unpack[AWSCloudArgs]
+         Additional arguments for the boto3 session, including region,
+         profile name, and explicit credentials.
 
     Returns
     -------
-    DatasourceContract
-        Objeto orquestador configurado para AWS S3.
-    """
-    # 1. Configurar el mountpoint
-    local_root = pl.PurePosixPath(POSIX_PREFIX)
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    mountpoint = local_root / base_path.as_posix()
+    Datasource
+        The initialized data service configured for the specified S3
+        bucket.
 
-    # 2. Configurar e instanciar la caché
+    Examples
+    --------
+    >>> service = use_aws_cloud(
+    ...     bucket="noaa-goes16",
+    ...     region_name="us-east-1",
+    ...     root_path="./data/goes16",
+    ... )
+    """
+    mountpoint = calculate_mountpoint(root_path=root_path)
+
     cache_path_str = str(cache_file) if cache_file else None
     scan_cache = TimedCache[list[str]](
         cache_file=cache_path_str, expire_after=expire_after
     )
 
-    # 3. Instanciar los servicios
     client, config = _get_s3_client(**kwargs)
 
-    # 4. Instanciar los componentes
     mapper = AWSURIMapper(bucket=bucket)
     backend = AWSBackend(
         bucket=bucket, client=client, scan_cache=scan_cache, config=config
     )
 
-    # 5. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
