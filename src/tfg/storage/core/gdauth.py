@@ -50,12 +50,12 @@ def _get_gdrive_default_client(credentials: "Credentials") -> "DriveResource":
 
     Parameters
     ----------
-    credentials : google.auth.credentials.Credentials
+    credentials : Credentials
         The OAuth2 credentials to use for the API client.
 
     Returns
     -------
-    googleapiclient._apis.drive.v3.resources.DriveResource
+    DriveResource
         An authorized Google Drive API service client.
     """
     from googleapiclient import discovery
@@ -91,7 +91,7 @@ def get_gdrive_client(credentials: "Credentials | None") -> "DriveResource":
 
     Returns
     -------
-    googleapiclient._apis.drive.v3.resources.DriveResource
+    DriveResource
         An authorized Google Drive API service client.
     """
     if not credentials:
