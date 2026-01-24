@@ -410,10 +410,10 @@
       ignore = [
         "COM812", # Missing trailing comma in a collection
         "CPY001", # Missing copyright notice at top of file
-        "D100",   # Missing docstring in public module
-        "D101",   # Missing docstring in public class
-        "D102",   # Missing docstring in public method
-        # "D103",    # Missing docstring in public function
+        # "D100",   # Missing docstring in public module
+        # "D101",   # Missing docstring in public class
+        "D102", # Missing docstring in public method
+        # "D103",   # Missing docstring in public function
         "D104",    # Missing docstring in public package
         "D105",    # Missing docstring in magic method
         "PLC0415", # `import` should be at the top-level of a file
