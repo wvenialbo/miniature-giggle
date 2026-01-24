@@ -18,7 +18,25 @@ applyTo: "**/*.py"
 3. **Line Length** (including indentation spaces):
    - LIMIT all code lines to a maximum of **79 characters**.
    - LIMIT in-code comments lines to a maximum of **72 characters**.
-4. **Comments**: MUST NOT rephrase the code they mainly justify algorithm and design decisions, rarely they document what an entire logic block does.
+4. **Comments (The "Why" Over the "What")**:
+   - MUST NOT rephrase the code they mainly justify algorithm and design decisions, rarely they document what a large code-block logic does.
+     - **Avoid**: Comments that simply repeat the code (e.g., `Increment counter by 1`).
+     - **Prefer**: Comments that explain the business logic or design decision (e.g., `# Use 1-based indexing for compatibility with external API requirement`).
+   - **Key Rules**:
+     - **Be Concise**: Keep comments brief.
+     - **Assume Readability**: If the variable and function names are descriptive, do not repeat that information in a comment.
+   - Code comments should act as a guide to the developer’s intent rather than a translation of the code into English.
+     - **Rationale**: The code already explains what is happening; the comment must explain the reasoning behind it.
+     - **Summary**: The code tells the story of how the problem is solved; the comment tells the story of why it was solved that way.
+   - Use comments to explain unconventional solutions, performance trade-offs, or complex algorithms.
+   - The primary purpose of a comment is to explain why a particular approach was chosen, rather than what the code does:
+     - **Performance Considerations**: `Using a hash map here instead of a list to reduce complexity from O(n) to O(1)`.
+     - **Edge Cases**: `Adding 24 hours to handle potential daylight saving time shifts`.
+     - **External References**: `Algorithm sourced from [link to documentation/stack overflow] to handle specific sorting constraints`.
+   - While individual line comments are often unnecessary, block comments (or docstrings) are useful to:
+     - **Summarize a block**: Briefly explain the intent of a 3-7 line block of code, specifically to provide context before a non-obvious algorithm.
+     - **Mark Incomplete Code**: Use `TODO` or `FIXME` to mark areas requiring future optimization, bug fixes, or missing functionality.
+     - **Explain Unidiomatic Code**: If a language feature is used in a non-standard way for a specific reason, document it.
 5. **Naming Conventions**:
    - **Classes**: Use `PascalCase`.
    - **Functions, Methods, Variables, Modules**: Use `snake_case`.
@@ -67,7 +85,7 @@ applyTo: "**/*.py"
      - **Methods and functions**: Calculate..., Create..., Generate..., Load..., etc.
    - Extended summary:
      - **Format**: May extend over multiple lines and can have many paragraphs.
-     - **Contents**: Focus on capabilities, not implementation. Clarify functionality that is not obvious from the short summary, do not discuss implementation detail, contract detail, or background theory.
+     - **Contents**: Focus on capabilities, not implementation. Clarify functionality that is not obvious from the short summary, do not discuss implementation detail, contract detail, or background theory. Algorithm flow details are not prohibited, but must be in the `Notes` section. Parameter fallback and inference logic must be in its own description.
      - **Referencing Code**: When referring to a method, function, class, variable, constant, enclose its name in single backticks.
      - **No Private Members**: NEVER mention internal/private members (prefixed with \_) in public module or class docstrings.
      - **No Redundancy**: Do not list the same function name in the Extended Summary if it is already the main subject of the docstring or listed in the Functions section.
@@ -95,8 +113,20 @@ applyTo: "**/*.py"
      - Continuation lines start with ... (with a space).
      - Expected output starts on the next line without any prefix.
      - Separate multiple examples and their explanatory comments with blank lines.
+   - **Parameters / Attributes Description**:
+     - Focus on the **role and purpose** of the argument, not its internal structure or origin.
+     - PROHIBITED: Mentioning internal keys or specific field names of a container unless they are part of the public API (e.g., "Contains `token_path`" is too internal).
+     - PREFER: "The configuration settings for authentication" instead of "Object with path and scopes".
+     - Inference, precedence and fallback logic details for parameters might be exceptions in some situations, if used judiciously. Alternatively these might be explained in the `Notes` section.
+   - **Returns / Yields Description**:
+     - Describe the **meaning and state** of the returned object.
+     - PROHIBITED: Explaining the internal logic used to find the value (e.g., "if found and valid" describes the process, not the result); these details go in the `Notes` section.
+     - PREFER: "The authorized credentials or `None` if no valid session exists."
 6. **Type Specification**:
-   - **Type Naming**: USE the shortest unique valid name in the current namespace for types (e.g., `Credentials` instead of `google.auth.credentials.Credentials`).
+   - **Type Naming**:
+     - USE the shortest unique valid name in the current namespace for types (e.g., `Credentials` instead of `google.auth.credentials.Credentials`).
+     - NEVER use internal implementation paths (e.g., \_apis.drive.v3) in docstrings; use the public interface types instead.
+     - PREFER local type aliases or short names.
    - **Standard Library Types**: Use built-in lowercase types (int, str, list, dict) and PEP 585/604 syntax (e.g., str | None instead of Optional[str], str | int instead of Union[str, int]).
    - **No Backticks in Types**: DO NOT use backticks for the type part of the `name : type` definition (e.g., use name : str | None, NOT `name : str | None`).
 7. **Key Principles**
@@ -108,6 +138,13 @@ applyTo: "**/*.py"
      - DO NOT repeat the function name in its own summary or extended description.
    - **STRICT CONSISTENCY**: Every docstring in a project MUST use the same naming convention for types. If one function uses short names, ALL must use short names.
    - **DRY (Don't Repeat Yourself)**: If a type is obvious from the context or a standard library, do not use fully qualified paths.
+   - **Black Box Principle**:
+     - Describe only the functional role of parameters and the semantic meaning of the return value.
+     - Documentation MUST describe the **functional contract** (what it does) and NOT the implementation details (how it does it, what files it touches, or what internal variables it checks).
+   - **External Perspective**:
+     - Write as if the implementation were invisible.
+     - The user only needs to know the inputs' requirements and the outputs' guarantees.
+   - **Focus on Usage**: Describe the semantic meaning, not the mechanical source of the data.
 8. **Inheritance & Protocol Rules (DRY)**:
    - **Inherited Methods**: If a method overrides one from a base class or implements a Protocol and the contract remains identical:
      - DO NOT repeat the full docstring, summarize the differences (overrides or extends).
@@ -117,4 +154,8 @@ applyTo: "**/*.py"
      - Alternatively, if the implementation is standard, use a minimal docstring or leave it empty if the toolchain handles inheritance (refer to `See Also`).
    - **Abstract Base Classes (ABC)**: When implementing an abstract method, focus only on the specific implementation details of the subclass. Do not redefine parameters already defined in the ABC.
    - **Protocols**: For classes implementing a `typing.Protocol`, do not re-document the protocol's requirements. Use: "See `ProtocolName` for details.", the `See Also section`, or both.
-9. **Generation**: Generate the entire docstring in one shot.
+   - **Consistency**: Ensure that if a parameter is renamed in the subclass (not recommended), it is documented, otherwise, refer to the parent.
+9. **Generation**:
+   - **Fresh Generation**: When asked to generate or fix a docstring, always prioritize current project standards over any existing or previous versions found in the code or chat history.
+   - **No Legacy Recycling**: Do NOT recycle wording, structure, or types from previous docstring iterations if they violate current standards.
+   - **Generate the entire docstring in one shot.**
