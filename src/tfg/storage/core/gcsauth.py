@@ -9,7 +9,7 @@ authenticating via user credentials and Application Default Credentials
 
 Functions
 ---------
-get_gcs_client
+get_gcs_client(bucket, project, credentials, **kwargs)
     Create a Google Cloud Storage client.
 
 Classes
@@ -51,10 +51,6 @@ class GCSAuthArgs(TypedDict, total=False):
     """
     Define the configuration arguments for Google Cloud Storage client.
 
-    Provide the set of optional keys accepted by functions that build
-    a `storage.Client`. All keys are optional; the TypedDict is
-    non-total.
-
     Attributes
     ----------
     client_info : ClientInfo | None
@@ -86,20 +82,21 @@ def _is_public(bucket: str, config: AuthConfig) -> bool:
     bucket : str
         The name of the GCS bucket to check.
     config : AuthConfig
-        The authentication configuration containing timeout settings.
+        The authentication configuration.
 
     Returns
     -------
     bool
-        True if the bucket is public (HTTP 200 OK), False otherwise.
+        ``True`` if the bucket is public, ``False`` otherwise.
     """
     import requests
 
-    # Endpoint de la API XML de GCS para el bucket
+    # Endpoint for the GCS XML API.
     url = f"https://storage.googleapis.com/{bucket}"
 
     with contextlib.suppress(Exception):
-        # Petición simple SIN cabeceras de autorización
+        # A simple request WITHOUT authorization headers determines if
+        # the bucket is public.
         response = requests.get(url, timeout=config.timeout)
         return response.status_code == HTTP_200_OK
 
@@ -118,8 +115,7 @@ def _get_gcs_anonymous_client(
         The Google Cloud project ID. If not specified, the library will
         attempt to infer it from the environment.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments for `storage.Client`. See `GCSAuthArgs`
-        for details.
+        Additional arguments for the client constructor.
 
     Returns
     -------
@@ -154,8 +150,7 @@ def _get_gcs_default_client(
         Explicit credentials for authentication. If provided, they are
         used instead of the default Application Default Credentials.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments for `storage.Client`. See `GCSAuthArgs`
-        for details.
+        Additional arguments for the client constructor.
 
     Returns
     -------
@@ -166,9 +161,9 @@ def _get_gcs_default_client(
 
     client = storage.Client(project=project, credentials=credentials, **kwargs)
 
-    # Validar credenciales haciendo una llamada simple. Esto es
-    # necesario porque storage.Client es "lazy" y no falla hasta
-    # que se hace una llamada real.
+    # Validate credentials by making a simple call. This is necessary
+    # because storage.Client is "lazy" and does not fail until a real
+    # call is made.
     _ = list(client.list_buckets())
 
     return client
@@ -183,17 +178,10 @@ def get_gcs_client(
     """
     Create a Google Cloud Storage client.
 
-    This function initializes a client by determining the appropriate
-    authentication method. It prioritizes explicit credentials, then
-    checks for public bucket access (anonymous client), and finally
-    attempts to authenticate the user or use Application Default
-    Credentials.
-
     Parameters
     ----------
     bucket : str
-        The name of the GCS bucket. This is used to check if the bucket
-        is publicly accessible.
+        The name of the GCS bucket.
     project : str | None
         The Google Cloud project ID. If not specified, the library will
         attempt to infer it from the credentials or the environment.
@@ -202,32 +190,34 @@ def get_gcs_client(
         used immediately without checking for public access or other
         authentication methods.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments passed to the `storage.Client` constructor.
-        See `GCSAuthArgs` for available options.
+        Additional arguments for the client constructor.
 
     Returns
     -------
     Client
         The initialized (authenticated or anonymous) GCS client.
+
+    Notes
+    -----
+    This function initializes a client by determining the appropriate
+    authentication method. It prioritizes explicit credentials, then
+    checks for public bucket access (anonymous client), and finally
+    attempts to authenticate the user or use Application Default
+    Credentials.
     """
-    # Si se proveyeron, usamos las credenciales del usuario.
     if credentials is not None:
         return _get_gcs_default_client(
             project=project, credentials=credentials, **kwargs
         )
 
-    # Para buckets públicos, usamos un cliente anónimo.
     if _is_public(bucket=bucket, config=_CONFIG):
         return _get_gcs_anonymous_client(project=project, **kwargs)
 
-    # Si se proveyeron credenciales explícitas y el bucket no es
-    # público, forzamos autenticación de usuario (no anónimo).
+    # Establish user identity for private access.
     credentials = authenticate_user(
         project_id=project, config=_CONFIG, tokens=_tokens
     )
 
-    # Intentamos instanciar el cliente con credenciales por defecto;
-    # busca las ADC del entorno.
     return _get_gcs_default_client(
         project=project, credentials=credentials, **kwargs
     )
