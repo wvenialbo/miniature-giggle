@@ -2,15 +2,11 @@ import contextlib
 import json
 import pathlib as pl
 import threading as th
-import typing as tp
 
 from .base import CacheBase
 
 
-T = tp.TypeVar("T")
-
-
-class SimpleCache(CacheBase[T]):
+class SimpleCache[T](CacheBase[T]):
     """
     Caché simple que almacena datos en memoria y opcionalmente en disco.
 

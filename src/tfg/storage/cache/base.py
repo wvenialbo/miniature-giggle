@@ -1,9 +1,6 @@
 import typing as tp
 
 
-T = tp.TypeVar("T")
-
-
 class AbstractCache(tp.Protocol):
     """
     Protocolo base para cachés de almacenamiento de datos.

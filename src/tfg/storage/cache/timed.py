@@ -9,9 +9,6 @@ import typing as tp
 from .base import CacheBase
 
 
-T = tp.TypeVar("T")
-
-
 @dc.dataclass(frozen=True)
 class CacheItem[T]:
     data: T
@@ -23,7 +20,7 @@ class RawCacheItem[T](tp.TypedDict):
     created_at: float
 
 
-class TimedCache(CacheBase[T]):
+class TimedCache[T](CacheBase[T]):
     """
     Caché con tiempo de vida.
 
