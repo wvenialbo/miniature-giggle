@@ -1,24 +1,20 @@
 """
-Configure dataset access for Amazon Web Services (AWS) S3.
+Provide interface for Amazon Web Services S3 storage data sources.
 
-This module provides high-level configuration helpers to establish
-connections to AWS S3 buckets. It orchestrates the backend, caching,
-and mapping components required to traverse and download data from
-public or private S3 storage.
+This module implements a single entry point, `use_aws_cloud`, to
+instantiate and configure `Datasource` instances that access AWS S3
+buckets. It handles credential resolution for both authenticated and
+anonymous (public bucket) access modes, providing a seamless interface
+for remote data access.
 
 Functions
 ---------
 use_aws_cloud(*, bucket, root_path=None, cache_file=None,
               expire_after=None, **kwargs)
-    Configure access to a remote S3 bucket via direct API calls.
+    Create a data source context for Amazon Web Services S3 bucket.
 
-Classes
--------
-S3SessionArgs
-    Define credentials and session parameters for AWS authentication.
-AWSCloudArgs
-    Define comprehensive arguments including region and profile.
 """
+
 from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict, Unpack
 
@@ -38,7 +34,7 @@ if TYPE_CHECKING:
 S3_PREFIX = "s3://"
 
 
-class S3SessionArgs(TypedDict, total=False):
+class _S3SessionArgs(TypedDict, total=False):
     """
     Define credentials and session parameters for AWS authentication.
 
@@ -63,7 +59,7 @@ class S3SessionArgs(TypedDict, total=False):
     aws_account_id: str | None
 
 
-class AWSCloudArgs(S3SessionArgs):
+class _AWSCloudArgs(_S3SessionArgs):
     """
     Define comprehensive arguments including region and profile.
 
@@ -83,7 +79,7 @@ class AWSCloudArgs(S3SessionArgs):
 def _get_s3_client(
     profile_name: str | None = None,
     region_name: str | None = None,
-    **kwargs: Unpack[S3SessionArgs],
+    **kwargs: Unpack[_S3SessionArgs],
 ) -> "tuple[Client, Config | None]":
     import boto3
     from botocore import UNSIGNED
@@ -121,10 +117,10 @@ def use_aws_cloud(
     root_path: str | None = None,
     cache_file: str | Path | None = None,
     expire_after: float | None = None,
-    **kwargs: Unpack[AWSCloudArgs],
+    **kwargs: Unpack[_AWSCloudArgs],
 ) -> Datasource:
     """
-    Configure access to a remote S3 bucket via direct API calls.
+    Create a data source context for Amazon Web Services S3 bucket.
 
     Establish a data service connection to a specific S3 bucket. This
     service handles key mapping, local caching for listings, and file
@@ -144,7 +140,7 @@ def use_aws_cloud(
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
         stale. If ``None``, entries might never expire.
-    **kwargs : Unpack[AWSCloudArgs]
+    **kwargs : Unpack[_AWSCloudArgs]
          Additional arguments for the boto3 session, including region,
          profile name, and explicit credentials.
 
