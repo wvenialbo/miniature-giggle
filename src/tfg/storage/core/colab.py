@@ -1,34 +1,61 @@
-import pathlib as pl
+"""
+Configure dataset access for Google Colab environment.
+
+This module provides helpers to mount and access Google Drive within a
+Google Colab notebook session. It bridges the local filesystem
+available in Colab with the project's data source abstractions.
+
+Functions
+---------
+use_colab_drive(*, root_path=None)
+    Mount Google Drive and configure a data source.
+release_colab_drive(*, fail=False)
+    Unmount Google Drive and flush pending writes.
+"""
+
 import warnings
+from pathlib import Path
 
 from ...utils import running_on_colab
 from ..backend import FilesystemBackend
 from ..datasource import DataService, Datasource
 from ..mapper import PathURIMapper
+from .utils import calculate_mountpoint
 
 
 try:
     from google.colab import drive
 
     def _colab_drive_flush_and_unmount() -> None:
+        """Force flush and unmount using the colab sdk."""
         drive.flush_and_unmount()
 
     def _colab_drive_mount(mountpoint: str) -> None:
+        """Mount the drive using the colab sdk."""
         drive.mount(mountpoint)
 
 except ImportError:
 
     def _colab_drive_flush_and_unmount() -> None:
+        """Raise error as colab sdk is missing."""
         _colab_not_found_error(_MOUNT_POINT)
 
     def _colab_drive_mount(mountpoint: str) -> None:
+        """Raise error as colab sdk is missing."""
         _colab_not_found_error(mountpoint)
 
     def _colab_not_found_error(mountpoint: str) -> None:
+        """
+        Raise a RuntimeError indicating google.colab is missing.
+
+        Raises
+        ------
+        RuntimeError
+            Always raised to indicate missing dependency.
+        """
         raise RuntimeError(
-            "El módulo 'colab' de Google no está disponible. "
-            "Asegúrate de estar ejecutando este código en "
-            "Google Colab"
+            "Module 'google.colab' unavailable; ensure code execution "
+            "within a Google Colab environment."
         )
 
 
@@ -38,34 +65,24 @@ _ROOT_PATH = "MyDrive"
 
 def _is_mounted() -> bool:
     """
-    Verifica si el sistema de almacenamiento está montado.
+    Check if the standard Colab mount point is active.
 
     Returns
     -------
     bool
-        True si el sistema de almacenamiento está montado, False en
-        caso contrario.
+        True if running on Colab and the mount point is active.
     """
-    return running_on_colab() and pl.Path(_MOUNT_POINT).is_mount()
+    return running_on_colab() and Path(_MOUNT_POINT).is_mount()
 
 
 def _mount_drive(*, fail: bool = False) -> None:
     """
-    Abre la conexión con el sistema de almacenamiento.
-
-    Abre la conexión con el sistema de almacenamiento remoto y lo
-    monta en el punto de montaje obtenido por `get_mountpoint()`.
-
-    Si no se puede abrir la conexión y `fail` es True, se lanza una
-    excepción RuntimeError.  Si `fail` es False, se emite una
-    advertencia en su lugar.
+    Attempt to mount the Google Drive.
 
     Parameters
     ----------
     fail : bool, optional
-        Si es True, lanza una excepción si no se puede abrir la
-        conexión con el sistema de almacenamiento.  Por defecto es
-        False.
+        Whether to raise an exception on failure.
     """
     if _is_mounted():
         return
@@ -74,27 +91,25 @@ def _mount_drive(*, fail: bool = False) -> None:
 
     if not _is_mounted():
         _report_failure(
-            f"Google Drive no se pudo montar en '{_MOUNT_POINT}'", fail=fail
+            f"Failed to mount Google Drive at '{_MOUNT_POINT}'", fail=fail
         )
 
 
 def _report_failure(error_message: str, *, fail: bool) -> None:
     """
-    Informa de un fallo lanzando una excepción o una advertencia.
+    Handle failure reporting via exception or warning.
 
     Parameters
     ----------
     error_message : str
-        Mensaje de error a utilizar en la excepción o advertencia.
+        The message to display.
     fail : bool
-        Si es True, lanza una excepción RuntimeError con el mensaje
-        de error.  Si es False, emite una advertencia RuntimeWarning
-        con el mensaje de error.
+        If ``True``, raise RuntimeError. Else warn.
 
     Raises
     ------
     RuntimeError
-        Si `fail` es True.
+        If `fail` is ``True``.
     """
     if fail:
         raise RuntimeError(error_message)
@@ -104,21 +119,12 @@ def _report_failure(error_message: str, *, fail: bool) -> None:
 
 def _unmount_drive(*, fail: bool = False) -> None:
     """
-    Cierra la conexión con el sistema de almacenamiento.
-
-    Desmonta y cierra la conexión con el sistema de almacenamiento
-    local o remoto.
-
-    Si no se puede cerrar la conexión y `fail` es True, se lanza una
-    excepción RuntimeError.  Si `fail` es False, se emite una
-    advertencia en su lugar.
+    Attempt to unmount the Google Drive.
 
     Parameters
     ----------
     fail : bool, optional
-        Si es True, lanza una excepción si no se puede cerrar la
-        conexión con el sistema de almacenamiento.  Por defecto es
-        False.
+        Whether to raise an exception on failure.
     """
     if not _is_mounted():
         return
@@ -126,38 +132,37 @@ def _unmount_drive(*, fail: bool = False) -> None:
     _colab_drive_flush_and_unmount()
 
     if _is_mounted():
-        _report_failure("Google Drive no se pudo desmontar", fail=fail)
+        _report_failure("Failed to unmount Google Drive", fail=fail)
 
 
 def use_colab_drive(*, root_path: str | None = None) -> Datasource:
     """
-    Crea el contexto para el acceso a Google Drive en Google Colab.
+    Mount Google Drive and configure a data source.
+
+    Initialise the Colab runtime environment by mounting the user's
+    Google Drive to the local filesystem. This allows transparent
+    access to datasets stored in the 'MyDrive' folder.
 
     Parameters
     ----------
-    root_path : str, optional
-        Ruta raíz dentro de Google Drive para el contexto. Si es None,
-        se utiliza la raíz del Drive del usuario ("MyDrive").
+    root_path : str | None, optional
+        The relative path within 'MyDrive' to use as the dataset root.
+        If ``None``, the root of 'MyDrive' is used.
 
     Returns
     -------
     Datasource
-        Contexto configurado listo para usar.
+        An initialized data service pointing to the mounted Drive path.
     """
-    # 1. Configurar el mountpoint
-    base_path = pl.Path("/" if root_path is None else root_path).resolve()
-    base_path = base_path.relative_to(base_path.anchor)
-    gdrive_root = pl.PurePosixPath(_MOUNT_POINT) / _ROOT_PATH
-    mountpoint = gdrive_root / base_path.as_posix()
+    mountpoint = calculate_mountpoint(
+        root_path=root_path, mountpoint=_MOUNT_POINT, base_path=_ROOT_PATH
+    )
 
-    # 2. Instanciar los servicios
     _mount_drive(fail=True)
 
-    # 3. Instanciar los componentes
     mapper = PathURIMapper()
     backend = FilesystemBackend()
 
-    # 4. Instanciar el DataService orquestador
     return DataService(
         mountpoint=str(mountpoint),
         backend=backend,
@@ -167,13 +172,16 @@ def use_colab_drive(*, root_path: str | None = None) -> Datasource:
 
 def release_colab_drive(*, fail: bool = False) -> None:
     """
-    Cierra la conexión con Google Drive usada en Colab.
+    Unmount Google Drive and flush pending writes.
+
+    Force the synchronisation of any changes made to the mounted
+    filesystem back to Google Drive and detach the mount point.
 
     Parameters
     ----------
     fail : bool, optional
-        Si es True, lanza una excepción si no se puede cerrar la
-        conexión con Google Drive.  Por defecto es False.
+        If ``True``, raise a generic exception if unmounting fails.
+        If ``False``, issue a warning instead. Default is ``False``.
     """
     _unmount_drive(fail=fail)
 
