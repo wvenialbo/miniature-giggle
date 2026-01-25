@@ -1,16 +1,16 @@
 """
-Configure dataset access for NCEI.
+Provide interface for NOAA's NOAA's NCEI Archive HTTP data sources.
 
-This module provides high-level configuration helpers to establish
-connections to NCEI HTTP archives. It orchestrates the backend,
-caching, and mapping components required to traverse and download
-data from NCEI's public servers.
+This module enables remote access to NCEI Archive datasets, providing
+automated URI mapping and caching. It offers a standardized interface
+for traverse and download data from NCEI public servers via HTTP.
 
 Functions
 ---------
 use_ncei_archive(*, dataset_path, root_path=None, cache_file=None,
                  expire_after=None)
-    Configure access to a remote NCEI dataset via HTTP.
+    Create a data source context for NOAA's NCEI Archive HTTP server.
+
 """
 
 from pathlib import Path
@@ -35,7 +35,7 @@ def use_ncei_archive(
     expire_after: float | None = None,
 ) -> Datasource:
     """
-    Configure access to a remote NCEI dataset via HTTP.
+    Create a data source context for NCEI archive access.
 
     Establish a data service connection to a specific dataset within
     the NCEI public archive. This service handles URL mapping, local
