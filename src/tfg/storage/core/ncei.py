@@ -1,9 +1,10 @@
 """
-Provide interface for NOAA's NOAA's NCEI Archive HTTP data sources.
+Provide interface for NOAA's NCEI Archive HTTP data sources.
 
-This module enables remote access to NCEI Archive datasets, providing
-automated URI mapping and caching. It offers a standardized interface
-for traverse and download data from NCEI public servers via HTTP.
+This module implements a single entry point, `use_ncei_archive`, to
+instantiate and configure `Datasource` instances that access NCEI
+Archive datasets via HTTP. It handles URI mapping and automated
+caching, providing a seamless interface for remote data access.
 
 Functions
 ---------
@@ -35,35 +36,32 @@ def use_ncei_archive(
     expire_after: float | None = None,
 ) -> Datasource:
     """
-    Create a data source context for NCEI archive access.
+    Create a data source context for NOAA's NCEI Archive HTTP server.
 
-    Establish a data service connection to a specific dataset within
-    the NCEI public archive. This service handles URL mapping, local
-    specific caching, and remote file retrieval using a reliable HTTP
-    backend.
+    Establish a data service connection to a specific dataset within the
+    NCEI public archive. This service handles URL mapping, automated
+    caching, and remote file retrieval using the ``requests`` library.
 
     Parameters
     ----------
     dataset_path : str
         The relative URL path to the specific dataset on the NCEI
-        server. For example, 'global-hourly/access/'.
+        server (e.g. ``"global-hourly/access/"``).
     root_path : str | None, optional
         The local directory path to use as the root for downloaded
         files. If ``None``, a default location is determined by the
         system.
     cache_file : str | Path | None, optional
-        The path to a file for persisting calculation or listing
-        caches. If ``None``, caching may be transient or in-memory
-        only.
+        The path to a file for persisting directory listing caches.
+        If ``None``, caching is transient or in-memory only.
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
-        stale. If ``None``, entries might never expire or use a
-        default policy.
+        stale. If ``None``, entries might never expire.
 
     Returns
     -------
     Datasource
-        The initialized data service configured for the specified NCEI
+        The initialised data service configured for the specified NCEI
         archive.
 
     Examples
