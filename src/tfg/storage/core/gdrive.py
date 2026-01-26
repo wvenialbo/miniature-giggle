@@ -1,16 +1,18 @@
 """
-Configure dataset access for Google Drive.
+Provide interface for Google Drive data sources.
 
-This module provides high-level configuration helpers to establish
-connections to Google Drive folders. It orchestrates the backend,
-caching, mapping, and authentication components required to traverse
-and download file from Google Drive.
+This module implements a single entry point, `use_google_drive`, to
+initialise and configure `Datasource` instances that access Google
+Drive folders. It orchestrates the backend, caching, mapping, and
+authentication components required to traverse and retrieve files from
+Google Drive.
 
 Functions
 ---------
 use_google_drive(*, root_path=None, credentials=None, cache_file=None,
                  expire_after=None)
-    Configure access to a Google Drive folder via API.
+    Create a data source context for Google Drive access.
+
 """
 
 from pathlib import Path
@@ -36,12 +38,11 @@ def use_google_drive(
     expire_after: float | None = None,
 ) -> Datasource:
     """
-    Configure access to a Google Drive folder via API.
+    Create a data source context for Google Drive access.
 
     Establish a data service connection to a Google Drive account. This
-    service handles file ID mapping, dual-strategy caching (ID and
-    listing), and file retrieval using the authenticated Google Drive
-    API backend.
+    service handles file ID mapping, dual-strategy caching, and file
+    retrieval using the authenticated Google Drive API backend.
 
     Parameters
     ----------
@@ -54,10 +55,8 @@ def use_google_drive(
         ``None``, the system attempts to find default application
         credentials or initiates an interactive login flow.
     cache_file : str | Path | None, optional
-        The base path to a file for persisting caches. This path is
-        split into two separate files (suffixed with ``-id`` and
-        ``-index``) to store ID mappings and directory listings
-        independently. If ``None``, caching is transient.
+        The base path to a file for persisting caches. If ``None``,
+        caching is transient.
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
         stale. If ``None``, entries might never expire.
@@ -65,7 +64,13 @@ def use_google_drive(
     Returns
     -------
     Datasource
-        The initialized data service configured for Google Drive access.
+        The initialised data service configured for Google Drive access.
+
+    Notes
+    -----
+    When a `cache_file` is provided, the path is split into two
+    separate files (suffixed with ``-id`` and ``-index``) to store ID
+    mappings and directory listings independently.
 
     Examples
     --------
