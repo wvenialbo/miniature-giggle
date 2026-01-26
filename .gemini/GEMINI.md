@@ -39,11 +39,17 @@ These instructions apply to all the following sections in these `Project Standar
    - USE "at the weekend" rather than "on the weekend".
    - USE "wrote to him" rather than "wrote him".
    - USE the Oxford comma generously for clarity.
-   - PREFER plural verbs for collective nouns (e.g. "the committee are" vs "the committee is"); singular verbs are permitted depending on context.
-3. Punctuation:
+   - PREFER plural verbs for collective nouns (e.g. "the committee are" vs. "the committee is"); singular verbs are permitted depending on context.
+3. **Punctuation**:
    - Use single quotation marks for quotes, with full stops outside the quotation mark if the quote is not a complete sentence.
    - Use double quotation marks for nested quotes.
    - No commas in thousands: 6580 instead of 6,580; avoid American-style gaps.
+4. **Abreviations & Examples**:
+   - USE **"e.g."** for inline examples. NEVER use "for example" or "such as".
+   - USE **"i.e."** for inline clarifications or rephrasing (meaning 'that is').
+   - NO comma should follow "e.g." or "i.e.".
+   - USE **"etc."** at the end of lists when appropriate, ensuring it is preceded by an Oxford comma.
+   - These abbreviations must always be in lowercase and use dots.
 
 ### 2.3. Indentation and Line Length
 
@@ -230,6 +236,12 @@ These instructions apply to all the following sections in these `Project Standar
    - NEVER mention private members (prefixed with `_`) in any public member's docstrings.
    - DO NOT repeat the function, method, or class name in its own summary.
    - DO NOT mention the function or method name if it is already listed in the `Functions` or `Methods` section.
+4. **Content Constraints**:
+   - KEEP descriptions purely text-based.
+   - Examples provided inline using "e.g." SHOULD be narrative or brief (e.g. paths, identifiers, or short values).
+   - DO NOT include multi-line examples, pseudo-code blocks, enumerations, or indented lists within this section.
+   - Complex or multi-line examples MUST be placed in the `Notes` section.
+   - Usage examples MUST be placed exclusively in the `Examples` section.
 
 ### 4.8. Sections
 
@@ -278,6 +290,9 @@ These instructions apply to all the following sections in these `Project Standar
    - If an attribute is derived from an optional parameter but is assigned a non-`None` default value within the constructor (e.g. `self.x = p or default`), the **Attribute** MUST NOT be marked as `, optional`.
    - In such cases, ALWAYS specify the effective default value in the declarative part of the attribute (e.g. `timeout : int, default=30`).
    - Ensure the distinction between the input parameter (which may be `optional`) and the final attribute state (which may be mandatory) is clear.
+6. **Content Constraints**:
+   - KEEP descriptions purely text-based and concise.
+   - See Section 4.7.4 (The Extended Summary) for other constraints rules.
 
 ### 4.10. Sections: Returns / Yields
 
@@ -289,7 +304,11 @@ These instructions apply to all the following sections in these `Project Standar
    - Clarify special values if needed (often required with `bool` or signalling `None`).
    - NEVER expose sensitive values. PREFER: "The authorised credentials or `None` if no valid session exists."
    - DO NOT explain the internal logic used to find the value (e.g. "if found and valid" describes the process, not the result); these details might go in the `Notes` section.
-3. When returning a multiple-valued object (`tuple`), write one declarative-descriptive block per value.
+3. **Formatting Constraints**:
+   - When returning a multiple-valued object (`tuple`), write one declarative-descriptive block per value.
+4. **Content Constraints**:
+   - KEEP descriptions purely text-based and concise.
+   - See Section 4.7.4 (The Extended Summary) for other constraints rules.
 
 ### 4.11. Sections: Receives
 
@@ -309,9 +328,13 @@ These instructions apply to all the following sections in these `Project Standar
    - USE `ExceptionType`, i.e. just the name of the exception/warning class.
 2. **Descriptive Part**:
    - Detail under what conditions the exception/warning gets raised.
-3. Write one declarative-descriptive block per exception/warning.
-4. List ONLY exception/warning classes EXPLICITLY triggered WITHIN the method/function.
-5. List ONLY errors that are non-obvious or have a large chance of getting raised.
+3. **Formatting Constraints**:
+   - Write one declarative-descriptive block per exception/warning.
+4. **Content Constraints**:
+   - KEEP descriptions purely text-based and concise.
+   - List ONLY exception/warning classes EXPLICITLY triggered WITHIN the method/function.
+   - List ONLY errors that are non-obvious or have a large chance of getting raised.
+   - See Section 4.7.4 (The Extended Summary) for other constraints rules.
 
 ### 4.14. Sections: Warnings
 
@@ -376,7 +399,11 @@ References cited in the `Notes` section may be listed here, e.g. if you cited th
    - If the function signature extends over multiple lines, align continuation lines to the column following the opening parentheses.
 2. **Descriptive Part**:
    - Write a brief description, usually a copy of the function's `Short Summary`.
-3. Write one declarative-descriptive block per method/function/generator.
+3. **Formatting Constraints**:
+   - Write one declarative-descriptive block per method/function/generator.
+4. **Content Constraints**:
+   - KEEP descriptions purely text-based and concise.
+   - See Section 4.7.4 (The Extended Summary) for other constraints rules.
 
 ### 4.20. Sections: Classes / Exceptions (Including Protocols and Abstract Classes)
 
@@ -384,7 +411,11 @@ References cited in the `Notes` section may be listed here, e.g. if you cited th
    - USE the class name: `MyClass`.
 2. **Descriptive Part**:
    - Write a brief description, usually a copy of the class's `Short Summary`.
-3. Write one declarative-descriptive block per class/exception/protocol.
+3. **Formatting Constraints**:
+   - Write one declarative-descriptive block per class/exception/protocol.
+4. **Content Constraints**:
+   - KEEP descriptions purely text-based and concise.
+   - See Section 4.7.4 (The Extended Summary) for other constraints rules.
 
 ### 4.21. Sections: Contents
 
