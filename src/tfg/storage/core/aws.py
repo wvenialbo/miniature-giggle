@@ -144,7 +144,7 @@ def _get_s3_client(
             )
         # Use unsigned signature to access public buckets anonymously.
         config = Config(signature_version=UNSIGNED)
-        # Re-initialize session to ensure no implicit configuration
+        # Re-initialise session to ensure no implicit configuration
         # files interfere with the anonymous request context.
         session = boto3.Session(region_name=region_name)
 
