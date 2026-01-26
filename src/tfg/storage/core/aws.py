@@ -7,6 +7,13 @@ buckets. It handles credential resolution for both authenticated and
 anonymous (public bucket) access modes, providing a seamless interface
 for remote data access.
 
+Classes
+-------
+AWSCloudArgs
+    Define comprehensive parameter list for AWS authentication.
+S3SessionArgs
+    Define partial parameter list for AWS authentication.
+
 Functions
 ---------
 use_aws_cloud(*, bucket, root_path=None, cache_file=None,
@@ -36,7 +43,7 @@ S3_PREFIX = "s3://"
 
 class S3SessionArgs(TypedDict, total=False):
     """
-    Define credentials and session parameters for AWS authentication.
+    Define partial parameter list for AWS authentication.
 
     Attributes
     ----------
@@ -61,7 +68,7 @@ class S3SessionArgs(TypedDict, total=False):
 
 class AWSCloudArgs(S3SessionArgs):
     """
-    Define comprehensive arguments including region and profile.
+    Define comprehensive parameter list for AWS authentication.
 
     Attributes
     ----------
