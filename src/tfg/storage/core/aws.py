@@ -81,6 +81,44 @@ def _get_s3_client(
     region_name: str | None = None,
     **kwargs: Unpack[_S3SessionArgs],
 ) -> "tuple[Client, Config | None]":
+    """
+    Initialise an S3 client and its signature configuration.
+
+    Create a `boto3` S3 client based on provided credentials or
+    session parameters. If no credentials are found and none were
+    explicitly requested, the client is configured for anonymous
+    access to public buckets.
+
+    Parameters
+    ----------
+    profile_name : str | None, optional
+        The name of the AWS profile to use for credentials.
+    region_name : str | None, optional
+        The AWS region where the bucket is located.
+    **kwargs : Unpack[_S3SessionArgs]
+        Additional keyword arguments for session configuration,
+        including explicit credentials.
+
+    Returns
+    -------
+    tuple[Client, Config | None]
+        A tuple containing the initialised `S3Client` and the
+        corresponding `Config` object, which is non-null if
+        anonymous access is required.
+
+    Raises
+    ------
+    ValueError
+        If credentials cannot be resolved when they were explicitly
+        specified via a profile or explicit keys.
+
+    Notes
+    -----
+    When no credentials are available and no profile or explicit
+    keys were requested, the client is re-initialised with an
+    unsigned signature. This allows access to public buckets
+    without requiring AWS credentials.
+    """
     import boto3
     from botocore import UNSIGNED
     from botocore.config import Config
