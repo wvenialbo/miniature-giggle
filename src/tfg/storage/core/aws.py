@@ -7,18 +7,18 @@ buckets. It handles credential resolution for both authenticated and
 anonymous (public bucket) access modes, providing a seamless interface
 for remote data access.
 
+Functions
+---------
+use_aws_cloud(*, bucket, root_path=None, cache_file=None,
+              expire_after=None, **kwargs)
+    Create a data source context for Amazon Web Services S3 bucket.
+
 Classes
 -------
 AWSCloudArgs
     Define comprehensive parameter list for AWS authentication.
 S3SessionArgs
     Define partial parameter list for AWS authentication.
-
-Functions
----------
-use_aws_cloud(*, bucket, root_path=None, cache_file=None,
-              expire_after=None, **kwargs)
-    Create a data source context for Amazon Web Services S3 bucket.
 
 """
 
@@ -192,7 +192,7 @@ def use_aws_cloud(
         stale. If ``None``, entries might never expire.
     **kwargs : Unpack[AWSCloudArgs]
         Additional arguments for the ``boto3`` session, including
-        region, profile name, and explicit credentials.
+        region, profile name, credentials, and other session parameters.
 
     Returns
     -------
