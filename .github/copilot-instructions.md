@@ -122,6 +122,12 @@ These instructions apply to all the following sections in these `Project Standar
    - EXPLAIN the business logic or design decision (e.g. `# Use 1-based indexing for compatibility with external API requirement`).
 6. Refer to Section 2.2 (Language) of these `Project Standards` for language style.
 
+### 3.7. Quotation Marks in Code
+
+1. Use double quotation marks for string literals.
+2. Use single quotation marks for nested quotation within string literals.
+3. Use single quotation marks for nested quotation within f-strings.
+
 ## 4. Python Documentation Standards
 
 ### 4.1. Docstring Format and Style Guide
@@ -143,7 +149,9 @@ These instructions apply to all the following sections in these `Project Standar
    - Python literals and constants (e.g. ` ``None`` `, ` ``True`` `, ` ``False`` `).
    - Special parameters and keywords (e.g. ` ``self`` `, ` ``cls`` `, ` ``super`` `).
    - Inline **code** logic (e.g. ` ``y = np.sin(x)`` `, ` ``load_file(filename)`` `).
-   - File paths or environment variables.
+   - File paths (e.g. ` ``/usr/bin/python`` `, ` ``~/.aws/config`` `).
+   - Environment variables (e.g. ` ``PYTHON_PATH`` `, ` ``AWS_ACCESS_KEY_ID`` `).
+   - Do NOT use double backticks for descriptive English phrases (e.g. use "environment variables", NOT ` ``environment variables`` `).
 4. USE **single backticks** (`` ` ``) for anything that Sphinx should attempt to render as **HYPERLINKS** in monospaced font:
    - Internal symbols: Project classes, functions, and modules (e.g. `` `Datasource` ``, `` `use_aws_cloud` ``).
    - Parameters, attributes, methods: As per NumPyDoc recommendation (e.g. `` `bucket` ``).
@@ -244,8 +252,8 @@ These instructions apply to all the following sections in these `Project Standar
    - There MUST be a single space before and after the colon.
    - DO NOT use backticks for the parameter name or type in the declaration.
    - For the parameter types, be as precise as possible. See Section 4.27.4 (Special Cases and Considerations) below.
-   - USE `x : type, optional` for a keyword argument with a default value that would not be used.
-   - USE `x : type, default=value` for a keyword argument with a default value that will be used.
+   - USE `x : type, optional` when the default value is `None` or an internal sentinel that does not need to be explicitly shown to the user. NEVER write `default=None` or `default=None, optional`; the word `optional` is the unique and sufficient indicator for `None` defaults.
+   - USE `x : type, default=value` ONLY when the default value is a meaningful constant, literal, or specific setting (e.g. `default=42`, `default="utf-8"`) that the user should be aware of.
    - USE `x : {'C', 'F', 'A'}` when a parameter can only assume one of a fixed set of values.
    - USE `x1, x2 : type` when two or more parameters have exactly the same type and description.
    - USE `*args : type` ONLY IF all positional arguments are STRICTLY of the same type.
@@ -259,6 +267,17 @@ These instructions apply to all the following sections in these `Project Standar
    - NEVER expose sensitive parameters. PREFER "Path to authentication configuration file" to "Path to client secrets file".
    - Detail default values when their semantic meaning is not self-evident from the declarative part.
    - Discuss inference, precedence, and fallback logic judiciously. Alternatively, these might be explained in the `Notes` section.
+3. **Standard Class Attributes**:
+   - Append `, optional` IF the attribute is initialised as `None`.
+   - Append `, optional` IF the attribute is intended to be `None`-able and can be omitted in the constructor.
+4. **TypedDict Specialisation Attributes**:
+   - For `TypedDict` classes with `total=False`, append `, optional` to ALL keys in the docstring.
+   - For `TypedDict` classes with implicit or explicit `total=True`, append `, optional` ONLY to keys explicitly marked with `NotRequired`.
+   - This ensures the documentation reflects the type-checker's requirements for dictionary instantiation.
+5. **Logic Fallback**:
+   - If an attribute is derived from an optional parameter but is assigned a non-`None` default value within the constructor (e.g. `self.x = p or default`), the **Attribute** MUST NOT be marked as `, optional`.
+   - In such cases, ALWAYS specify the effective default value in the declarative part of the attribute (e.g. `timeout : int, default=30`).
+   - Ensure the distinction between the input parameter (which may be `optional`) and the final attribute state (which may be mandatory) is clear.
 
 ### 4.10. Sections: Returns / Yields
 
@@ -313,6 +332,9 @@ These instructions apply to all the following sections in these `Project Standar
    - USE `name` without a description, preferable if the functionality is clear from the symbol name.
    - USE one entry per line.
    - If the combination of the function name and the description creates a line that is too long, write the entry as two lines, with the function name and colon on the first line, and the description on the next line, indented 4 spaces.
+5. **Privacy Restriction:**:
+   - NEVER include private members (prefixed with `_`) in the `See Also` section of a public entity.
+   - If a public function relies on a private one that requires explanation, refer to the public "parent" or explain the logic in the `Notes` section without linking the private symbol.
 
 ### 4.16. Sections: Notes
 
@@ -346,9 +368,11 @@ References cited in the `Notes` section may be listed here, e.g. if you cited th
 ### 4.19. Sections: Methods / Functions (Including Generators)
 
 1. **Declarative Part**:
-   - USE a shortened signature (name and parameters list): `function_name(arg1, arg2, ..., **kwargs)`.
-   - DO NOT specify argument or return types.
+   - ALWAYS include the full shortened signature, with name and parameters list (e.g. `function_name(arg1, arg2, ..., **kwargs)`).
+   - KEEP argument default values (e.g. `function_name(arg1, arg2=42, arg3=None)`).
+   - LEAVE stars markers (`*`) in their actual places within the parameters list (e.g. `function_name(arg1, *, arg2=42, ..., **kwargs)`).
    - NEVER include `self` or `cls` in the parameters list.
+   - DO NOT specify argument or return types.
    - If the function signature extends over multiple lines, align continuation lines to the column following the opening parentheses.
 2. **Descriptive Part**:
    - Write a brief description, usually a copy of the function's `Short Summary`.
