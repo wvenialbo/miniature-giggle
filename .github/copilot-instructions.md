@@ -137,25 +137,29 @@ These instructions apply to all the following sections in these `Project Standar
 
 1. USE reStructuredText (reST) syntax to be rendered using Sphinx.
 2. Separate paragraphs with a blank line.
-3. **Monospaced text**:
-   - For general monospaced **text**, use single backticks (e.g. `y = np.sin(x)`).
-   - For inline display of **code**, use double backticks (e.g. `load_file(filename)`).
-   - Exception to the above rule: enclose parameter names in single backticks (e.g. `param1`).
-   - For **code** blocks using `::`, ensure the code is indented by 4 spaces and is preceded and followed by a blank line.
-4. **Math**:
+3. USE **double backticks** (` `` `` `) for "Literal" **monospaced text** that is **NOT A HYPERLINK**:
+   - Third-party libraries not in the project API index (e.g. ` ``boto3`` `, ` ``numpy`` `).
+   - Standard library modules (e.g. ` ``math`` `, ` ``typing`` `).
+   - Python literals and constants (e.g. ` ``None`` `, ` ``True`` `, ` ``False`` `).
+   - Special parameters and keywords (e.g. ` ``self`` `, ` ``cls`` `, ` ``super`` `).
+   - Inline **code** logic (e.g. ` ``y = np.sin(x)`` `, ` ``load_file(filename)`` `).
+   - File paths or environment variables.
+4. USE **single backticks** (`` ` ``) for anything that Sphinx should attempt to render as **HYPERLINKS** in monospaced font:
+   - Internal symbols: Project classes, functions, and modules (e.g. `` `Datasource` ``, `` `use_aws_cloud` ``).
+   - Parameters, attributes, methods: As per NumPyDoc recommendation (e.g. `` `bucket` ``).
+   - If the hyperlink does not render as intended, explicitly include the appropriate role and/or namespace.
+5. For **code** blocks using `::`, ensure the code is indented by 4 spaces and is preceded and followed by a blank line.
+6. **Math**:
    - Use `:math:` for inline LaTeX or `.. math::` for blocks.
    - Often it’s possible to show equations as Python code or pseudo-code instead, which is much more readable in a terminal.
    - LaTeX formatting should be kept to a minimum.
-5. **Emphasis**:
+7. **Emphasis**:
    - Use _italics_, **bold** if needed in any explanations.
-6. **Symbols**:
-   - Module, class, function, method, and attribute names should render as hyperlinks in monospaced font.
-   - Depending on project settings, this may be accomplished simply by enclosing them in single backticks.
-   - If the hyperlink does not render as intended, explicitly include the appropriate role and/or namespace.
-7. **Referencing Code**:
-   - Rules 4.2.3 and 4.2.6 apply to symbol referencing within descriptive sections (e.g. `Extended Summary`, `Notes`, `Warnings`, etc.).
-   - Rules 4.2.3 and 4.2.6 apply to symbol referencing within descriptive parts (e.g. description of `Parameters`, `Returns`, etc.).
+8. **Referencing Code**:
+   - Rules in 4.2.4 apply to symbol referencing within descriptive sections (e.g. `Extended Summary`, `Notes`, `Warnings`, etc.).
+   - Rules in 4.2.4 apply to symbol referencing within descriptive parts (e.g. description of `Parameters`, `Returns`, etc.).
    - For the declarative part of some sections (e.g. `Parameters`, `Returns`), use their own rules below.
+9. Assume the `numpydoc`, or the `sphinx.ext.napoleon`, Sphinx extensions are active.
 
 ### 4.3. Single-line Docstrings
 
@@ -214,7 +218,7 @@ These instructions apply to all the following sections in these `Project Standar
    - Do not discuss background theory; discuss it in the `Notes` section.
    - Do not discuss algorithm flow, fallback, or inference logic; discuss them in the `Notes` section or in the `Parameters` description.
 3. **Referencing Code**:
-   - See Rules 4.2.3, 4.2.6, and 4.2.7 for referring to a method, function, class, variable, constant, or any symbol.
+   - See Section 4.2.4 (Markup Syntax Rules) for referring to a method, function, class, variable, constant, or any internal symbol.
    - NEVER mention private members (prefixed with `_`) in any public member's docstrings.
    - DO NOT repeat the function, method, or class name in its own summary.
    - DO NOT mention the function or method name if it is already listed in the `Functions` or `Methods` section.
