@@ -1,8 +1,11 @@
 """
-Provide Google Cloud Storage (GCS) backend helpers.
+Provide interface for Google Cloud Storage (GCS) data sources.
 
-This module contains utilities to configure and create data sources
-backed by Google Cloud Storage buckets.
+This module implements a single entry point, `use_gcs_cloud`, to
+initialise and configure `Datasource` instances that access Google
+Cloud Storage buckets. It handles credential resolution for both
+authenticated and anonymous (public bucket) access modes, providing a
+seamless interface for remote data access.
 
 Functions
 ---------
@@ -13,7 +16,8 @@ use_gcs_cloud(*, bucket, root_path=None, cache_file=None,
 Classes
 -------
 GCSClientArgs
-    Define configuration arguments for GCS data sources.
+    Define client and session parameters for GCS authentication.
+
 """
 
 from pathlib import Path
@@ -33,14 +37,14 @@ if TYPE_CHECKING:
 
 class GCSClientArgs(GCSAuthArgs):
     """
-    Define configuration arguments for GCS data sources.
+    Define client and session parameters for GCS authentication.
 
     Attributes
     ----------
-    project : str | None
+    project : str | None, optional
         The Google Cloud project ID.
-    credentials : Credentials | None
-        Explicit credentials for authentication.
+    credentials : Credentials | None, optional
+        Explicit ``google-auth`` credentials for authentication.
     """
 
     project: str | None
@@ -58,25 +62,41 @@ def use_gcs_cloud(
     """
     Create a data source context for a Google Cloud Storage bucket.
 
+    Establish a data service connection to a specific GCS bucket. This
+    service handles key mapping, local caching for listings, and file
+    retrieval using the ``google-cloud-storage`` library.
+
     Parameters
     ----------
     bucket : str
-        The name of the GCS bucket.
-    root_path : str | None
-        The root path within the virtual mountpoint. If ``None``, the
-        system root is used.
-    cache_file : str | pathlib.Path | None
-        Path to the cache file.
-    expire_after : float | None
-        Time in seconds before cache entries expire.
+        The name of the GCS bucket to access (e.g. ``"noaa-goes16"``).
+    root_path : str | None, optional
+        The local directory path to use as the root for downloaded
+        files. If ``None``, a default location is determined by the
+        system.
+    cache_file : str | Path | None, optional
+        The path to a file for persisting directory listing caches.
+        If ``None``, caching is transient or in-memory only.
+    expire_after : float | None, optional
+        The duration in seconds before cached entries are considered
+        stale. If ``None``, entries might never expire.
     **kwargs : Unpack[GCSClientArgs]
-        Additional authentication arguments (e.g., project,
-        credentials).
+        Additional arguments for the GCS client, including project,
+        credentials, and other session parameters.
 
     Returns
     -------
     Datasource
-        The configured data source context ready for use.
+        The initialised data service configured for the specified GCS
+        bucket.
+
+    Examples
+    --------
+    >>> service = use_gcs_cloud(
+    ...     bucket="noaa-goes16",
+    ...     project="my-gcp-project",
+    ...     expire_after=3600.0,
+    ... )
     """
     mountpoint = calculate_mountpoint(root_path=root_path)
 
