@@ -34,21 +34,21 @@ if TYPE_CHECKING:
 S3_PREFIX = "s3://"
 
 
-class _S3SessionArgs(TypedDict, total=False):
+class S3SessionArgs(TypedDict, total=False):
     """
     Define credentials and session parameters for AWS authentication.
 
     Attributes
     ----------
-    aws_access_key_id : str | None
+    aws_access_key_id : str | None, optional
         AWS access key ID.
-    aws_secret_access_key : str | None
+    aws_secret_access_key : str | None, optional
         AWS secret access key.
-    aws_session_token : str | None
+    aws_session_token : str | None, optional
         AWS temporary session token.
-    botocore_session : Session | None
-        Pre-configured botocore session object.
-    aws_account_id : str | None
+    botocore_session : Session | None, optional
+        Pre-configured ``botocore`` session object.
+    aws_account_id : str | None, optional
         AWS account ID.
     """
 
@@ -59,15 +59,15 @@ class _S3SessionArgs(TypedDict, total=False):
     aws_account_id: str | None
 
 
-class _AWSCloudArgs(_S3SessionArgs):
+class AWSCloudArgs(S3SessionArgs):
     """
     Define comprehensive arguments including region and profile.
 
     Attributes
     ----------
-    region_name : str | None
+    region_name : str | None, optional
         Default region when creating new connections.
-    profile_name : str | None
+    profile_name : str | None, optional
         The name of a profile to use. If not given, it looks for
         credentials in environment variables or metadata service.
     """
@@ -79,12 +79,12 @@ class _AWSCloudArgs(_S3SessionArgs):
 def _get_s3_client(
     profile_name: str | None = None,
     region_name: str | None = None,
-    **kwargs: Unpack[_S3SessionArgs],
+    **kwargs: Unpack[S3SessionArgs],
 ) -> "tuple[Client, Config | None]":
     """
     Initialise an S3 client and its signature configuration.
 
-    Create a `boto3` S3 client based on provided credentials or
+    Create a ``boto3`` S3 client based on provided credentials or
     session parameters. If no credentials are found and none were
     explicitly requested, the client is configured for anonymous
     access to public buckets.
@@ -95,22 +95,27 @@ def _get_s3_client(
         The name of the AWS profile to use for credentials.
     region_name : str | None, optional
         The AWS region where the bucket is located.
-    **kwargs : Unpack[_S3SessionArgs]
+    **kwargs : Unpack[S3SessionArgs]
         Additional keyword arguments for session configuration,
         including explicit credentials.
 
     Returns
     -------
-    tuple[Client, Config | None]
-        A tuple containing the initialised `S3Client` and the
-        corresponding `Config` object, which is non-null if
-        anonymous access is required.
+    client : Client
+        The initialised S3 client for bucket operations.
+    config : Config | None
+        The signature configuration for the client, which is
+        non-``None`` only when anonymous access is required.
 
     Raises
     ------
     ValueError
         If credentials cannot be resolved when they were explicitly
         specified via a profile or explicit keys.
+
+    See Also
+    --------
+    use_aws_cloud : Create a data source context for S3 bucket.
 
     Notes
     -----
@@ -155,7 +160,7 @@ def use_aws_cloud(
     root_path: str | None = None,
     cache_file: str | Path | None = None,
     expire_after: float | None = None,
-    **kwargs: Unpack[_AWSCloudArgs],
+    **kwargs: Unpack[AWSCloudArgs],
 ) -> Datasource:
     """
     Create a data source context for Amazon Web Services S3 bucket.
@@ -167,7 +172,7 @@ def use_aws_cloud(
     Parameters
     ----------
     bucket : str
-        The name of the S3 bucket to access (e.g., 'noaa-goes16').
+        The name of the S3 bucket to access (e.g. ``"noaa-goes16"``).
     root_path : str | None, optional
         The local directory path to use as the root for downloaded
         files. If ``None``, a default location is determined by the
@@ -178,14 +183,14 @@ def use_aws_cloud(
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
         stale. If ``None``, entries might never expire.
-    **kwargs : Unpack[_AWSCloudArgs]
-         Additional arguments for the boto3 session, including region,
-         profile name, and explicit credentials.
+    **kwargs : Unpack[AWSCloudArgs]
+        Additional arguments for the ``boto3`` session, including
+        region, profile name, and explicit credentials.
 
     Returns
     -------
     Datasource
-        The initialized data service configured for the specified S3
+        The initialised data service configured for the specified S3
         bucket.
 
     Examples
