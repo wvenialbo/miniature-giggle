@@ -68,17 +68,26 @@ These instructions apply to all the following sections in these `Project Standar
 
 ### 3.3. Standard Library Types
 
-1. ALWAYS USE PEP 604 type hinting for function parameters and return types.
-2. USE PEP 585 built-in lowercase types (e.g. `int`, `str`, `list`, `dict`) and complete generic types (e.g. `list[str]`, `tuple[int, ...]`).
-3. USE PEP 585 syntax (e.g. `str | None` instead of `Optional[str]`, `str | int` instead of `Union[str, int]`).
-4. USE PEP 695 for generics (e.g. `Box[T]` instead of `Box[Generic[T]]`).
-5. USE PEP 692 for type hinting keyword arguments (`**kwargs`) with `TypedDict` and `Unpack`.
+1. USE PEP 585:
+   - built-in lowercase types (e.g. `int`, `str`, `list`, `dict`).
+   - complete generic types (e.g. `list[str]`, `tuple[int, ...]`).
+2. USE PEP 604:
+   - `X | Y` for union types instead of `Union[X, Y]`.
+   - `X | None` for optional types instead of `Optional[str]`.
+3. USE PEP 646:
+   - `*args: Unpack[SomeTypeVarTuple]` for variable-length positional arguments.
+4. USE PEP 692:
+   - `**kwargs: Unpack[SomeTypedDict]` for variable-length keyword arguments.
+5. USE PEP 695:
+   - the `type` statement for type aliases (e.g. `type Vector = list[float]`).
+   - clean generic syntax (e.g. `Box[T]` or `def func[T]...`).
 6. NEVER type hint `self` or `cls`.
 
 ### 3.4. Imports
 
-1. Use an abbreviation only if it is widely adopted by the community (e.g. `import numpy as np`, but do not abbreviate `scipy`).
-2. Import collection and generic types from `collections.abc`.
+1. Use community-standard abbreviations (e.g. `import numpy as np`, `import pandas as pd`).
+2. ALWAYS import abstract base classes from `collections.abc`; DO NOT use `typing` for these types.
+3. ALWAYS import `Unpack`, `TypedDict`, and `TypeVarTuple` from the standard `typing` module; DO NOT use `typing_extensions`.
 
 ### 3.5. Error and Warning Messages
 
@@ -230,13 +239,17 @@ These instructions apply to all the following sections in these `Project Standar
    - USE `name : type` format.
    - There MUST be a single space before and after the colon.
    - DO NOT use backticks for the parameter name or type in the declaration.
-   - For the parameter types, be as precise as possible. See Section 4.XX below.
-   - USE `name : type, optional` for a keyword argument with a default value that would not be used.
-   - USE `name : type, default=value` for a keyword argument with a default value that would be used.
-   - USE `name : {'C', 'F', 'A'}` when a parameter can only assume one of a fixed set of values.
+   - For the parameter types, be as precise as possible. See Section 4.27.4 (Special Cases and Considerations) below.
+   - USE `x : type, optional` for a keyword argument with a default value that would not be used.
+   - USE `x : type, default=value` for a keyword argument with a default value that will be used.
+   - USE `x : {'C', 'F', 'A'}` when a parameter can only assume one of a fixed set of values.
    - USE `x1, x2 : type` when two or more parameters have exactly the same type and description.
-   - USE `*args` for variable length positional arguments; do not specify a type.
-   - USE `**kwargs` for keyword arguments; do not specify a type or use TypedDict if available; see Section 3.3.5.
+   - USE `*args : type` ONLY IF all positional arguments are STRICTLY of the same type.
+   - USE `*args : Unpack[SomeTypeVarTuple]` IF a `TypeVarTuple` is defined for positional arguments; see Section 3.3.3 (Standard Library Types) for style compliance.
+   - LEAVE `*args` without any type hint (including `: Any` or any generic annotation) in all other cases.
+   - USE `**kwargs : type` ONLY IF all keyword arguments are STRICTLY of the same type.
+   - USE `**kwargs : Unpack[SomeTypedDict]` IF a `TypedDict` is defined for SPECIFIC keys and their respective types; see Section 3.3.4 (Standard Library Types) for style compliance.
+   - LEAVE `**kwargs` without any type hint (including `: Any`, `: dict`, or any generic annotation) in all other cases.
 2. **Descriptive Part**:
    - Describe ONLY the functional **role and purpose** of the argument, not its internal structure or origin. PREFER "The configuration settings for authentication" to "Object with path and scopes".
    - NEVER expose sensitive parameters. PREFER "Path to authentication configuration file" to "Path to client secrets file".
@@ -331,7 +344,7 @@ References cited in the `Notes` section may be listed here, e.g. if you cited th
 1. **Declarative Part**:
    - USE a shortened signature (name and parameters list): `function_name(arg1, arg2, ..., **kwargs)`.
    - DO NOT specify argument or return types.
-   - NEVER include self or cls in the parameters list.
+   - NEVER include `self` or `cls` in the parameters list.
    - If the function signature extends over multiple lines, align continuation lines to the column following the opening parentheses.
 2. **Descriptive Part**:
    - Write a brief description, usually a copy of the function's `Short Summary`.
