@@ -23,17 +23,24 @@ def use_local_drive(*, root_path: str | None = None) -> Datasource:
     r"""
     Create a data source context for the local filesystem.
 
-    Establish a data service connection to the local machine's storage.
-    This service maps local paths into a standardised datasource
-    interface, allowing local files to be treated identically to
-    remote resources.
+    Establish a data service connection to the local machine's
+    storage. This service maps local paths into a standardised
+    datasource interface, allowing local files to be treated
+    identically to remote resources.
 
     Parameters
     ----------
     root_path : str | None, optional
-        The local directory path to use as the root for the context.
-        If ``None``, a default location is determined by the system
-        (e.g. ``"/"`` on Unix, ``"C:\"`` on Windows).
+        The directory path to use as the data root. Relative paths are
+        resolved against the current working directory; absolute paths
+        map directly to the corresponding location. If ``None``, the the
+        system's root directory is used (e.g.  ``"/"`` on Unix,
+        ``"C:\"`` on Windows).
+
+    Notes
+    -----
+    Path resolution follows the symmetric mapping logic implemented
+    in `calculate_mountpoint`.
 
     Returns
     -------
@@ -42,7 +49,10 @@ def use_local_drive(*, root_path: str | None = None) -> Datasource:
 
     Examples
     --------
-    >>> service = use_local_drive(root_path="./data")
+    Create a data source pointing to a local directory:
+
+    >>> from tfg.storage import use_local_drive
+    >>> datasource = use_local_drive(root_path="./data")
     """
     mountpoint = calculate_mountpoint(root_path=root_path)
 
