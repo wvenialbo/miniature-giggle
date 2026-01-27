@@ -181,9 +181,11 @@ def use_aws_cloud(
     bucket : str
         The name of the S3 bucket to access (e.g. ``"noaa-goes16"``).
     root_path : str | None, optional
-        The local directory path to use as the root for downloaded
-        files. If ``None``, a default location is determined by the
-        system.
+        The directory path to use as the data root. Relative paths
+        are resolved against the current working directory; absolute
+        paths map directly to the corresponding location in both the
+        local filesystem and the cloud storage bucket. If ``None``, the
+        bucket is used as the root.
     cache_file : str | Path | None, optional
         The path to a file for persisting directory listing caches.
         If ``None``, caching is transient or in-memory only.
@@ -200,13 +202,25 @@ def use_aws_cloud(
         The initialised data service configured for the specified S3
         bucket.
 
+    Notes
+    -----
+    This service maintains a symmetric mapping: the provided `root_path`
+    resolves to identical relative or absolute locations in both the
+    local filesystem and the cloud storage environment. Path
+    resolution follows the symmetric mapping logic implemented in
+    `calculate_mountpoint`.
+
     Examples
     --------
-    >>> service = use_aws_cloud(
+    Initialise a data source for a public GOES-16 satellite imagery
+    bucket:
+
+    >>> from tfg.storage import use_aws_cloud
+    >>> datasource = use_aws_cloud(
     ...     bucket="noaa-goes16",
     ...     region_name="us-east-1",
     ...     root_path="./data/goes16",
-    ... )
+    ... )  # doctest: +SKIP
     """
     mountpoint = calculate_mountpoint(root_path=root_path)
 
