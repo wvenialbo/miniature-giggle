@@ -13,13 +13,6 @@ use_aws_cloud(*, bucket, root_path=None, cache_file=None,
               expire_after=None, **kwargs)
     Create a data source context for Amazon Web Services S3 bucket.
 
-Classes
--------
-AWSCloudArgs
-    Define comprehensive parameter list for AWS authentication.
-S3SessionArgs
-    Define partial parameter list for AWS authentication.
-
 """
 
 from pathlib import Path
@@ -43,7 +36,7 @@ S3_PREFIX = "s3://"
 
 class S3SessionArgs(TypedDict, total=False):
     """
-    Define partial parameter list for AWS authentication.
+    Define a partial configuration arguments set for an S3 session.
 
     Attributes
     ----------
@@ -68,7 +61,7 @@ class S3SessionArgs(TypedDict, total=False):
 
 class AWSCloudArgs(S3SessionArgs):
     """
-    Define comprehensive parameter list for AWS authentication.
+    Define the complete configuration arguments for an S3 session.
 
     Attributes
     ----------
