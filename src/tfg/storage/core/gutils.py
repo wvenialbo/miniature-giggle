@@ -1,5 +1,5 @@
 """
-Manage Google Cloud authentication and credentials.
+Provide utilities for Google Cloud authentication and credentials.
 
 This module provides utilities to manage authentication credentials for
 Google Cloud services. It handles token storage, retrieval, and various
@@ -10,19 +10,20 @@ environments.
 Classes
 -------
 AuthConfig
-    Configuration for authentication parameters.
+    Define configuration for authentication parameters.
 TokenManager
     Manage storage and retrieval of authentication tokens.
 
 Exceptions
 ----------
 ClientConfigurationNotFoundError
-    Raise when the client configuration file is not found.
+    Represent a failure to locate the client configuration file.
 
 Functions
 ---------
 authenticate_user(project_id, config, tokens)
-    Authenticate the user and obtain valid credentials.
+    Authenticate the user to obtain valid credentials.
+
 """
 
 import contextlib
@@ -60,7 +61,7 @@ _CLIENT_CONFIG = {
 
 
 class ClientConfigurationNotFoundError(Exception):
-    """Raise when the client configuration file is not found."""
+    """Represent a failure to locate the client configuration file."""
 
     pass
 
@@ -68,7 +69,7 @@ class ClientConfigurationNotFoundError(Exception):
 @dataclass(frozen=True)
 class AuthConfig:
     """
-    Configuration for authentication parameters.
+    Define configuration for authentication parameters.
 
     Attributes
     ----------
@@ -76,16 +77,18 @@ class AuthConfig:
         The list of OAuth 2.0 scopes required for the application.
     token_name : str
         The name of the file to store the authentication token.
-    app_name : str, default=`__package_root__`
-        The name of the application, used for directory resolution.
-    app_author : str, default=`__package_id__`
-        The author of the application, used for directory resolution.
-    config_name : str, default='client_info.json'
-        The name of the client secrets file.
-    config_package : str, default='tfg.config'
-        The package where the client secrets file is located.
+    app_name : str, default=__package_root__
+        The name of the application used for directory resolution.
+    app_author : str, default=__package_id__
+        The author of the application used for directory resolution.
+    config_name : str, default="client_info.json"
+        The name of the client configuration file.
+    config_package : str, default="tfg.config"
+        The package where the client configuration file is located.
     timeout : int, default=60
         Timeout for network requests in seconds.
+    token_path : Path
+        The path to the stored token file.
     """
 
     scopes: tuple[str, ...]
@@ -103,7 +106,7 @@ class AuthConfig:
 
         Returns
         -------
-        pathlib.Path
+        Path
             The full path to the token file in the user data directory.
         """
         from platformdirs import user_data_dir
@@ -122,7 +125,7 @@ class TokenManager:
     Parameters
     ----------
     config : AuthConfig
-        Configuration containing authentication parameters.
+        The configuration containing authentication parameters.
 
     Methods
     -------
@@ -142,7 +145,8 @@ class TokenManager:
         Returns
         -------
         OAuthCredentials | None
-            Loaded credentials if found and valid, otherwise ``None``.
+            The loaded credentials or ``None`` if no stored token
+            exists.
         """
         from google.oauth2.credentials import Credentials as OAuthCredentials
 
@@ -162,7 +166,7 @@ class TokenManager:
         Parameters
         ----------
         credentials : OAuthCredentials
-            The credentials to serialize and store.
+            The credentials to serialise and store.
         """
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -174,9 +178,8 @@ class TokenManager:
         """
         Validate loaded credentials.
 
-        Checks if `credentials` is not ``None`` and satisfies the
-        configuration requirements. If invalid or corrupted, the token
-        file is referenced and removed.
+        Verify that the credentials satisfy configuration requirements.
+        If invalid or corrupted, the token file is removed.
 
         Parameters
         ----------
@@ -186,7 +189,7 @@ class TokenManager:
         Returns
         -------
         OAuthCredentials | None
-            The credentials if valid, otherwise ``None``.
+            The valid credentials or ``None`` if the input is invalid.
         """
         if not credentials:
             return None
@@ -208,17 +211,18 @@ class TokenManager:
 
 def _get_user_credentials(tokens: TokenManager) -> "AuthCredentials | None":
     """
-    Attempt to load and refresh user credentials from the token manager.
+    Load and refresh user credentials from the token manager.
 
     Parameters
     ----------
     tokens : TokenManager
-        The token manager.
+        The token manager instance.
 
     Returns
     -------
     AuthCredentials | None
-        Valid user credentials if found, otherwise ``None``.
+        The valid user credentials or ``None`` if no credentials are
+        available.
     """
     from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
@@ -241,7 +245,7 @@ def _get_user_credentials(tokens: TokenManager) -> "AuthCredentials | None":
 
 def _get_default_credentials(config: AuthConfig) -> "AuthCredentials | None":
     """
-    Attempt to obtain Application Default Credentials (ADC).
+    Obtain Application Default Credentials (ADC).
 
     Parameters
     ----------
@@ -251,7 +255,7 @@ def _get_default_credentials(config: AuthConfig) -> "AuthCredentials | None":
     Returns
     -------
     AuthCredentials | None
-        Default credentials if available and valid, otherwise ``None``.
+        The default credentials or ``None`` if unavailable.
     """
     from google.auth import default
     from google.auth.exceptions import DefaultCredentialsError, RefreshError
@@ -281,9 +285,9 @@ def _get_interactive_credentials(
     project_id: str | None, config: AuthConfig
 ) -> "AuthCredentials":
     """
-    Attempt to obtain credentials via interactive flow.
+    Obtain credentials via interactive flow.
 
-    Dispatches to the appropriate interactive flow based on the
+    Dispatch to the appropriate interactive flow based on the
     execution environment (Colab or local).
 
     Parameters
@@ -296,7 +300,7 @@ def _get_interactive_credentials(
     Returns
     -------
     AuthCredentials
-        Interactive credentials obtained from the user.
+        The interactive credentials obtained from the user.
 
     Raises
     ------
@@ -334,7 +338,7 @@ def _run_colab_interactive_auth(
     Returns
     -------
     AuthCredentials
-        Credentials obtained via Colab authentication.
+        The credentials obtained via Colab authentication.
     """
     from google.auth import default
     from google.colab.auth import authenticate_user as colab_auth
@@ -350,7 +354,7 @@ def _run_local_interactive_auth(config: AuthConfig) -> "AuthCredentials":
     """
     Run interactive authentication for local environments.
 
-    Uses a local server flow to obtain user credentials.
+    Use a local server flow to obtain user credentials.
 
     Parameters
     ----------
@@ -360,7 +364,7 @@ def _run_local_interactive_auth(config: AuthConfig) -> "AuthCredentials":
     Returns
     -------
     AuthCredentials
-        Credentials obtained via local interactive flow.
+        The credentials obtained via local interactive flow.
     """
     from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -391,7 +395,7 @@ def _get_client_configuration_path(config: AuthConfig) -> Path:
     Returns
     -------
     Path
-        Path to the client secrets file.
+        The path to the client configuration file.
 
     Raises
     ------
@@ -425,8 +429,8 @@ def _is_refreshable(credentials: "AuthCredentials") -> bool:
     Returns
     -------
     bool
-        ``True`` if `credentials` has a `refresh` method, is `expired`,
-        and has a `refresh_token`; ``False`` otherwise.
+        ``True`` if the credentials can be refreshed; ``False``
+        otherwise.
     """
     return bool(
         hasattr(credentials, "refresh")
@@ -439,7 +443,7 @@ def _is_serializable(
     credentials: "AuthCredentials",
 ) -> TypeGuard["OAuthCredentials"]:
     """
-    Check if credentials can be serialized to JSON.
+    Check if credentials can be serialised to JSON.
 
     Parameters
     ----------
@@ -449,8 +453,13 @@ def _is_serializable(
     Returns
     -------
     bool
-        ``True`` if `credentials` can be serialized; ``False``
+        ``True`` if the credentials can be serialised; ``False``
         otherwise.
+
+    Notes
+    -----
+    This function acts as a type guard. If it returns ``True``, the
+    type of `credentials` is narrowed to `OAuthCredentials`.
     """
     return hasattr(credentials, "to_json")
 
@@ -459,13 +468,12 @@ def authenticate_user(
     project_id: str | None, config: AuthConfig, tokens: TokenManager
 ) -> "AuthCredentials":
     """
-    Authenticate the user and obtain valid credentials.
+    Authenticate the user to obtain valid credentials.
 
-    This function attempts to obtain valid credentials using the
-    following strategy:
-    1.  Check for stored credentials in the persistent storage.
-    2.  Attempt to use Application Default Credentials (ADC).
-    3.  Initiate an interactive authentication flow.
+    This function attempts to obtain valid credentials by checking for
+    stored credentials in the persistent storage, attempting to use
+    Application Default Credentials (ADC), or initiating an interactive
+    authentication flow.
 
     Parameters
     ----------
@@ -474,12 +482,12 @@ def authenticate_user(
     config : AuthConfig
         The authentication configuration.
     tokens : TokenManager
-        The token manager.
+        The token manager instance.
 
     Returns
     -------
     AuthCredentials
-        Valid credentials for accessing Google Cloud services.
+        The valid credentials for accessing Google Cloud services.
 
     Raises
     ------
@@ -507,4 +515,9 @@ def authenticate_user(
     return credentials
 
 
-__all__ = ["AuthConfig", "TokenManager", "authenticate_user"]
+__all__ = [
+    "AuthConfig",
+    "ClientConfigurationNotFoundError",
+    "TokenManager",
+    "authenticate_user",
+]
