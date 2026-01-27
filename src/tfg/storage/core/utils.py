@@ -8,6 +8,7 @@ Functions
 ---------
 calculate_mountpoint(root_path)
     Determine the POSIX-style virtual mountpoint for a given path.
+
 """
 
 from pathlib import Path, PurePosixPath
@@ -70,3 +71,6 @@ def calculate_mountpoint(
     local_path = Path("/" if root_path is None else root_path).resolve()
     local_path = local_path.relative_to(local_path.anchor)
     return local_root / local_path.as_posix()
+
+
+__all__ = ["calculate_mountpoint"]
