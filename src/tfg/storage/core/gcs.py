@@ -69,11 +69,14 @@ def use_gcs_cloud(
     Parameters
     ----------
     bucket : str
-        The name of the GCS bucket to access (e.g. ``"noaa-goes16"``).
+        The name of the GCS bucket to access (e.g.
+        ``"gcp-public-data-goes-16"``).
     root_path : str | None, optional
-        The local directory path to use as the root for downloaded
-        files. If ``None``, a default location is determined by the
-        system.
+        The directory path to use as the data root. Relative paths
+        are resolved against the current working directory; absolute
+        paths map directly to the corresponding location in both the
+        local filesystem and the cloud storage bucket. If ``None``, the
+        bucket is used as the root.
     cache_file : str | Path | None, optional
         The path to a file for persisting directory listing caches.
         If ``None``, caching is transient or in-memory only.
@@ -90,13 +93,24 @@ def use_gcs_cloud(
         The initialised data service configured for the specified GCS
         bucket.
 
+    Notes
+    -----
+    This service maintains a symmetric mapping: the provided `root_path`
+    resolves to identical relative or absolute locations in both the
+    local filesystem and the cloud storage environment. Path
+    resolution follows the symmetric mapping logic implemented in
+    `calculate_mountpoint`.
+
     Examples
     --------
-    >>> service = use_gcs_cloud(
-    ...     bucket="noaa-goes16",
-    ...     project="my-gcp-project",
+    Initialise a data source for a public GOES-16 satellite imagery
+    bucket:
+
+    >>> from tfg.storage import use_gcs_cloud
+    >>> datasource = use_gcs_cloud(
+    ...     bucket="gcp-public-data-goes-16",
     ...     expire_after=3600.0,
-    ... )
+    ... )  # doctest: +SKIP
     """
     mountpoint = calculate_mountpoint(root_path=root_path)
 
