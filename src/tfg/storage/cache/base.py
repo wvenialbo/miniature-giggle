@@ -1,104 +1,114 @@
-import typing as tp
+"""
+Define protocols for data storage cache implementations.
+
+This module provides the structural contracts for caching mechanisms
+used within the storage layer. It includes a base protocol for general
+cache management and a generic protocol for typed item storage.
+
+Classes
+-------
+AbstractCache
+    Represent the base protocol for data storage caches.
+CacheBase
+    Represent a protocol for data storage caches.
+
+"""
+
+from typing import Protocol
 
 
-class AbstractCache(tp.Protocol):
+class AbstractCache(Protocol):
     """
-    Protocolo base para cachés de almacenamiento de datos.
+    Represent the base protocol for data storage caches.
 
-    Define la interfaz mínima que debe implementar cualquier caché de
-    almacenamiento de datos.
+    Define the minimum interface that must be implemented by any
+    data storage cache.
 
     Methods
     -------
-    clear() -> None
-        Limpia todos los objetos almacenados en la caché.
-    invalidate(path: str) -> None
-        Elimina un objeto de la caché usando la ruta especificada.
-    purge() -> None
-        Elimina entradas expiradas de la caché.
+    clear()
+        Remove all objects from the cache.
+    invalidate(path)
+        Remove an object from the cache using the specified path.
+    purge()
+        Remove expired entries from the cache.
     """
 
     def clear(self) -> None:
         """
-        Limpia todos los objetos almacenados en la caché.
+        Remove all objects from the cache.
 
-        Esta operación elimina todos los objetos actualmente almacenados
-        en la caché.
+        This operation deletes every object currently stored in the
+        cache.
         """
         ...
 
     def invalidate(self, path: str) -> None:
         """
-        Elimina un objeto de la caché usando la ruta especificada.
+        Remove an object from the cache using the specified path.
 
         Parameters
         ----------
         path : str
-            La ruta del objeto a eliminar de la caché.
+            The path of the object to be removed from the cache.
         """
         ...
 
     def purge(self) -> None:
         """
-        Elimina entradas expiradas de la caché.
+        Remove expired entries from the cache.
 
-        Las implementaciones pueden definir políticas de expiración para
-        los objetos almacenados en la caché (ejemplo: tiempo de vida
-        máximo). Esta función elimina todos los objetos que hayan
-        expirado según dichas políticas.
+        Implementations may define expiration policies for stored
+        objects, e.g. a maximum time-to-live. This method deletes all
+        objects that have expired according to those policies.
         """
         ...
 
 
 class CacheBase[T](AbstractCache):
     """
-    Protocolo para cachés de almacenamiento de datos.
+    Represent a protocol for data storage caches.
 
-    Define la interfaz para cachés que almacenan datos en memoria o en
-    almacenamiento local para acelerar operaciones de lectura y
-    escritura en backends remotos.
-
-    Hereda de AbstractCache y añade métodos para obtener y establecer
-    objetos en la caché.
-
-    Hereda de AbstractCache y añade métodos para obtener y establecer
-    objetos en la caché.
+    Define the interface for caches that store data in memory or local
+    storage to accelerate read and write operations on remote backends.
+    It extends `AbstractCache` by adding methods to retrieve and store
+    objects.
 
     Methods
     -------
-    get(path: str) -> Any
-        Recupera un objeto desde la caché usando la ruta especificada.
-    set(path: str, item: Any) -> None
-        Almacena un objeto en la caché bajo la ruta especificada.
+    get(path)
+        Retrieve an object from the cache using the specified path.
+    set(path, data)
+        Store an object in the cache under the specified path.
     """
 
     def get(self, path: str) -> T | None:
         """
-        Recupera un objeto desde la caché usando la ruta especificada.
+        Retrieve an object from the cache using the specified path.
 
         Parameters
         ----------
         path : str
-            La ruta del objeto a recuperar.
+            The path of the object to retrieve.
 
         Returns
         -------
-        Any | None
-            El objeto almacenado en la caché bajo la ruta dada, o None
-            si no existe.
+        T | None
+            The object stored in the cache under the given path, or
+            ``None`` if it does not exist.
         """
         ...
 
     def set(self, path: str, data: T) -> None:
         """
-        Almacena un objeto en la caché bajo la ruta especificada.
+        Store an object in the cache under the specified path.
 
         Parameters
         ----------
         path : str
-            La ruta bajo la cual almacenar el objeto.
-        data : Any
-            El objeto a almacenar en la caché.
+            The path under which to store the object.
+        data : T
+            The object to be stored in the cache.
         """
         ...
 
