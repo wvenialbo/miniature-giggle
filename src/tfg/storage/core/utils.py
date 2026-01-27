@@ -45,6 +45,14 @@ def calculate_mountpoint(
     This function resolves the absolute path and strips any drive
     letters (e.g., 'C:') to create a uniform path structure suitable for
     cross-platform usage.
+
+    Examples
+    --------
+    Determine a basic mountpoint from an absolute local path:
+
+    >>> from tfg.storage.core.utils import calculate_mountpoint
+    >>> calculate_mountpoint(root_path="/abs/path")
+    PurePosixPath('/abs/path')
     """
     local_root = PurePosixPath(mountpoint) / base_path
     local_path = Path("/" if root_path is None else root_path).resolve()
