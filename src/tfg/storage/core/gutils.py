@@ -89,6 +89,14 @@ class AuthConfig:
         Timeout for network requests in seconds.
     token_path : Path
         The path to the stored token file.
+
+    Examples
+    --------
+    Define a configuration using the default application and author IDs:
+
+    >>> from tfg.storage.core.gutils import AuthConfig
+    >>> scopes = ("https://www.googleapis.com/auth/userinfo.email",)
+    >>> config = AuthConfig(scopes=scopes, token_name="token.json")
     """
 
     scopes: tuple[str, ...]
@@ -133,6 +141,14 @@ class TokenManager:
         Load stored credentials from the file system.
     save(credentials)
         Save credentials to the file system.
+
+    Examples
+    --------
+    Initialise a token manager with an authentication configuration:
+
+    >>> from tfg.storage.core.gutils import AuthConfig, TokenManager
+    >>> config = AuthConfig(scopes=(), token_name="token.json")
+    >>> manager = TokenManager(config)
     """
 
     def __init__(self, config: AuthConfig) -> None:
@@ -147,6 +163,15 @@ class TokenManager:
         OAuthCredentials | None
             The loaded credentials or ``None`` if no stored token
             exists.
+
+        Examples
+        --------
+        Load credentials from the default storage location:
+
+        >>> from tfg.storage.core.gutils import AuthConfig, TokenManager
+        >>> config = AuthConfig(scopes=(), token_name="token.json")
+        >>> manager = TokenManager(config)
+        >>> credentials = manager.load()  # doctest: +SKIP
         """
         from google.oauth2.credentials import Credentials as OAuthCredentials
 
@@ -167,6 +192,16 @@ class TokenManager:
         ----------
         credentials : OAuthCredentials
             The credentials to serialise and store.
+
+        Examples
+        --------
+        Save obtained credentials to the local file system:
+
+        >>> from tfg.storage.core.gutils import AuthConfig, TokenManager
+        >>> config = AuthConfig(scopes=(), token_name="token.json")
+        >>> manager = TokenManager(config)
+        >>> # Assuming 'creds' is an OAuthCredentials object
+        >>> manager.save(creds)  # doctest: +SKIP
         """
         path = self.config.token_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -493,6 +528,20 @@ def authenticate_user(
     ------
     RuntimeError
         If valid credentials cannot be obtained by any method.
+
+    Examples
+    --------
+    Authenticate a user session for a project:
+
+    >>> from tfg.storage.core.gutils import AuthConfig, TokenManager
+    >>> from tfg.storage.core.gutils import authenticate_user
+    >>> config = AuthConfig(scopes=(), token_name="token.json")
+    >>> manager = TokenManager(config)
+    >>> creds = authenticate_user(
+    ...     project_id="my-project",
+    ...     config=config,
+    ...     tokens=manager,
+    ... )  # doctest: +SKIP
     """
     credentials = _get_user_credentials(tokens)
 
