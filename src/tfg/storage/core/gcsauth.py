@@ -1,21 +1,16 @@
 """
-Manage Google Cloud Storage authentication and client creation.
+Provide Google Cloud Storage authentication and client creation.
 
-This module provides utilities to create Google Cloud Storage (GCS)
-clients with appropriate authentication strategies. It supports creating
+This module provides utilities to create Google Cloud Storage clients
+with appropriate authentication strategies. It supports creating
 anonymous clients for public buckets, using explicit credentials, or
-authenticating via user credentials and Application Default Credentials
-(ADC).
+authenticating via user credentials and Application Default Credentials.
 
 Functions
 ---------
 get_gcs_client(bucket, project, credentials, **kwargs)
     Create a Google Cloud Storage client.
 
-Classes
--------
-GCSAuthArgs
-    Define the configuration arguments for Google Cloud Storage client.
 """
 
 import contextlib
@@ -48,19 +43,21 @@ HTTP_200_OK = 200
 
 class GCSAuthArgs(TypedDict, total=False):
     """
-    Define the configuration arguments for Google Cloud Storage client.
+    Define the configuration arguments for Google Cloud Storage clients.
 
     Attributes
     ----------
-    client_info : ClientInfo | None
-        Information about the client library.
-    client_options : ClientOptions | None
-        Client options including the API endpoint and other settings.
-    use_auth_w_custom_endpoint : bool
-        Whether to send credentials when using a custom endpoint.
-    extra_headers : dict[str, str]
-        Additional HTTP headers to include in requests.
-    api_key : str | None
+    client_info : ClientInfo | None, optional
+        The information about the client library.
+    client_options : ClientOptions | None, optional
+        The client options including the API endpoint and other
+        settings.
+    use_auth_w_custom_endpoint : bool, optional
+        The flag indicating whether to send credentials when using a
+        custom endpoint.
+    extra_headers : dict[str, str], optional
+        The additional HTTP headers to include in requests.
+    api_key : str | None, optional
         The API key to use for authentication.
     """
 
@@ -79,7 +76,7 @@ def _is_public(bucket: str, config: AuthConfig) -> bool:
     Parameters
     ----------
     bucket : str
-        The name of the GCS bucket to check.
+        The name of the Google Cloud Storage bucket to check.
     config : AuthConfig
         The authentication configuration.
 
@@ -110,16 +107,15 @@ def _get_gcs_anonymous_client(
 
     Parameters
     ----------
-    project : str | None
-        The Google Cloud project ID. If not specified, the library will
-        attempt to infer it from the environment.
+    project : str | None, optional
+        The Google Cloud project ID.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments for the client constructor.
+        The additional keyword arguments for the client constructor.
 
     Returns
     -------
     Client
-        The anonymous GCS client.
+        The anonymous Google Cloud Storage client.
     """
     from google.auth.credentials import AnonymousCredentials
     from google.cloud import storage
@@ -142,19 +138,17 @@ def _get_gcs_default_client(
 
     Parameters
     ----------
-    project : str | None
-        The Google Cloud project ID. If not specified, the library will
-        attempt to infer it from the credentials or the environment.
-    credentials : Credentials | None
-        Explicit credentials for authentication. If provided, they are
-        used instead of the default Application Default Credentials.
+    project : str | None, optional
+        The Google Cloud project ID.
+    credentials : Credentials | None, optional
+        The explicit credentials for authentication.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments for the client constructor.
+        The additional keyword arguments for the client constructor.
 
     Returns
     -------
     Client
-        The authenticated GCS client.
+        The authenticated Google Cloud Storage client.
     """
     from google.cloud import storage
 
@@ -177,24 +171,27 @@ def get_gcs_client(
     """
     Create a Google Cloud Storage client.
 
+    This function provides a unified interface for creating Google Cloud
+    Storage (GCS) clients, handling the transition from public to
+    private access seamlessly. It abstracts the complexity of credential
+    discovery and provides support for various authentication flows
+    based on the bucket accessibility and provided credentials.
+
     Parameters
     ----------
     bucket : str
         The name of the GCS bucket.
-    project : str | None
-        The Google Cloud project ID. If not specified, the library will
-        attempt to infer it from the credentials or the environment.
-    credentials : Credentials | None
-        Explicit credentials for authentication. If provided, these are
-        used immediately without checking for public access or other
-        authentication methods.
+    project : str | None, optional
+        The Google Cloud project ID.
+    credentials : Credentials | None, optional
+        The explicit credentials for authentication.
     **kwargs : Unpack[GCSAuthArgs]
-        Additional arguments for the client constructor.
+        The additional keyword arguments for the client constructor.
 
     Returns
     -------
     Client
-        The initialized (authenticated or anonymous) GCS client.
+        The initialized authenticated or anonymous GCS client.
 
     Notes
     -----
@@ -202,7 +199,18 @@ def get_gcs_client(
     authentication method. It prioritizes explicit credentials, then
     checks for public bucket access (anonymous client), and finally
     attempts to authenticate the user or use Application Default
-    Credentials.
+    Credentials (ADC).
+
+    Examples
+    --------
+    Create a client for a public Google Cloud Storage bucket:
+
+    >>> from tfg.storage.core.gcsauth import get_gcs_client
+    >>> client = get_gcs_client(
+    ...     bucket="public-bucket",
+    ...     project=None,
+    ...     credentials=None,
+    ... )  # doctest: +SKIP
     """
     if credentials is not None:
         return _get_gcs_default_client(
