@@ -16,7 +16,7 @@ from pathlib import Path, PurePosixPath
 def calculate_mountpoint(
     *, root_path: str | None, mountpoint: str = "/", base_path: str = ""
 ) -> PurePosixPath:
-    """
+    r"""
     Determine the virtual mountpoint for a given root path.
 
     Calculate a standardized POSIX-style path to serve as the root for
@@ -48,11 +48,23 @@ def calculate_mountpoint(
 
     Examples
     --------
-    Determine a basic mountpoint from an absolute local path:
+    Absolute paths map directly to a POSIX structure:
 
     >>> from tfg.storage.core.utils import calculate_mountpoint
-    >>> calculate_mountpoint(root_path="/abs/path")
-    PurePosixPath('/abs/path')
+    >>> calculate_mountpoint(root_path="/projects/data")
+    PurePosixPath('/projects/data')
+
+    Relative paths are resolved against the current working directory:
+
+    >>> import os
+    >>> os.chdir("/home/user")  # Assuming CWD is '/home/user'
+    >>> calculate_mountpoint(root_path="project/data")
+    PurePosixPath('/home/user/project/data')
+
+    Handling of drive letters for cross-platform consistency:
+
+    >>> calculate_mountpoint(root_path="C:\data\projects")
+    PurePosixPath('/data/projects')
     """
     local_root = PurePosixPath(mountpoint) / base_path
     local_path = Path("/" if root_path is None else root_path).resolve()
