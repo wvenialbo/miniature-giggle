@@ -142,19 +142,41 @@ def use_colab_drive(*, root_path: str | None = None) -> Datasource:
     Create a data source context for Google Drive access within Colab.
 
     Initialise the Colab runtime environment by mounting the user's
-    Google Drive to the local filesystem. This allows transparent
-    access to datasets stored in the 'MyDrive' folder.
+    Google Drive to the local filesystem. This allows transparent access
+    to datasets stored in the 'MyDrive' folder.
 
     Parameters
     ----------
     root_path : str | None, optional
-        The relative path within 'MyDrive' to use as the dataset root.
-        If ``None``, the root of 'MyDrive' is used.
+        The directory path to use as the data root. Relative paths are
+        resolved against the current working directory; absolute paths
+        map directly to the corresponding location in both the local
+        filesystem and Google Drive. If ``None``, the root ('MyDrive')
+        is used.
 
     Returns
     -------
     Datasource
         The initialised data service pointing to the mounted Drive path.
+
+    Notes
+    -----
+    This service maintains a symmetric mapping: the provided `root_path`
+    resolves to identical relative or absolute locations in both the
+    local filesystem and the mounted Google Drive environment. Path
+    resolution follows the symmetric mapping logic implemented in
+    :func:`~tfg.storage.core.utils.calculate_mountpoint`.
+
+    Examples
+    --------
+    Initialise a data source for the root of 'MyDrive':
+
+    >>> from tfg.storage import use_colab_drive
+    >>> ds = use_colab_drive()  # doctest: +SKIP
+
+    Initialise a data source for a specific project subfolder:
+
+    >>> ds = use_colab_drive(root_path="data")  # doctest: +SKIP
     """
     mountpoint = calculate_mountpoint(
         root_path=root_path, mountpoint=_MOUNT_POINT, base_path=_ROOT_PATH
@@ -184,6 +206,13 @@ def release_colab_drive(*, fail: bool = False) -> None:
     fail : bool, optional
         If ``True``, raise a generic exception if unmounting fails.
         If ``False``, issue a warning instead.
+
+    Examples
+    --------
+    Flush and unmount the drive after data processing is finished:
+
+    >>> from tfg.storage.core.colab import release_colab_drive
+    >>> release_colab_drive()  # doctest: +SKIP
     """
     _unmount_drive(fail=fail)
 
