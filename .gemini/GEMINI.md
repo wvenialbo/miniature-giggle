@@ -274,7 +274,7 @@ These instructions apply to all the following sections in these `Project Standar
    - Complex or multi-line examples MUST be placed in the `Notes` section.
    - Usage examples MUST be placed exclusively in the `Examples` section.
 
-### 4.9. Component Sections
+### 4.9. Component Sections and Order of Sections
 
 1. **Section headers**:
    - The section name BEGINS with a capital letter and DOES NOT end with a period.
@@ -282,40 +282,44 @@ These instructions apply to all the following sections in these `Project Standar
    - Example: `Parameters` then `----------`.
 2. **Package Component Sections**:
    - `Contents`: Overview of the package's main components.
-   - `Functions`: List and brief description of functions exported from the package.
-   - `Classes`: List and brief description of public classes exported from the package.
-   - `Exceptions`: List and brief description of public exceptions exported from the package.
    - `Subpackages`: List and brief description of public sub-packages.
    - `Modules`: List and brief description of public modules exported from the package.
+   - `Classes`: List and brief description of public classes exported from the package.
+   - `Exceptions`: List and brief description of public exceptions exported from the package.
+   - `Functions`: List and brief description of functions exported from the package.
    - `Symbols`: List and brief description of public symbols exported from the package.
 3. **Module Component Sections**:
-   - `Functions`: List and brief description of public functions defined in the module.
    - `Classes`: List and brief description of public classes defined in the module.
    - `Exceptions`: List and brief description of public exceptions defined in the module.
+   - `Functions`: List and brief description of public functions defined in the module.
    - `Symbols`: List and brief description of public symbols defined in the module.
 4. **Class Component Sections**:
    - `Parameters`: List and brief description of the constructor parameters.
    - `Other Parameters`: List and brief description of infrequently used parameters.
    - `Attributes`: List and brief description of public class attributes.
    - `Methods`: List and brief description of public class methods.
-5. **Exception Component Sections**:
+5. **Class Component Sections** (Dataclass and TypeDict Specialization):
+   - `Attributes`: List and brief description of public class attributes.
+   - `Methods`: List and brief description of public class methods.
+6. **Exception Component Sections**:
    - `Parameters`: List and brief description of the constructor parameters.
-6. **Function and Method Component Sections**:
+   - `Methods`: List and brief description of public class methods.
+7. **Function and Method Component Sections**:
    - `Parameters`: List and brief description of the function/method parameters.
    - `Other Parameters`: List and brief description of infrequently used parameters.
    - `Returns`: Description of the return value (for regular functions/methods).
    - `Raises`: List and brief description of exceptions raised.
    - `Warns`: List and brief description of warnings issued.
-7. **Function and Method Component Sections** (Used with Generators):
+8. **Function and Method Component Sections** (Used with Generators):
    - `Parameters`: List and brief description of the function/method parameters.
    - `Other Parameters`: List and brief description of infrequently used parameters.
    - `Yields`: Description of the yielded values.
    - `Receives`: Description of values sent to the generator.
    - `Raises`: List and brief description of exceptions raised.
    - `Warns`: List and brief description of warnings issued.
-8. **Symbols Component Sections**:
-   - All the common component sections listed below; see 4.9.9.
-9. **Common Component Sections** (can be placed in any entity's docstring):
+9. **Symbols Component Sections**:
+   - All the common component sections listed below; see 4.9.10.
+10. **Common Component Sections** (can be placed in any entity's at the end of the docstring):
    - `Warnings`: Cautions and recommendations to the user.
    - `See Also`: References to related topics or functions.
    - `Notes`: Additional information or clarifications.
@@ -327,7 +331,7 @@ These instructions apply to all the following sections in these `Project Standar
 1. **Declarative Part**:
    - USE `name : type` format.
    - There MUST be a single space before and after the colon.
-   - DO NOT use backticks for the parameter name or type in the declaration.
+   - DO NOT use backticks for the parameter name, type, or default value in the declaration.
    - For the parameter type, be as precise as possible. See Section 4.32.4 (Special Cases and Considerations) below.
    - USE `x : type, optional` when the default value is `None` or an internal sentinel that does not need to be explicitly shown to the user. NEVER write `default=None` or `default=None, optional`; the word `optional` is the unique and sufficient indicator for `None` defaults.
    - USE `x : type, default=value` ONLY when the default value is a meaningful constant, literal, or specific setting (e.g. `default=42`, `default="utf-8"`) that the user should be aware of.
@@ -347,14 +351,18 @@ These instructions apply to all the following sections in these `Project Standar
 3. **Content Constraints**:
    - KEEP descriptions purely text-based and concise.
    - See Section 4.8.4 (The Extended Summary) for other constraints.
+4. OMIT the `Parameters` section from dataclasses and `TypedDict` specialisations.
 
 ### 4.11. Other Parameters (Component Section)
 
 1. Optional section used to describe infrequently used parameters.
 2. Use it only if a function has a large number of keyword parameters, to prevent cluttering the `Parameters` section.
 3. It follows the structure and rules of the `Parameters` section; see Section 4.10 (Parameters).
+4. OMIT the `Other Parameters` section from dataclasses and `TypedDict` specialisations.
 
 ### 4.12. Attributes (Component Section)
+
+Class properties MUST be included here and treated like normal attributes.
 
 1. It follows the structure and rules of the `Parameters` section; see Section 4.10 (Parameters).
 2. **Standard Class Attributes**:
@@ -375,6 +383,7 @@ These instructions apply to all the following sections in these `Project Standar
    - USE `type` (mandatory) or `name : type` (optional) format.
    - There MUST be a single space before and after the colon.
    - DO NOT use backticks for the return value name or type in the declaration.
+   - USE bool for type-narrowing utilities (e.g. `TypeGuard`, `TypeIs`); ADD type narrowing details to the `Notes` section.
    - For the return value type, be as precise as possible. See Section 4.32.4 (Special Cases and Considerations) below.
    - USE `x : {'C', 'F', 'A'}` when a return value can only assume one of a fixed set of values.
 2. **Descriptive Part**:
@@ -459,16 +468,31 @@ References cited in the `Notes` section may be listed here, e.g. if you cited th
 
 ### 4.20. Examples (Component Section)
 
-1. Use the standard `doctest` format:
+1. **Scope**:
+   - MANDATORY: For all functions, classes, and methods exposed as primary entry points (Public API).
+   - OPTIONAL: For internal utilities or private helpers, unless the logic is non-trivial.
+2. **Content**:
+   - Provide illustrative examples demonstrating typical usage.
+   - Show a functional workflow. Do not just call the function; show how the result is typically assigned or used.
+   - Use realistic but simple data (e.g. "./data", "bucket-name").
+   - Examples MUST be self-contained and executable.
+   - Include necessary imports and setup code. See also Section 4.20.4 below.
+   - For side-effects (like CWD), use explicit commands (e.g. `os.chdir`).
+   - If the call is purely for side effects or object initialization without a simple repr, showing the assignment is enough.
+   - Demonstrate edge cases and error handling where applicable.
+3. **Format**:
+   - Use the standard `doctest` format:
    - Code lines begin with `>>>` (with a space).
    - Continuation lines start with ... (with a space).
    - Expected output starts on the next line without any prefix.
    - For tests with a result that is random or platform-dependent, mark the output by adding `#random`.
-2. Separate multiple examples and their explanatory comments with blank lines.
+   - Separate multiple examples and their explanatory comments with blank lines.
+4. **Path Resolution**:
+   - Use the shallowest Public API import path. Trace upwards to root `__init__.py`.
 
 ### 4.21. Methods (Component Section)
 
-Generator methods are included here, treated like normal methods.
+Generator methods MUST be included here and treated like normal methods.
 
 1. **Declarative Part**:
    - ALWAYS include the full shortened signature, with name and parameters list (e.g. `function_name(arg1, arg2, ..., **kwargs)`).
@@ -495,7 +519,7 @@ Global generators are included here, treated like normal functions.
 
 ### 4.23. Classes / Exceptions (Component Section)
 
-Protocols and abstract classes (ABC) are also included in the `Classes` section, treated like normal classes.
+Protocols and abstract classes (ABC) MUST be included in the `Classes` section, and treated like normal classes.
 
 1. **Declarative Part**:
    - USE just the class name in the first line (e.g. `MyClass`).
