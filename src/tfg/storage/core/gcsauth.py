@@ -1,5 +1,5 @@
 """
-Provide Google Cloud Storage authentication and client creation.
+Provide utilities for Google Cloud Storage client creation.
 
 This module provides utilities to create Google Cloud Storage clients
 with appropriate authentication strategies. It supports creating
