@@ -2,9 +2,10 @@
 Provide interface for NOAA's NCEI Archive HTTP data sources.
 
 This module implements a single entry point, `use_ncei_archive`, to
-instantiate and configure `Datasource` instances that access NCEI
-Archive datasets via HTTP. It handles URI mapping and automated
-caching, providing a seamless interface for remote data access.
+instantiate and configure `Datasource` instances that access National
+Centers for Environmental Information (NCEI) Archive datasets via HTTP.
+It handles URI mapping and automated caching, providing a seamless
+interface for remote data access.
 
 Functions
 ---------
@@ -39,20 +40,23 @@ def use_ncei_archive(
     Create a data source context for NOAA's NCEI Archive HTTP server.
 
     Establish a data service connection to a specific dataset within the
-    NCEI public archive. This service handles URL mapping, automated
-    caching, and remote file retrieval using the ``requests`` library.
+    NOAA's National Centers for Environmental Information (NCEI) public
+    archive. This service handles URL mapping, automated caching, and
+    remote file retrieval using the ``requests`` library.
 
     Parameters
     ----------
     dataset_path : str
-        The relative URL path to the specific dataset on the NCEI
-        server (e.g. ``"global-hourly/access/"``).
+        The relative URL path to the specific dataset on the NCEI server
+        (e.g. ``"global-hourly/access/"``).
     root_path : str | None, optional
-        The local directory path to use as the root for downloaded
-        files. If ``None``, a default location is determined by the
-        system.
+        The directory path to use as the data root. Relative paths are
+        resolved against the current working directory; absolute paths
+        map directly to the corresponding location in both the local
+        filesystem and the remote archive. If ``None``, the dataset path
+        (`dataset_path`) is used as the root.
     cache_file : str | Path | None, optional
-        The path to a file for persisting directory listing caches.
+        The path to a JSON file for persisting directory listing caches.
         If ``None``, caching is transient or in-memory only.
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
@@ -64,13 +68,31 @@ def use_ncei_archive(
         The initialised data service configured for the specified NCEI
         archive.
 
+    Notes
+    -----
+    This service maintains a symmetric mapping: the provided `root_path`
+    resolves to identical relative or absolute locations in both the
+    local filesystem and the remote environment. Path resolution
+    follows the mapping logic implemented in `calculate_mountpoint`.
+
+    References
+    ----------
+    National Oceanic and Atmospheric Administration (NOAA):
+        https://www.noaa.gov/
+    National Centers for Environmental Information (NCEI):
+        https://www.ncei.noaa.gov/
+
     Examples
     --------
-    >>> service = use_ncei_archive(
+    Initialise a data source for the Global Historical Climatology
+    Network:
+
+    >>> from tfg.storage import use_ncei_archive
+    >>> datasource = use_ncei_archive(
     ...     dataset_path="ghcnd/daily",
     ...     root_path="./data/weather",
     ...     expire_after=3600.0,
-    ... )
+    ... )  # doctest: +SKIP
     """
     root_url = NCEI_BASE_URL.rstrip("/")
     dataset_path = dataset_path.lstrip("/")
