@@ -47,16 +47,18 @@ def use_google_drive(
     Parameters
     ----------
     root_path : str | None, optional
-        The local directory path to use as the root for downloaded
-        files. If ``None``, a default location is determined by the
-        system.
+        The directory path to use as the data root. Relative paths are
+        resolved against the current working directory; absolute paths
+        map directly to the corresponding location in both the local
+        filesystem and Google Drive. If ``None``, the root ('MyDrive')
+        is used.
     credentials : Credentials | None, optional
         The Google OAuth2 credentials to use for authentication. If
         ``None``, the system attempts to find default application
         credentials or initiates an interactive login flow.
     cache_file : str | Path | None, optional
-        The base path to a file for persisting caches. If ``None``,
-        caching is transient.
+        The base path to a JSON file for persisting caches.
+        If ``None``, caching is transient.
     expire_after : float | None, optional
         The duration in seconds before cached entries are considered
         stale. If ``None``, entries might never expire.
@@ -68,18 +70,26 @@ def use_google_drive(
 
     Notes
     -----
-    When a `cache_file` is provided, the path is split into two
-    separate files (suffixed with ``-id`` and ``-index``) to store ID
-    mappings and directory listings independently.
+    This service maintains a symmetric mapping: the provided `root_path`
+    resolves to identical relative or absolute locations in both the
+    local filesystem and the mounted Google Drive environment. Path
+    resolution follows the symmetric mapping logic implemented in
+    :func:`~tfg.storage.core.utils.calculate_mountpoint`.
+
+    When a `cache_file` is provided, the path is split into
+    two separate files (suffixed with ``-id`` and ``-index``)
+    to store ID mappings and directory listings independently.
 
     Examples
     --------
-    >>> creds = get_credentials()
-    >>> service = use_google_drive(
+    Initialise a data source for Google Drive using local persistent
+    cache:
+
+    >>> from tfg.storage import use_google_drive
+    >>> datasource = use_google_drive(
     ...     root_path="./data/gdrive",
-    ...     credentials=creds,
-    ...     cache_file="./cache/gdrive.pkl",
-    ... )
+    ...     cache_file="./cache/gdrive.json",
+    ... )  # doctest: +SKIP
     """
     mountpoint = calculate_mountpoint(root_path=root_path)
 
