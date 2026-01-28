@@ -1,73 +1,129 @@
+"""
+Implement a timed cache with optional disk persistence.
+
+This module provides a thread-safe caching mechanism that supports
+in-memory storage and optional serialisation to a JSON file. Cached
+items include a creation timestamp to manage expiration based on a
+defined life time.
+
+Classes
+-------
+CacheItem
+    Represent a cached data item and its creation timestamp.
+RawCacheItem
+    Represent the raw dictionary structure of a cached item.
+TimedCache
+    Manage a simple in-memory cache with optional disk persistence.
+
+"""
+
 import contextlib
 import dataclasses as dc
 import json
 import pathlib as pl
 import threading as th
 import time
-import typing as tp
+from typing import TypedDict
 
 from .base import CacheBase
 
 
 @dc.dataclass(frozen=True)
 class CacheItem[T]:
+    """
+    Represent a cached data item and its creation timestamp.
+
+    Attributes
+    ----------
+    data : T
+        The cached data item.
+    created_at : float
+        The Unix timestamp indicating when the item was added to the
+        cache.
+    """
+
     data: T
     created_at: float
 
 
-class RawCacheItem[T](tp.TypedDict):
+class RawCacheItem[T](TypedDict):
+    """
+    Represent the raw dictionary structure of a cached item.
+
+    This structure is used for serialisation and de-serialisation of
+    cache items when persisting to or loading from disk.
+
+    Attributes
+    ----------
+    data : T
+        The cached data item.
+    created_at : float
+        The Unix timestamp indicating when the item was added to the
+        cache.
+    """
+
     data: T
     created_at: float
 
 
 class TimedCache[T](CacheBase[T]):
     """
-    Caché con tiempo de vida.
+    Manage a simple in-memory cache with optional disk persistence.
 
-    Esta implementación de caché mantiene los datos en un diccionario en
-    memoria para acceso rápido. Además, puede opcionalmente persistir
-    los datos en un archivo JSON en disco para mantener el estado entre
-    ejecuciones. Cada objeto almacenado tiene un tiempo de vida, y los
-    objetos expirados se eliminan automáticamente.
+    This implementation maintains data in a dictionary for fast access,
+    optionally persisting state to a JSON file. Items are removed
+    automatically upon retrieval if they have expired, or manually via
+    the `purge` method.
 
     Parameters
     ----------
-    cache_file : str | None, optional
-        Ruta al archivo donde se almacenará la caché en disco. Si es
-        None, la caché solo existirá en memoria (por defecto None).
-    expire_after : float | None, optional
-        Tiempo de vida en segundos para cada objeto en la caché. Si es
-        None, los objetos no expiran (por defecto None).
+    cache_file : str, optional
+        The path to the file where the cache is stored on disk.
+    expire_after : float, optional
+        The life time in seconds for each item in the cache.
 
     Attributes
     ----------
     life_time : float
-        Tiempo de vida en segundos para cada objeto en la caché.
-    cache_file : pathlib.Path | None
-        Ruta al archivo de caché en disco, o None si no se usa.
+        The duration in seconds before an item is considered expired.
+    cache_file : Path, optional
+        The path to the on-disk cache file.
     cache : dict[str, CacheItem[T]]
-        Diccionario que almacena los datos en memoria junto con su
-        tiempo de creación.
-    _lock : threading.Lock
-        Bloqueo para asegurar operaciones thread-safe en la caché.
+        The internal dictionary holding cached items and timestamps.
 
     Methods
     -------
-    clear() -> None
-        Limpia todos los objetos almacenados en la caché.
-    get(path: str) -> Any
-        Recupera un objeto desde la caché usando la ruta especificada.
-    invalidate(path: str) -> None
-        Elimina un objeto de la caché usando la ruta especificada.
-    purge() -> None
-        Elimina entradas expiradas de la caché.
-    set(path: str, item: Any) -> None
-        Almacena un objeto en la caché bajo la ruta especificada.
+    clear()
+        Remove all objects from the memory and disk cache.
+    get(path)
+        Retrieve an object from the cache, removing it if expired.
+    invalidate(path)
+        Remove an object from the cache and update the disk state.
+    purge()
+        Remove expired entries according to the defined life time.
+    set(path, data)
+        Store an object in the cache with the current timestamp.
+
+    Notes
+    -----
+    Items are considered expired if the current time exceeds the sum
+    of the creation timestamp and the defined life time. Automatic
+    cleanup of expired entries occurs during retrieval; no background
+    process is used for real-time maintenance.
+
+    This class is thread-safe, using an internal lock to synchronise
+    concurrent access to the cache and its persistent state.
     """
 
     def __init__(
         self, cache_file: str | None = None, expire_after: float | None = None
     ) -> None:
+        """
+        Initialise the timed cache.
+
+        Calculate the effective life time and load any existing state
+        from the disk cache if a path is provided.
+        """
         self.life_time: float = (
             float("+inf") if expire_after is None else expire_after
         )
@@ -78,6 +134,14 @@ class TimedCache[T](CacheBase[T]):
         self._load_from_disk()
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the cache.
+
+        Returns
+        -------
+        str
+            A string representation of the cache instance.
+        """
         return (
             f"TimedCache(cache_file='{self.cache_file}', "
             f"expire_after={self.life_time:.2f})"
@@ -85,10 +149,10 @@ class TimedCache[T](CacheBase[T]):
 
     def clear(self) -> None:
         """
-        Limpia todos los objetos almacenados en la caché.
+        Remove all objects from the memory and disk cache.
 
-        Esta operación elimina todos los objetos actualmente almacenados
-        en la caché.
+        Override `AbstractCache.clear` to ensure the persistent state
+        is also cleared.
         """
         with self._lock:
             self.cache.clear()
@@ -96,12 +160,10 @@ class TimedCache[T](CacheBase[T]):
 
     def invalidate(self, path: str) -> None:
         """
-        Elimina un objeto de la caché usando la ruta especificada.
+        Remove an object from the cache and update the disk state.
 
-        Parameters
-        ----------
-        path : str
-            La ruta del objeto a eliminar de la caché.
+        Override `AbstractCache.invalidate` to synchronise the deletion
+        with the persistent storage.
         """
         with self._lock:
             if path in self.cache:
@@ -109,12 +171,10 @@ class TimedCache[T](CacheBase[T]):
 
     def purge(self) -> None:
         """
-        Elimina entradas expiradas de la caché.
+        Remove expired entries according to the defined life time.
 
-        Notes
-        -----
-        En esta implementación, se eliminan todos los objetos cuyo
-        tiempo de vida haya expirado.
+        Override `AbstractCache.purge` to filter the internal dictionary
+        and update the disk cache.
         """
         with self._lock:
             current_time = time.time()
@@ -130,21 +190,16 @@ class TimedCache[T](CacheBase[T]):
 
     def get(self, path: str) -> T | None:
         """
-        Recupera un objeto desde la caché usando la ruta especificada.
+        Retrieve an object from the cache, removing it if expired.
 
-        Si el objeto ha expirado, se elimina de la caché y se devuelve
-        None.
-
-        Parameters
-        ----------
-        path : str
-            La ruta del objeto a recuperar.
+        Override `CacheBase.get` to implement lazy expiration during
+        the retrieval process.
 
         Returns
         -------
         T | None
-            El objeto almacenado en la caché bajo la ruta dada, o None
-            si no existe o ha expirado.
+            The cached data item if found and not expired, otherwise
+            ``None``.
         """
         with self._lock:
             item = self.cache.get(path, None)
@@ -161,22 +216,17 @@ class TimedCache[T](CacheBase[T]):
 
     def set(self, path: str, data: T) -> None:
         """
-        Almacena un objeto en la caché bajo la ruta especificada.
+        Store an object in the cache with the current timestamp.
 
-        Establece el tiempo de creación del objeto al momento actual.
-
-        Parameters
-        ----------
-        path : str
-            La ruta bajo la cual almacenar el objeto.
-        data : T
-            El objeto a almacenar en la caché.
+        Override `CacheBase.set` to record the creation time and commit
+        the change to disk.
         """
         with self._lock:
             self.cache[path] = CacheItem[T](data=data, created_at=time.time())
             self._save_to_disk()
 
     def _load_from_disk(self) -> None:
+        """Load the cache state from the JSON file on disk."""
         if not self.cache_file or not self.cache_file.exists():
             return
 
@@ -191,6 +241,7 @@ class TimedCache[T](CacheBase[T]):
             self.cache = {}
 
     def _save_to_disk(self) -> None:
+        """Save the current cache state to the JSON file on disk."""
         if not self.cache_file:
             return
 
@@ -203,6 +254,7 @@ class TimedCache[T](CacheBase[T]):
             self.cache_file.write_text(content, encoding="utf-8")
 
     def _remove_item(self, path: str) -> None:
+        """Delete an item from the cache and persist the change."""
         self.cache.pop(path, None)
         self._save_to_disk()
 
