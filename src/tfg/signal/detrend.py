@@ -1,3 +1,17 @@
+"""
+Implement signal detrending with missing data and GPU support.
+
+This module provides the `SignalDetrender` class, which offers
+functionality similar to `scipy.signal.detrend` but handles `NaN` values
+gracefully and utilises GPU acceleration when CuPy is available.
+
+Classes
+-------
+SignalDetrender
+    Encapulate settings and logic for removing trends from signals.
+
+"""
+
 import typing as tp
 
 import numpy as np
@@ -6,6 +20,8 @@ import scipy as sp
 
 from ..utils import check_mode
 
+
+# Determine if CuPy is available for GPU acceleration.
 try:
     import cupy as cp
     import cupyx.scipy as spx
@@ -17,14 +33,40 @@ except ImportError:
     zp = sp
     xp = np
 
-DetrendMode = tp.Literal["linear", "l", "constant", "c"]
+__all__ = ["SignalDetrender"]
+
+type DetrendMode = tp.Literal["linear", "l", "constant", "c"]
 
 
 class SignalDetrender:
+    """
+    Encapulate settings and logic for removing trends from signals.
+
+    This class provides tools to remove linear or constant trends from
+    time series data. It is designed to handle missing data (NaNs) and
+    automatically leverage GPU acceleration if CuPy is installed.
+
+    Parameters
+    ----------
+    axis : int, default=-1
+        The axis along which the detrending logic is applied.
+    mode : DetrendMode, default="linear"
+        The type of detrending to perform:
+        - "linear": Remove the least-squares linear fit.
+        - "constant": Remove the mean value of each series.
+
+    Attributes
+    ----------
+    axis : int
+        The axis configuration for signal processing.
+    mode : DetrendMode
+        The selected detrending algorithm.
+    """
 
     def __init__(
         self, *, axis: int = -1, mode: DetrendMode = "linear"
     ) -> None:
+        """Initialise the signal detrender with settings."""
         self.axis = axis
         self.mode = mode
 
@@ -36,78 +78,44 @@ class SignalDetrender:
         """
         Remove linear or constant trend from a timeseries.
 
-        This function is numerically identical to `scipy.signal.detrend` but
-        extends functionality to handle missing data (NaN values) and
-        provides GPU support when available. It can operate on subsets of
-        data using the `indices` parameter.
+        This method is numerically identical to `scipy.signal.detrend`
+        but extends functionality to handle missing data (NaN values)
+        and provides GPU support when available.
 
         Parameters
         ----------
-        timeseries : ArrayLike
-            Input data array of shape (m, n) where m is the number of series
-            and n is the number of time samples. Supports both float32 and
-            float64.
-        indices : ArrayLike or None, optional
-            Array of indices specifying which samples to use for linear
-            detrending.  Useful when data contains NaN values at known
-            positions. Must be non-negative and less than the length of the
-            time series along the specified axis. If None, all samples are
-            used (default).
-        axis : int, optional
-            Axis along which to detrend the data. Default is -1 (last axis).
-        mode : {'linear', 'constant'}, optional
-            Type of detrending to perform:
-            - 'linear': Remove the linear least-squares fit from the data.
-            - 'constant': Remove only the mean (set the mean to zero).
-            Default is 'linear'.
+        timeseries : npt.ArrayLike
+            Input data array of shape (m, n) where m is the number of
+            series and n is the number of time samples.
+        indices : npt.ArrayLike, optional
+            Array of indices specifying which samples to use for
+            fitting the trend. Useful when data contains NaNs at known
+            positions. If `None`, all samples are used.
 
         Returns
         -------
-        NDArray[np.float64]
-            The detrended data with the same shape as `timeseries`. The
-            result is always returned as a NumPy array on CPU, regardless of
-            whether GPU acceleration was used internally.
+        npt.NDArray[np.float64]
+            The detrended data as a CPU-based NumPy array.
 
         Raises
         ------
         ValueError
-            - If `mode` is not 'linear' or 'constant'.
-            - If `indices` contains values outside the valid range [0, n_samples-1].
-            - If `indices` contains negative values.
+            If the indices are negative or exceed series length.
 
         Notes
         -----
-        - For `mode='linear'`, the function uses the same algorithm as
-        `scipy.signal.detrend(type='linear')`, producing numerically identical
-        results for complete data (no NaN).
-        - When `indices` is provided, only the specified samples are used for
-        calculating the linear fit, but the detrending is applied to all
-        samples (with NaN preserved at other positions).
-        - The function never modifies the input array.
-        - GPU acceleration is automatically used if CuPy is available and
-        `FORCE_CPU=False`.
+        For ``mode='linear'``, the fit is calculated using only the
+        samples at the specified `indices`, but the result is applied
+        across the entire series.
 
         Examples
         --------
         >>> import numpy as np
-        >>> data = np.array([[1.0, 2.0, 3.0, 4.0],
-        ...                  [2.0, 4.0, 6.0, 8.0]], dtype=np.float64)
-
-        # Remove linear trend (default)
-        >>> detrended = detrend(data, mode='linear')
-        >>> np.allclose(detrended.mean(axis=-1), 0, atol=1e-10)
-        True
-
-        # Remove only the mean
-        >>> demeaned = detrend(data, mode='constant')
-        >>> np.allclose(demeaned.mean(axis=-1), 0)
-        True
-
-        # Use only specific indices for linear fit (e.g., handle NaN)
-        >>> data_with_nan = np.array([[1.0, np.nan, 3.0, 4.0],
-        ...                           [2.0, np.nan, 6.0, 8.0]])
-        >>> valid_indices = np.array([0, 2, 3], dtype=np.int32)
-        >>> detrended_nan = detrend(data_with_nan, indices=valid_indices)
+        >>> data = np.array(
+        ...     [[1.0, 2.0, 3.0, 4.0], [2.0, 4.0, 6.0, 8.0]], dtype=np.float64
+        ... )
+        >>> detrender = SignalDetrender()
+        >>> detrended = detrender.detrend(data)
         """
         check_mode(self, "mode", DetrendMode)
 
@@ -119,20 +127,55 @@ class SignalDetrender:
     def _detrend_constant(
         self, timeseries: npt.ArrayLike
     ) -> npt.NDArray[np.float64]:
-        timeseries = xp.asarray(timeseries, dtype=np.float64)
+        """
+        Remove the mean value from each series.
 
-        result = timeseries - xp.nanmean(timeseries, self.axis, keepdims=True)
+        Parameters
+        ----------
+        timeseries : npt.ArrayLike
+            The input data.
+
+        Returns
+        -------
+        npt.NDArray[np.float64]
+            The demeaned data.
+        """
+        timeseries_arr = xp.asarray(timeseries, dtype=np.float64)
+
+        result = timeseries_arr - xp.nanmean(
+            timeseries_arr, self.axis, keepdims=True
+        )
 
         return xp.asnumpy(result) if xp is not np else result  # type: ignore
 
     def _detrend_linear(
         self, timeseries: npt.ArrayLike, indices: npt.ArrayLike | None
     ) -> npt.NDArray[np.float64]:
+        """
+        Remove the linear trend from each series.
+
+        Parameters
+        ----------
+        timeseries : npt.ArrayLike
+            The input data.
+        indices : npt.ArrayLike, optional
+            The indices to use for calculating the linear fit.
+
+        Returns
+        -------
+        npt.NDArray[np.float64]
+            The detrended data.
+
+        Raises
+        ------
+        ValueError
+            If indices are invalid for the input dimensions.
+        """
         axis = self.axis
 
-        timeseries = np.asarray(timeseries)
+        timeseries_arr = np.asarray(timeseries)
 
-        ts_shape = timeseries.shape
+        ts_shape = timeseries_arr.shape
         n_samples = ts_shape[axis]
 
         if indices is None:
@@ -143,39 +186,38 @@ class SignalDetrender:
         n_valid = len(valid_indices)
 
         if valid_indices[-1] >= n_samples:
-            raise ValueError(
-                "Los índices deben ser menores que "
-                "la longitud de la serie de tiempo"
-            )
+            raise ValueError("Indices must be less than series length.")
 
         if valid_indices[0] < 0:
-            raise ValueError("Los índices deben ser no negativos")
+            raise ValueError("Indices must be non-negative.")
 
         if n_valid < 2:
-            return timeseries.copy()
+            return timeseries_arr.copy()
 
-        ts_dtype = timeseries.dtype.char
+        ts_dtype = timeseries_arr.dtype.char
 
         if ts_dtype not in "dfDF":
             ts_dtype = "d"
 
-        # Eje de referencia para el ajuste
+        # Reference axis for the fit.
         x_min = np.min(valid_indices)
         x_max = np.max(valid_indices)
-        x = xp.arange(n_samples, dtype=ts_dtype)
-        x = (x[valid_indices] - x_min + 1.0) / (x_max - x_min + 1.0)
+        x_axis = xp.arange(n_samples, dtype=ts_dtype)
+        x_axis = (x_axis[valid_indices] - x_min + 1.0) / (x_max - x_min + 1.0)
 
-        # Matriz de diseño para el ajuste lineal: [x, ones]
-        a = xp.ones((n_valid, 2), dtype=ts_dtype)
-        a[:, 0] = x
+        # Design matrix for linear fit: [x, ones].
+        a_matrix = xp.ones((n_valid, 2), dtype=ts_dtype)
+        a_matrix[:, 0] = x_axis
 
-        # Reestructurar los datos para que el último eje quede como primer eje
+        # Move processed axis to the front for easier reshaping.
         rank = len(ts_shape)
         if axis < 0:
             axis = axis + rank
 
         ts_active = (
-            xp.asarray(timeseries) if xp is not np else timeseries.copy()
+            xp.asarray(timeseries_arr)
+            if xp is not np
+            else timeseries_arr.copy()
         )
 
         ts_restructured = xp.moveaxis(ts_active, axis, 0)
@@ -185,22 +227,20 @@ class SignalDetrender:
         if ts_restructured.dtype.char not in "dfDF":
             ts_restructured = ts_restructured.astype(ts_dtype)
 
-        # Valores válidos a ajustar
-        y = ts_restructured[valid_indices, :]
+        # Valid values to adjust.
+        y_values = ts_restructured[valid_indices, :]
 
-        # Resolver mínimos cuadrados
-        # coefs: (2, m) -> [pendientes, interceptos]
-        # coefs, _, _, _ = xp.linalg.lstsq(a, y)
-        coefs, _, _, _ = zp.linalg.lstsq(a, y)
+        # Resolve least squares.
+        coefs, _, _, _ = zp.linalg.lstsq(a_matrix, y_values)
 
-        # Restar la tendencia
-        y_detrended = y - a @ coefs
+        # Subtract trend.
+        y_detrended = y_values - a_matrix @ coefs
 
-        # Colocar de vuelta en el resultado
+        # Place back into result.
         ts_restructured[valid_indices, :] = y_detrended
 
-        # Disponer los datos en su forma original
+        # Restore original shape.
         ts_restructured = ts_restructured.reshape(tr_shape)
         result = xp.moveaxis(ts_restructured, 0, axis)
 
-        return xp.asnumpy(result) if xp is not np else result  # type: ignore
+        return xp.asnumpy(result) if xp is not np else result

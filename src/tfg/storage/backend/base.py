@@ -1,46 +1,69 @@
+"""
+Define core interfaces for storage backends.
+
+This module provides the protocol and base classes for storage
+backends, abstracting the underlying storage technology (e.g. cloud,
+filesystem, API) into a unified interface for data access and
+management.
+
+Classes
+-------
+StorageBackend
+    Protocol defining the required interface for all storage backends.
+ReadOnlyBackend
+    Base class for storage backends that only support read operations.
+ReadWriteBackend
+    Base class for storage backends with read and write capabilities.
+
+"""
+
 import collections.abc as col
 import typing as tp
 
 
+@tp.runtime_checkable
 class StorageBackend(tp.Protocol):
     """
-    Protocolo para backends de almacenamiento de datos crudos.
+    Define the protocol for storage backend implementations.
 
-    Define la interfaz requerida para cualquier implementación de
-    backend de almacenamiento utilizado por la librería.  Las
-    operaciones son de bajo nivel: lectura, escritura, eliminación y
-    listado sobre URIs nativas del backend (rutas absolutas, claves,
-    etc.).
+    This protocol sets the standard functional contract for all storage
+    resource managers, ensuring consistent behaviour across different
+    infrastructure providers.
 
-    Las implementaciones concretas no realizan cálculos de
-    identificadores lógicos; reciben URIs precalculadas por un
-    `URIMapper` en capas superiores.  La única excepción es
-    `create_path()`, que acepta rutas genéricas para creación de
-    contenedores.
+    All methods use absolute, fully qualified, and native URIs for the
+    specific backend (e.g. S3 URIs, local paths, GCS URIs, etc.).
+
+    Methods
+    -------
+    create_path(uri : str) -> str
+        Create a directory or container resource.
+    delete(uri : str) -> None
+        Remove a resource from the storage.
+    exists(uri : str) -> bool
+        Verify the existence of a resource.
+    read(uri : str) -> bytes
+        Retrieve the full content of a resource.
+    read_chunks(uri, chunk_size=1048576)
+        Stream the content of a resource in chunks.
+    scan(prefix : str) -> list[str]
+        List all resources starting with a specific prefix.
+    size(uri : str) -> int
+        Retrieve the size of a resource in bytes.
+    write(uri : str, data : bytes) -> None
+        Store contents in the storage.
 
     Attributes
     ----------
     read_only : bool
-        Indica si el backend es de solo lectura.
+        Whether the backend is in a read-only state.
 
-    Methods
-    -------
-    create_path(uri: str) -> str
-        Crea una ruta o contenedor en el backend de almacenamiento.
-    delete(uri: str) -> None
-        Elimina los datos en la URI especificada.
-    exists(uri: str) -> bool
-        Verifica si los datos existen en la URI especificada.
-    read(uri: str) -> bytes
-        Lee los datos desde la URI especificada.
-    read_chunks(uri: str, chunk_size: int = 1MiB) -> Iterable[bytes]
-        Lee los datos desde la URI especificada de forma segmentada.
-    scan(prefix: str) -> list[str]
-        Lista las URI que comienzan con el prefijo especificado.
-    size(uri: str) -> int
-        Obtiene el tamaño en bytes del objeto en la URI especificada.
-    write(uri: str, data: bytes) -> None
-        Escribe los datos en la URI especificada.
+    Notes
+    -----
+    - All implementations should aim to provide thread-safety for read
+      operations.
+    - Consistency models (e.g. eventual vs strict) are backend-specific.
+    - Errors should map to standard Python exceptions (e.g.
+      ``FileNotFoundError``, ``PermissionError``).
 
     Notes
     -----
@@ -410,6 +433,9 @@ class ReadOnlyBackend(StorageBackend):
 
     @property
     def read_only(self) -> bool:
+        """
+        Indica si el backend es de solo lectura. Siempre True.
+        """
         return True
 
 
@@ -425,6 +451,9 @@ class ReadWriteBackend(StorageBackend):
 
     @property
     def read_only(self) -> bool:
+        """
+        Indica si el backend es de solo lectura. Siempre False.
+        """
         return False
 
 

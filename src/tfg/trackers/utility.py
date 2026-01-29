@@ -1,10 +1,25 @@
+"""
+Provide formatting utilities for coordinate and time sequences.
+
+This module contains helper functions for type conversion, primarily
+translating string representations into numerical formats.
+
+Functions
+---------
+str_to_float
+    Convert a sequence of numeric strings to a list of floats.
+iso_to_timestamp
+    Convert a sequence of ISO date strings to Unix timestamps.
+
+"""
+
 from collections.abc import Sequence
 from datetime import datetime
 
 
 def str_to_float(value_strings: Sequence[str]) -> list[float]:
     """
-    Convert a sequence of strings to a list of floats.
+    Convert a sequence of numeric strings to a list of floats.
 
     Parameters
     ----------
@@ -14,30 +29,32 @@ def str_to_float(value_strings: Sequence[str]) -> list[float]:
     Returns
     -------
     list[float]
-        A list of floats converted from the input strings.
+        The input values converted to floating point.
     """
     return [float(value) for value in value_strings]
 
 
 def iso_to_timestamp(iso_strings: Sequence[str]) -> list[float]:
     """
-    Convert a sequence of ISO date strings to a list of timestamps.
+    Convert a sequence of ISO date strings to Unix timestamps.
 
-    Each ISO date string is expected to be in the format
+    Each ISO date string is expected to follow the format
     'YYYY-MM-DDTHH[:MM[:SS]]Z'.
 
     Parameters
     ----------
     iso_strings : Sequence[str]
-        A sequence of ISO date strings.
+        A sequence of date strings in ISO 8601 format.
 
     Returns
     -------
     list[float]
-        A list of timestamps in seconds since the epoch.
+        A list of numerical timestamps in seconds since the epoch.
     """
-    # Convertir fechas ISO a timestamps en segundos desde la época
     return [
         datetime.fromisoformat(iso_string).timestamp()
         for iso_string in iso_strings
     ]
+
+
+__all__ = ["iso_to_timestamp", "str_to_float"]

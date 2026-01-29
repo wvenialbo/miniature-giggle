@@ -1,3 +1,16 @@
+"""
+Represent metadata and trajectory information for tropical cyclones.
+
+This module provides the `TrackInfo` class, which stores event
+identifiers and coordinate trajectories (temporal and spatial).
+
+Classes
+-------
+TrackInfo
+    Store metadata and trajectory data for a tropical cyclone.
+
+"""
+
 from collections.abc import Sequence
 from typing import cast, overload
 
@@ -5,6 +18,45 @@ from .utility import iso_to_timestamp
 
 
 class TrackInfo:
+    """
+    Store metadata and trajectory data for a tropical cyclone.
+
+    This class maintains identifying information (name, year, etc.)
+    and the physical coordinates (time, latitude, longitude) of a
+    storm's path.
+
+    Parameters
+    ----------
+    name : str
+        The storm name (e.g. "KATRINA").
+    year : int
+        The year of the event.
+    sector : str
+        The oceanic sector (e.g. "AL" for Atlantic).
+    number : int
+        The storm number within its season.
+    nlines : int
+        The number of data records in the source track.
+
+    Attributes
+    ----------
+    timestamps : Sequence[float]
+        The trajectory timestamps in seconds since the epoch.
+    latitudes : Sequence[float]
+        The latitude coordinates of the track.
+    longitudes : Sequence[float]
+        The longitude coordinates of the track.
+    name : str
+        The storm identifier.
+    year : int
+        The season year.
+    sector : str
+        The regional basin identifier.
+    number : int
+        The seasonal sequence number.
+    nlines : int
+        The total count of trajectory points.
+    """
 
     timestamps: Sequence[float]
     latitudes: Sequence[float]
@@ -19,6 +71,7 @@ class TrackInfo:
     def __init__(
         self, name: str, year: int, sector: str, number: int, nlines: int
     ) -> None:
+        """Initialise track metadata."""
         self.name = name
         self.year = year
         self.sector = sector
@@ -37,17 +90,16 @@ class TrackInfo:
         longitudes: Sequence[float],
     ) -> None:
         """
-        Set the track data for the event.
+        Set the track data using numerical timestamps.
 
         Parameters
         ----------
         timestamps : Sequence[float]
-            A sequence of timestamps representing the time of each track
-            point.
+            The trajectory timestamps.
         latitudes : Sequence[float]
-            A sequence of latitudes corresponding to the track points.
+            The latitude coordinates.
         longitudes : Sequence[float]
-            A sequence of longitudes corresponding to the track points.
+            The longitude coordinates.
         """
 
     @overload
@@ -58,17 +110,16 @@ class TrackInfo:
         longitudes: Sequence[float],
     ) -> None:
         """
-        Set the track data for the event.
+        Set the track data using ISO strings.
 
         Parameters
         ----------
         timestamps : Sequence[str]
-            A sequence of strings representing the time of each track
-            point in ISO 8601 format.
+            The trajectory timestamps in ISO 8601 format.
         latitudes : Sequence[float]
-            A sequence of latitudes corresponding to the track points.
+            The latitude coordinates.
         longitudes : Sequence[float]
-            A sequence of longitudes corresponding to the track points.
+            The longitude coordinates.
         """
 
     def set_track_data(
@@ -78,17 +129,21 @@ class TrackInfo:
         longitudes: Sequence[float],
     ) -> None:
         """
-        Set the track data for the event.
+        Set the trajectory coordinates for the event.
 
         Parameters
         ----------
         timestamps : Sequence[float] | Sequence[str]
-            A sequence of timestamps or a sequence of date strings in
-            ISO 8601 format representing the time of each track point.
+            The trajectory timestamps (as floats or ISO strings).
         latitudes : Sequence[float]
-            A sequence of latitudes corresponding to the track points.
+            The latitude coordinates.
         longitudes : Sequence[float]
-            A sequence of longitudes corresponding to the track points.
+            The longitude coordinates.
+
+        Raises
+        ------
+        ValueError
+            If any sequence is empty or if lengths are inconsistent.
         """
         if not timestamps:
             raise ValueError("`timestamps` cannot be empty.")
@@ -107,10 +162,13 @@ class TrackInfo:
             )
 
         if isinstance(timestamps[0], str):
-            timestamps = cast(Sequence[str], timestamps)
-            self.timestamps = iso_to_timestamp(timestamps)
+            timestamps_str = cast(Sequence[str], timestamps)
+            self.timestamps = iso_to_timestamp(timestamps_str)
         else:
             self.timestamps = cast(Sequence[float], timestamps)
 
         self.latitudes = latitudes
         self.longitudes = longitudes
+
+
+__all__ = ["TrackInfo"]

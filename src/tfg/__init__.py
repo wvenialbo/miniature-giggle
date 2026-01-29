@@ -1,15 +1,26 @@
 """
-TFG-WVV — Código del proyecto de Trabajo de Fin de Grado
+TFG-WVV: Cloud top diurnal cycle characterisation code
+======================================================
 
-Provee las funcionalidades requeridas para ejecutar y replicar los
-experimentos el proyecto de investigación:
+Provide the functionality required to execute and replicate the
+research project experiments:
 
-Caracterización del ciclo diurno del tope de nubes de los ciclones
-tropicales en el Océano Atlántico Norte mediante aprendizaje automático
-y datos satelitales.
+Characterisation of the cloud top diurnal cycle of tropical cyclones in
+the North Atlantic Ocean using machine learning and satellite data.
+
+Subpackages
+-----------
+imaging : Image processing and container classes.
+storage : Data persistence and caching systems.
+
+Modules
+-------
+dataset : Dataset management and iteration.
+info : Package metadata and identification.
+
 """
 
-from . import dataset
+from . import dataset, imaging, storage
 from .info import (
     __package_id__,
     __package_name__,
@@ -23,4 +34,6 @@ __all__ = [
     "__package_root__",
     "__version__",
     "dataset",
+    "imaging",
+    "storage",
 ]

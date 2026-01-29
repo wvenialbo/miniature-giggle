@@ -1,3 +1,52 @@
+"""
+Provide general utility functions and environment detection.
+
+This module contains helpers for environment identification (e.g.
+Notebook, Colab, Kaggle), array manipulation, and validation logic.
+
+Classes
+-------
+ProgressTracker
+    Represent a protocol for progress tracking function factories.
+
+Functions
+---------
+running_on_colab
+    Check if the code is running on Google Colab.
+running_on_kaggle
+    Check if the code is running on Kaggle.
+running_on_notebook
+    Check if the code is running in a Jupyter Notebook.
+to_indices
+    Convert a boolean mask into indices of True elements.
+check_frequencies
+    Validate frequency array consistency and suitability.
+check_is_active
+    Verify if a class instance possesses specified attributes.
+check_is_fitted
+    Verify if an estimator instance has been fitted.
+check_mode
+    Ensures an attribute value is within permitted modes.
+check_timeseries
+    Validate time series array structure and consistency.
+format_table
+    Generate formatted table lines from provided data.
+format_report
+    Generate a formatted report string with headers and rules.
+get_columns_size
+    Calculate suitable column widths for table formatting.
+
+Symbols
+-------
+TOPRULE : str
+    Special marker for the top boundary of a report.
+MIDRULE : str
+    Special marker for horizontal separators within a report.
+BOTTOMRULE : str
+    Special marker for the bottom boundary of a report.
+
+"""
+
 import collections.abc as col
 import os
 import pathlib
@@ -8,10 +57,26 @@ import numpy.typing as npt
 
 
 def running_on_colab() -> bool:
+    """
+    Check if the code is running on Google Colab.
+
+    Returns
+    -------
+    bool
+        True if the execution environment is Google Colab.
+    """
     return bool(os.getenv("COLAB_RELEASE_TAG"))
 
 
 def running_on_kaggle() -> bool:
+    """
+    Check if the code is running on Kaggle.
+
+    Returns
+    -------
+    bool
+        True if the execution environment is Kaggle.
+    """
     return (
         pathlib.Path("/kaggle/working").exists()
         or os.environ.get("KAGGLE_KERNEL_RUN_TYPE") is not None
@@ -20,7 +85,13 @@ def running_on_kaggle() -> bool:
 
 def running_on_notebook() -> bool:
     """
-    Detecta si el código se está ejecutando en una notebook.
+    Check if the code is running in a Jupyter Notebook.
+
+    Returns
+    -------
+    bool
+        True if the code is executed within a Jupyter notebook or
+        similar interactive environment.
     """
     try:
         from IPython.core.getipython import get_ipython
@@ -33,95 +104,106 @@ def running_on_notebook() -> bool:
 
 def to_indices(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.intp]:
     """
-    Convierte una máscara booleana en índices de los elementos True.
+    Convert a boolean mask into indices of True elements.
 
     Parameters
     ----------
     mask : npt.NDArray[np.bool_]
-        Una máscara booleana.
+        A boolean mask array.
 
     Returns
     -------
     npt.NDArray[np.intp]
-        Un array de índices correspondientes a los elementos True en la máscara.
+        An array of indices corresponding to True values in the mask.
     """
     return np.flatnonzero(mask)
 
 
 def check_frequencies(frequencies: npt.ArrayLike) -> npt.NDArray[np.float64]:
-    # 1. Validación rápida
+    """
+    Validate frequency array consistency and suitability.
 
-    # Asegurar que tenemos un array
+    Parameters
+    ----------
+    frequencies : npt.ArrayLike
+        The frequencies to validate.
+
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        The validated frequencies as a 64-bit float array.
+
+    Raises
+    ------
+    ValueError
+        If the frequencies are not unidimensional, empty, contain non-
+        finite values, or negative values.
+    TypeError
+        If the frequencies do not contain numerical float values.
+    """
+    # Quick validation.
     frequencies = np.asarray(frequencies, dtype=np.float64)
 
     if frequencies.ndim != 1:
-        raise ValueError("El array de frecuencias debe ser unidimensional")
+        raise ValueError("Frequency array must be unidimensional.")
 
-    # Verificar si el array está vacío
     if frequencies.size == 0:
-        raise ValueError("El array de frecuencias está vacío")
+        raise ValueError("Frequency array is empty.")
 
-    # 2. Validación general de datos
-
-    # Validar tipos de datos
+    # General data validation.
     if not np.issubdtype(frequencies.dtype, np.floating):
         raise TypeError(
-            "El array de frecuencias debe contener valores numéricos float, "
-            f"pero tiene tipo '{frequencies.dtype}'"
+            "Frequency array must contain numerical float values, "
+            f"but has type '{frequencies.dtype}'."
         )
 
-    # Verificar que todas las frecuencias sean finitas
     if not np.all(np.isfinite(frequencies)):
-        raise ValueError("El array de frecuencias contiene valores no finitos")
+        raise ValueError("Frequency array contains non-finite values.")
 
-    # Verificar que todas las frecuencias sean no negativas
     if not np.all(frequencies >= 0):
-        raise ValueError("El array de frecuencias contiene valores negativos")
+        raise ValueError("Frequency array contains negative values.")
 
     return frequencies
 
 
 def check_is_active(self: tp.Any, attributes: list[str]) -> bool:
     """
-    Verifica si una instancia de una clase está activa.
-
-    Verifica si una instancia está activa comprobando la presencia de
-    los atributos dinámicos especificados.
+    Verify if a class instance possesses specified attributes.
 
     Parameters
     ----------
     self : tp.Any
-        Instancia que contiene los atributos.
+        The instance to check.
     attributes : list[str]
-        Lista de nombres de atributos a verificar.
+        List of attribute names to verify.
 
     Returns
     -------
     bool
-        True si todos los atributos existen, False en caso contrario.
+        True if all specified attributes exist on the instance.
     """
     return all(hasattr(self, attr) for attr in attributes)
 
 
 def check_is_fitted(self: tp.Any, attributes: list[str]) -> None:
     """
-    Verifica si una instancia de un estimador ha sido ajustada.
+    Verify if an estimator instance has been fitted.
 
     Parameters
     ----------
     self : tp.Any
-        Instancia que contiene los atributos.
+        The estimator instance to check.
     attributes : list[str]
-        Lista de nombres de atributos a verificar.
+        List of attribute names that should exist after fitting.
 
     Raises
     ------
     ValueError
-        Si alguno de los atributos no existe en la instancia.
+        If any of the required attributes are missing.
     """
     for attr in attributes:
         if not hasattr(self, attr):
-            raise ValueError(f"El estimador no ha sido ajustado con '{attr}'")
+            raise ValueError(f"Estimator has not been fitted with '{attr}'.")
 
 
 def check_mode(
@@ -131,28 +213,27 @@ def check_mode(
     discourage_single_char: bool = True,
 ) -> None:
     """
-    Verifica que el atributo tenga un valor dentro de los modos permitidos.
+    Ensures an attribute value is within permitted modes.
 
     Parameters
     ----------
     self : tp.Any
-        Instancia que contiene el atributo.
+        The instance containing the attribute.
     attribute : str
-        Nombre del atributo a verificar.
+        The name of the attribute to verify.
     mode : tp.Any
-        Modos permitidos para el atributo.
-    discourage_single_char : bool, optional
-        Si es True, desaconseja modos de un solo carácter. Por defecto es True.
+        The allowed modes for the attribute.
+    discourage_single_char : bool, default=True
+        If True, single-character modes are discouraged in error
+        messages.
 
     Raises
     ------
     ValueError
-        Si el atributo no existe o su valor no está en los modos permitidos.
+        If the attribute does not exist or its value is not permitted.
     """
     if not hasattr(self, attribute):
-        raise ValueError(
-            f"El parámetro '{attribute}' no existe en la instancia."
-        )
+        raise ValueError(f"Parameter '{attribute}' does not exist.")
 
     attribute_value = getattr(self, attribute)
     valid_modes = set(tp.get_args(mode))
@@ -165,46 +246,61 @@ def check_mode(
         modes_str = "', '".join(modes)
 
         raise ValueError(
-            f"El parámetro '{attribute}' debe ser uno de: '{modes_str}'"
+            f"Parameter '{attribute}' must be one of: '{modes_str}'."
         )
 
 
 def check_timeseries(time_series: npt.ArrayLike) -> npt.NDArray[np.float64]:
-    # 1. Validación rápida
+    """
+    Validate time series array structure and consistency.
 
-    # Asegurar que tenemos un array 2D
+    Parameters
+    ----------
+    time_series : npt.ArrayLike
+        The time series data to validate.
+
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        The validated time series as a 64-bit float 2D array.
+
+    Raises
+    ------
+    ValueError
+        If the data is empty, has insufficient points, or inconsistent
+        NaN positions.
+    TypeError
+        If the data does not contain numerical float values.
+    """
+    # Quick validation.
     time_series = np.asarray(time_series, dtype=np.float64)
 
     if time_series.ndim == 1:
         time_series = time_series.reshape(1, -1)
 
-    # Verificar si el array está vacío
     if time_series.size == 0:
-        raise ValueError("El array de series temporales está vacío")
+        raise ValueError("Time series array is empty.")
 
-    # 2. Validación general de datos
-
+    # General data validation.
     n_times = time_series.shape[1]
 
-    # Validar tamaño mínimo de series temporales
     if n_times < 2:
         raise ValueError(
-            f"Cada serie temporal debe tener al menos 2 puntos. "
-            f"Recibido: {n_times} puntos por serie"
+            f"Each time series must have at least 2 points. "
+            f"Received: {n_times} points per series."
         )
 
-    # Validar tipos de datos
     if not np.issubdtype(time_series.dtype, np.floating):
         raise TypeError(
-            "El array de series temporales debe contener valores numéricos "
-            f"float, pero tiene tipo '{time_series.dtype}'"
+            "Time series array must contain numerical float values, "
+            f"but has type '{time_series.dtype}'."
         )
 
-    # Verificar que todas las series tengan NaN en las mismas columnas
+    # Ensure all series have NaNs in the same columns.
     nan_mask = np.isnan(time_series)
     nan_by_column = nan_mask == nan_mask[0, :]
     if not np.all(nan_by_column, axis=0).all():
-        raise ValueError("Las series tienen NaNs en columnas no homogéneas")
+        raise ValueError("Series have NaNs in non-homogeneous columns.")
 
     return time_series
 
@@ -218,25 +314,22 @@ def format_table(
     size: tuple[int, int], title: str, data_lines: list[tuple[str, str, str]]
 ) -> list[str]:
     """
-    Formatea una linea de una tabla con los datos proporcionados.
+    Generate formatted table lines from provided data.
 
     Parameters
     ----------
     size : tuple[int, int]
-        Tamaño de las dos primeras columnas.
+        Maximum widths for the first two columns.
     title : str
-        El título de la tabla.
+        The table title.
     data_lines : list[tuple[str, str, str]]
-        Una lista de tuplas que contienen los datos a imprimir en la tabla.
-
-        Cada tupla debe tener tres elementos:
-        - El primer elemento es la columna de la etiqueta.
-        - El segundo elemento es la columna del valor.
-        - El tercer elemento es la columna de la unidad de medida.
+        Data rows for the table. Each tuple contains a label, a value,
+        and units.
 
     Returns
     -------
-    None
+    list[str]
+        A list of formatted strings representing the table content.
     """
     data_table = [f"{title}", MIDRULE]
     for label, value, units in data_lines:
@@ -251,19 +344,19 @@ def format_table(
 
 def format_report(header: str, data_table: list[str]) -> str:
     """
-    Formatea un informe reemplazando las líneas especiales.
+    Generate a formatted report string with headers and rules.
 
     Parameters
     ----------
     header : str
-        El encabezado del informe.
+        The report header.
     data_table : list[str]
-        Las líneas del informe a formatear.
+        The content lines of the report.
 
     Returns
     -------
     str
-        El informe formateado.
+        The complete formatted report as a single string.
     """
     formatted_lines = _format_lines(header, data_table)
 
@@ -272,19 +365,20 @@ def format_report(header: str, data_table: list[str]) -> str:
 
 def _format_lines(header: str, data_table: list[str]) -> list[str]:
     """
-    Formatea un informe reemplazando las líneas especiales.
+    Format report lines by applying boundaries and rules.
 
     Parameters
     ----------
     header : str
-        El encabezado del informe.
+        The report header.
     data_table : list[str]
-        Las líneas del informe a formatear.
+        The content lines of the report.
 
     Returns
     -------
     list[str]
-        Las líneas formateadas del informe.
+        The report lines with boundary markers resolved to correct
+        length.
     """
     report_lines = [TOPRULE, header, TOPRULE] + data_table + [BOTTOMRULE]
     max_length = len(max(report_lines, key=len))
@@ -301,26 +395,21 @@ def get_columns_size(
     data_lines: list[tuple[str, str, str]], spacing: int = 1
 ) -> tuple[int, int]:
     """
-    Obtiene el tamaño máximo de las dos primeras columnas de una tabla.
+    Calculate suitable column widths for table formatting.
 
     Parameters
     ----------
     data_lines : list[tuple[str, str, str]]
-        Una lista de tuplas que contienen los datos a imprimir en la tabla.
-
-        Cada tupla debe tener tres elementos:
-        - El primer elemento es la columna de la etiqueta.
-        - El segundo elemento es la columna del valor.
-        - El tercer elemento es la columna de la unidad de medida.
-    spacing : int, optional
-        Espacio adicional a añadir al tamaño de las columnas, por defecto 1.
+        The data rows to be displayed.
+    spacing : int, default=1
+        Extra padding to add to each column width.
 
     Returns
     -------
     tuple[int, int]
-        Una tupla con el tamaño máximo de las dos primeras columnas.
+        The calculated maximum widths for the first two columns.
     """
-    # Calcular ancho de columnas
+    # Calculate column widths.
     label_length = max(len(label) for label, _, _ in data_lines) + spacing
     value_length = max(len(value) for _, value, _ in data_lines) + spacing
 
@@ -328,6 +417,13 @@ def get_columns_size(
 
 
 class ProgressTracker(tp.Protocol):
+    """
+    Represent a protocol for progress tracking function factories.
+
+    A wrapper factory that receives a byte iterable and provides
+    progress visualisation during iteration.
+    """
+
     def __call__(
         self,
         *,
@@ -336,26 +432,41 @@ class ProgressTracker(tp.Protocol):
         description: str,
     ) -> col.Iterable[bytes]:
         """
-        Tipo de protocolo para rastreadores de progreso.
-
-        Una función factoría que recibe un iterable de bytes, el tamaño
-        total en bytes, una descripción, y devuelve un iterable de bytes
-        que envuelve el original para mostrar el progreso de una
-        operación.
+        Create a progress-tracking wrapper around a byte iterable.
 
         Parameters
         ----------
         iterable : col.Iterable[bytes]
-            Un iterable que produce fragmentos de bytes.
+            The source iterable producing byte chunks.
         total_size : int
-            El tamaño total en bytes del objeto a leer.
+            The total expected size in bytes of the stream.
         description : str
-            Una descripción para mostrar en la barra de progreso.
+            A brief description to display in the progress indicator.
 
         Returns
         -------
         col.Iterable[bytes]
-            Un iterable de bytes que envuelve el original para mostrar
-            progreso.
+            A new iterable that yields the same bytes while updating
+            progress state.
         """
         ...
+
+
+__all__ = [
+    "BOTTOMRULE",
+    "MIDRULE",
+    "ProgressTracker",
+    "TOPRULE",
+    "check_frequencies",
+    "check_is_active",
+    "check_is_fitted",
+    "check_mode",
+    "check_timeseries",
+    "format_report",
+    "format_table",
+    "get_columns_size",
+    "running_on_colab",
+    "running_on_kaggle",
+    "running_on_notebook",
+    "to_indices",
+]
